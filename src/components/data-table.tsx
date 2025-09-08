@@ -189,7 +189,7 @@ export function DataTable() {
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">All Users</h2>
           <span className="text-sm text-muted-foreground">
-            Manage and view all user accounts
+            View all user accounts
           </span>
         </div>
         <div className="flex items-center gap-2">
