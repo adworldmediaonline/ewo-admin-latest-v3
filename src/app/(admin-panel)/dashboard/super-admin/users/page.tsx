@@ -1,9 +1,9 @@
 'use client';
-import React from 'react';
-import Link from 'next/link';
 import Wrapper from '@/layout/wrapper';
-import Breadcrumb from '../components/breadcrumb/breadcrumb';
+import Link from 'next/link';
+
 import { useGetUsersQuery } from '@/redux/user/userApi';
+import Breadcrumb from '../../../../components/breadcrumb/breadcrumb';
 
 function getInitials(name: string) {
   return name
@@ -14,7 +14,7 @@ function getInitials(name: string) {
 }
 
 export default function UsersPage() {
-  const { data, isLoading, isError } = useGetUsersQuery();
+  const { data, isLoading, isError } = useGetUsersQuery({});
   const users = data?.data || [];
 
   return (
@@ -62,7 +62,7 @@ export default function UsersPage() {
                     Joined: {new Date(user.createdAt).toLocaleDateString()}
                   </div>
                   <Link
-                    href={`/users/${user._id}`}
+                    href={`/dashboard/super-admin/users/${user._id}`}
                     className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                   >
                     View Details

@@ -1,6 +1,7 @@
 'use client';
 
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { Loader2 } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { AppSidebarAdmin } from '../../../../components/app-sidebar-admin';
 import { authClient } from '../../../../lib/auth-client';
@@ -12,13 +13,13 @@ export default function DashboardLayout({
 }) {
   const { data: session, isPending } = authClient.useSession();
 
-  // if (isPending) {
-  //   return (
-  //     <div className="flex justify-center items-center h-screen">
-  //       <Loader2 className="animate-spin" />
-  //     </div>
-  //   );
-  // }
+  if (isPending) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  }
 
   if (session?.user.role !== 'super-admin') {
     return redirect('/sign-in');
