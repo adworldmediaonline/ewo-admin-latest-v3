@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
-import Image from "next/image";
-import useUploadImage from "@/hooks/useUploadImg";
-import upload_default from "@assets/img/icons/upload.png";
-import Loading from "../common/loading";
-import UploadImage from "../products/add-product/upload-image";
+import useUploadImage from '@/hooks/useUploadImg';
+import Image from 'next/image';
+import React, { useEffect } from 'react';
+import upload_default from '../../../../public/assets/img/icons/upload.png';
+
+import Loading from '../common/loading';
+import UploadImage from '../products/add-product/upload-image';
 
 // prop type
 type IPropType = {
@@ -11,11 +12,18 @@ type IPropType = {
   isSubmitted: boolean;
   default_img?: string;
   image?: string;
-  setIsSubmitted?:React.Dispatch<React.SetStateAction<boolean>>
+  setIsSubmitted?: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-const GlobalImgUpload = ({setImage,isSubmitted,default_img,image,setIsSubmitted}: IPropType) => {
-  const { handleImageUpload, uploadData, isError, isLoading } = useUploadImage();
+const GlobalImgUpload = ({
+  setImage,
+  isSubmitted,
+  default_img,
+  image,
+  setIsSubmitted,
+}: IPropType) => {
+  const { handleImageUpload, uploadData, isError, isLoading } =
+    useUploadImage();
   const showDefaultImage = !uploadData && !isLoading && !isError && default_img;
 
   const upload_img = isLoading ? (
@@ -37,8 +45,8 @@ const GlobalImgUpload = ({setImage,isSubmitted,default_img,image,setIsSubmitted}
 
   // set upload image
   useEffect(() => {
-    if(isLoading && setIsSubmitted){
-      setIsSubmitted(false)
+    if (isLoading && setIsSubmitted) {
+      setIsSubmitted(false);
     }
   }, [isLoading, setIsSubmitted]);
 
@@ -49,7 +57,6 @@ const GlobalImgUpload = ({setImage,isSubmitted,default_img,image,setIsSubmitted}
       setImage(default_img);
     }
   }, [default_img, uploadData, isError, isLoading, setImage]);
-  
 
   return (
     <div className="mb-6">

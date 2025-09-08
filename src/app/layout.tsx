@@ -31,7 +31,7 @@ export default function RootLayout({
         />
         <link rel="icon" href="/favicon.png" />
       </head>
-      <body className={poppins.className}>
+      <body className={poppins.className} suppressHydrationWarning>
         <Providers>{children}</Providers>
         <Toaster richColors />
       </body>
