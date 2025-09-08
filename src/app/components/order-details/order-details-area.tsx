@@ -34,9 +34,10 @@ import { useState } from 'react';
 
 interface OrderDetailsAreaProps {
   id: string;
+  role: 'admin' | 'super-admin';
 }
 
-export default function OrderDetailsArea({ id }: OrderDetailsAreaProps) {
+export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
   const { data: orderData, error, isLoading } = useGetSingleOrderQuery(id);
   const { data: paymentData, refetch: refetchPaymentData } =
     useGetPaymentDetailsQuery(id);
@@ -281,7 +282,7 @@ export default function OrderDetailsArea({ id }: OrderDetailsAreaProps) {
                 Try Again
               </button>
               <Link
-                href="/orders"
+                href={`/dashboard/${role}/orders`}
                 className="inline-flex items-center justify-center w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium py-2 px-4 rounded-lg transition-colors duration-200"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -306,7 +307,7 @@ export default function OrderDetailsArea({ id }: OrderDetailsAreaProps) {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center">
                 <Link
-                  href="/orders"
+                  href={`/dashboard/${role}/orders`}
                   className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors duration-200"
                 >
                   <ArrowLeft className="w-5 h-5 mr-2" />

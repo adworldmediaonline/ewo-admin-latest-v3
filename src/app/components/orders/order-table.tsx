@@ -35,7 +35,7 @@ import {
   XCircle,
 } from 'lucide-react';
 
-const OrderTable = () => {
+const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   const { data: orders, isError, isLoading, error } = useGetAllOrdersQuery();
   const [searchVal, setSearchVal] = useState<string>('');
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
@@ -268,7 +268,7 @@ const OrderTable = () => {
         cell: info => (
           <div className="flex items-center space-x-2">
             <Link
-              href={`/order-details/${info.row.original._id}`}
+              href={`/dashboard/${role}/order-details/${info.row.original._id}`}
               className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
             >
               <Eye className="w-4 h-4 mr-1" />

@@ -1,6 +1,8 @@
-import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react"
+'use client';
+import { IconTrendingDown, IconTrendingUp } from '@tabler/icons-react';
+import { Calendar, DollarSign, Package, ShoppingCart } from 'lucide-react';
 
-import { Badge } from "@/components/ui/badge"
+import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardAction,
@@ -8,95 +10,139 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from '@/components/ui/card';
+import { useGetDashboardAmountQuery } from '@/redux/order/orderApi';
+
+function ErrorMsg({ msg }: { msg: string }) {
+  return <div className="text-red-500 text-center p-4">{msg}</div>;
+}
 
 export function SectionCards() {
+  const {
+    data: dashboardOrderAmount,
+    isError,
+    isLoading,
+  } = useGetDashboardAmountQuery();
+
+  if (isLoading) {
+    return (
+      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+        <Card className="@container/card">
+          <CardHeader>
+            <CardDescription>Loading...</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isLoading && isError) {
+    return <ErrorMsg msg="There was an error loading dashboard data" />;
+  }
+
   return (
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Total Revenue</CardDescription>
+          <CardDescription>Today Orders</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            $1,250.00
+            ${dashboardOrderAmount?.todayOrderAmount?.toFixed(2) || '0.00'}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +12.5%
+              Today
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Trending up this month <IconTrendingUp className="size-4" />
+            Cash: $
+            {dashboardOrderAmount?.todayCashPaymentAmount?.toFixed(2) || '0.00'}{' '}
+            | Card: $
+            {dashboardOrderAmount?.todayCardPaymentAmount?.toFixed(2) || '0.00'}
           </div>
           <div className="text-muted-foreground">
-            Visitors for the last 6 months
+            <span className="inline-flex items-center gap-1">
+              <DollarSign className="size-4" />
+              Today's order summary
+            </span>
           </div>
         </CardFooter>
       </Card>
+
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>New Customers</CardDescription>
+          <CardDescription>Yesterday Orders</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            1,234
+            ${dashboardOrderAmount?.yesterdayOrderAmount?.toFixed(2) || '0.00'}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingDown />
-              -20%
+              Yesterday
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Down 20% this period <IconTrendingDown className="size-4" />
+            Cash: $
+            {dashboardOrderAmount?.yesterDayCashPaymentAmount?.toFixed(2) ||
+              '0.00'}{' '}
+            | Card: $
+            {dashboardOrderAmount?.yesterDayCardPaymentAmount?.toFixed(2) ||
+              '0.00'}
           </div>
           <div className="text-muted-foreground">
-            Acquisition needs attention
+            <span className="inline-flex items-center gap-1">
+              <ShoppingCart className="size-4" />
+              Yesterday's order summary
+            </span>
           </div>
         </CardFooter>
       </Card>
+
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Active Accounts</CardDescription>
+          <CardDescription>Monthly Orders</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            45,678
+            ${dashboardOrderAmount?.monthlyOrderAmount?.toFixed(2) || '0.00'}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +12.5%
+              This Month
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Strong user retention <IconTrendingUp className="size-4" />
+            Monthly revenue <Calendar className="size-4" />
           </div>
-          <div className="text-muted-foreground">Engagement exceed targets</div>
+          <div className="text-muted-foreground">Current month performance</div>
         </CardFooter>
       </Card>
+
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Growth Rate</CardDescription>
+          <CardDescription>Total Orders</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            4.5%
+            ${dashboardOrderAmount?.totalOrderAmount?.toFixed(2) || '0.00'}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +4.5%
+              All Time
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Steady performance increase <IconTrendingUp className="size-4" />
+            Total revenue <Package className="size-4" />
           </div>
-          <div className="text-muted-foreground">Meets growth projections</div>
+          <div className="text-muted-foreground">Complete order history</div>
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }
