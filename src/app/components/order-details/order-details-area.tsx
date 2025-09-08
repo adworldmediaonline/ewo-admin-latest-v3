@@ -598,7 +598,7 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       </tr>
                     </thead>
                     <tbody className="bg-background divide-y divide-border">
-                      {order.cart.map((item: any, index: number) => (
+                      {order?.cart?.map((item: any, index: number) => (
                         <tr key={index} className="hover:bg-muted/50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center space-x-4">
@@ -636,7 +636,7 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="text-sm text-muted-foreground">
-                              {safeRenderString(item.sku, 'N/A')}
+                              {item.sku || 'N/A'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">

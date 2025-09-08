@@ -2,7 +2,8 @@
 
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Loader2 } from 'lucide-react';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { AppSidebarAdmin } from '../../../../components/app-sidebar-admin';
 import { authClient } from '../../../../lib/auth-client';
 
@@ -12,6 +13,14 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { data: session, isPending } = authClient.useSession();
+  const router = useRouter();
+
+  // Handle role-based redirect
+  useEffect(() => {
+    if (!isPending && session?.user.role !== 'admin') {
+      router.push('/sign-in');
+    }
+  }, [session, isPending, router]);
 
   if (isPending) {
     return (
@@ -21,8 +30,13 @@ export default function DashboardLayout({
     );
   }
 
+  // Don't render anything if user doesn't have admin role
   if (session?.user.role !== 'admin') {
-    return redirect('/sign-in');
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
   }
 
   return (

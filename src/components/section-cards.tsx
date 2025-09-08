@@ -1,6 +1,6 @@
 'use client';
 import { IconTrendingDown, IconTrendingUp } from '@tabler/icons-react';
-import { Calendar, DollarSign, Package, ShoppingCart } from 'lucide-react';
+import { Calendar, Package } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -56,18 +56,16 @@ export function SectionCards() {
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Cash: $
-            {dashboardOrderAmount?.todayCashPaymentAmount?.toFixed(2) || '0.00'}{' '}
-            | Card: $
+          {/* <div className="line-clamp-1 flex gap-2 font-medium">
+            Card: $
             {dashboardOrderAmount?.todayCardPaymentAmount?.toFixed(2) || '0.00'}
-          </div>
-          <div className="text-muted-foreground">
+          </div> */}
+          {/* <div className="text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <DollarSign className="size-4" />
               Today's order summary
             </span>
-          </div>
+          </div> */}
         </CardFooter>
       </Card>
 
@@ -85,20 +83,17 @@ export function SectionCards() {
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Cash: $
-            {dashboardOrderAmount?.yesterDayCashPaymentAmount?.toFixed(2) ||
-              '0.00'}{' '}
-            | Card: $
+          {/* <div className="line-clamp-1 flex gap-2 font-medium">
+            Card: $
             {dashboardOrderAmount?.yesterDayCardPaymentAmount?.toFixed(2) ||
               '0.00'}
-          </div>
-          <div className="text-muted-foreground">
+          </div> */}
+          {/* <div className="text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <ShoppingCart className="size-4" />
               Yesterday's order summary
             </span>
-          </div>
+          </div> */}
         </CardFooter>
       </Card>
 
