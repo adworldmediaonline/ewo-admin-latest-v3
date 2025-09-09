@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { notifyError } from '@/utils/toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Image as ImageIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import VariantImgUpload from './variant-img-upload';
 
 // prop type
@@ -25,17 +26,32 @@ const ProductVariants = ({
   }, [default_value, setImageURLs]);
 
   return (
-    <div className="bg-white px-8 py-8 rounded-md mb-6">
-      <h4 className="text-[22px] mb-6">Product Variations</h4>
-      <div className="mt-4">
+    <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-orange-50 flex items-center justify-center">
+            <ImageIcon className="h-4 w-4 text-orange-600" />
+          </div>
+          <div>
+            <CardTitle className="text-lg font-semibold">
+              Product Variations
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Upload multiple images for product variants. Supports up to 10
+              images.
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
         <VariantImgUpload
           setFormData={setFormData}
           formData={formData}
           setImageURLs={setImageURLs}
           isSubmitted={isSubmitted}
         />
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

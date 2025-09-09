@@ -111,6 +111,26 @@ export default function ProductListArea() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+  const [globalFilter, setGlobalFilter] = useState('');
+
+  // Global filter function for searching both title and SKU
+  const globalFilterFn = useMemo(
+    () => (row: any, columnId: string, filterValue: string) => {
+      if (!filterValue) return true;
+
+      const product = row.original;
+      const searchValue = filterValue.toLowerCase();
+
+      // Search in title
+      const titleMatch = product.title?.toLowerCase().includes(searchValue);
+
+      // Search in SKU
+      const skuMatch = product.sku?.toLowerCase().includes(searchValue);
+
+      return titleMatch || skuMatch;
+    },
+    []
+  );
 
   // Define columns with advanced features
   const columns: ColumnDef<IProduct>[] = useMemo(
@@ -137,7 +157,7 @@ export default function ProductListArea() {
               </div>
               <div className="min-w-0 flex-1">
                 <Link
-                  href={`/product/${product.slug}`}
+                  href={`/dashboard/super-admin/product/edit/${product._id}`}
                   className="text-sm font-medium text-foreground hover:text-primary transition-colors truncate block"
                 >
                   {product.title}
@@ -189,20 +209,26 @@ export default function ProductListArea() {
         enableHiding: true,
       },
       {
-        accessorKey: 'price',
+        accessorKey: 'finalPriceDiscount',
         header: ({ column }) => (
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             className="h-auto p-0 font-medium hover:bg-transparent"
           >
-            Price
+            Final Price
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
         cell: ({ row }) => {
-          const price = row.getValue('price') as number;
-          return <div className="text-sm font-medium">${price.toFixed(2)}</div>;
+          const finalPriceDiscount = row.getValue(
+            'finalPriceDiscount'
+          ) as number;
+          return (
+            <div className="text-sm font-medium">
+              ${finalPriceDiscount.toFixed(2)}
+            </div>
+          );
         },
         enableHiding: true,
       },
@@ -293,14 +319,18 @@ export default function ProductListArea() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem asChild>
-                  <Link href={`/product/${product.slug}`}>
+                  <Link
+                    href={`/dashboard/super-admin/product/edit/${product._id}`}
+                  >
                     <Eye className="mr-2 h-4 w-4" />
                     View Product
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={`/admin/products/edit/${product._id}`}>
+                  <Link
+                    href={`/dashboard/super-admin/product/edit/${product._id}`}
+                  >
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Product
                   </Link>
@@ -336,11 +366,14 @@ export default function ProductListArea() {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    globalFilterFn,
+    onGlobalFilterChange: setGlobalFilter,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
+      globalFilter,
     },
   });
 
@@ -415,12 +448,8 @@ export default function ProductListArea() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search products by name or SKU..."
-                value={
-                  (table.getColumn('title')?.getFilterValue() as string) ?? ''
-                }
-                onChange={event =>
-                  table.getColumn('title')?.setFilterValue(event.target.value)
-                }
+                value={globalFilter ?? ''}
+                onChange={event => setGlobalFilter(event.target.value)}
                 className="pl-10"
               />
             </div>

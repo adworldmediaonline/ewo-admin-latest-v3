@@ -185,4 +185,17 @@
     box-shadow: 0 10px 15px -3px oklch(0 0 0 / 0.1),
       0 4px 6px -4px oklch(0 0 0 / 0.1);
   }
+
+  /* Enhanced form styling for admin panel */
+  .form-section {
+    @apply bg-card border rounded-lg p-6 shadow-card;
+  }
+
+  .form-section-header {
+    @apply flex items-center gap-2 mb-4 pb-2 border-b;
+  }
+
+  .form-section-title {
+    @apply text-lg font-semibold text-card-foreground;
+  }
 }

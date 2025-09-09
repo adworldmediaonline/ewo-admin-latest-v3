@@ -1,9 +1,9 @@
-import { apiSlice } from '../api/apiSlice';
 import {
   IAddProduct,
   IReviewProductRes,
   ProductResponse,
 } from '@/types/product';
+import { apiSlice } from '../api/apiSlice';
 
 interface IProductResponse {
   success: boolean;
