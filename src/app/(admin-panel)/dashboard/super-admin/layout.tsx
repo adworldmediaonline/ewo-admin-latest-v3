@@ -3,6 +3,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { redirect } from 'next/navigation';
 import { AppSidebarSuperAdmin } from '../../../../components/app-sidebar-super-admin';
 import { adminProtectedRoute } from '../../../../lib/server-actions';
+import { SiteHeader } from '../../../../components/site-header';
 
 type fullSessionData = {
   success: boolean;
@@ -49,7 +50,9 @@ export default async function DashboardLayout({
       }
     >
       <AppSidebarSuperAdmin variant="inset" />
+
       <SidebarInset>
+        <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             {children}{' '}

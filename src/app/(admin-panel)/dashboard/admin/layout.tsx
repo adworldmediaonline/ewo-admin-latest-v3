@@ -2,6 +2,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebarAdmin } from '../../../../components/app-sidebar-admin';
 
 import { redirect } from 'next/navigation';
+import { SiteHeader } from '../../../../components/site-header';
 import { adminProtectedRoute } from '../../../../lib/server-actions';
 
 type fullSessionData = {
@@ -50,6 +51,7 @@ export default async function DashboardLayout({
     >
       <AppSidebarAdmin variant="inset" />
       <SidebarInset>
+        <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             {children}{' '}

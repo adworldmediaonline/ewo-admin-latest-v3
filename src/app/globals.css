@@ -121,3 +121,68 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Enhanced theme colors for admin panel */
+@layer utilities {
+  .text-success {
+    color: oklch(0.627 0.194 142.495);
+  }
+
+  .text-danger {
+    color: oklch(0.577 0.245 27.325);
+  }
+
+  .bg-success {
+    background-color: oklch(0.627 0.194 142.495);
+  }
+
+  .bg-danger {
+    background-color: oklch(0.577 0.245 27.325);
+  }
+
+  .bg-warning {
+    background-color: oklch(0.795 0.184 86.047);
+  }
+
+  .text-warning {
+    color: oklch(0.795 0.184 86.047);
+  }
+
+  .bg-info {
+    background-color: oklch(0.623 0.214 259.815);
+  }
+
+  .text-info {
+    color: oklch(0.623 0.214 259.815);
+  }
+
+  .bg-light {
+    background-color: oklch(0.97 0 0);
+  }
+
+  .text-light {
+    color: oklch(0.145 0 0);
+  }
+
+  .bg-dark {
+    background-color: oklch(0.145 0 0);
+  }
+
+  .text-dark {
+    color: oklch(0.985 0 0);
+  }
+
+  .border-light {
+    border-color: oklch(0.922 0 0);
+  }
+
+  .shadow-card {
+    box-shadow: 0 1px 3px 0 oklch(0 0 0 / 0.1),
+      0 1px 2px -1px oklch(0 0 0 / 0.1);
+  }
+
+  .shadow-card-lg {
+    box-shadow: 0 10px 15px -3px oklch(0 0 0 / 0.1),
+      0 4px 6px -4px oklch(0 0 0 / 0.1);
+  }
+}

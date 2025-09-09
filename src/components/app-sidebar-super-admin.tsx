@@ -43,6 +43,11 @@ const data = {
       url: '/dashboard/super-admin/users',
       icon: IconUsers,
     },
+    {
+      title: 'Products',
+      url: '/dashboard/super-admin/product-list',
+      icon: IconUsers,
+    },
   ],
   // navClouds: [
   //   {

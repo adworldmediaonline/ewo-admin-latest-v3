@@ -237,15 +237,6 @@ const ContactTable = () => {
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              Contact Queries
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              {pagination?.totalResults || 0} total contact submissions
-            </p>
-          </div>
-
           {/* Search */}
           <form onSubmit={handleSearch} className="flex gap-2">
             <div className="relative">
