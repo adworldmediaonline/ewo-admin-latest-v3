@@ -185,6 +185,7 @@ const ProductImgUpload = ({
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-lg" />
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <Button
+                  type="button"
                   size="sm"
                   variant="destructive"
                   onClick={() => {

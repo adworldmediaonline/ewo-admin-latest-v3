@@ -224,6 +224,7 @@ const VariantImgUpload = ({
         </div>
         {formData.length > 0 && (
           <Button
+            type="button"
             size="sm"
             variant="outline"
             onClick={() => {
@@ -375,6 +376,7 @@ const VariantImgUpload = ({
                 {/* Remove Button */}
                 <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <Button
+                    type="button"
                     size="sm"
                     variant="destructive"
                     onClick={() => handleRemoveImage(url, idx)}
