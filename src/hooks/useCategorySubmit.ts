@@ -1,18 +1,19 @@
-import { notifySuccess, notifyError } from '@/utils/toast';
 import {
   useAddCategoryMutation,
   useEditCategoryMutation,
 } from '@/redux/category/categoryApi';
+import { notifyError, notifySuccess } from '@/utils/toast';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useRouter } from 'next/navigation';
+import type { Tag } from 'react-tag-input';
 
 const useCategorySubmit = () => {
   const [categoryImg, setCategoryImg] = useState<string>('');
   const [parent, setParent] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [categoryChildren, setCategoryChildren] = useState<string[]>([]);
+  const [categoryChildren, setCategoryChildren] = useState<Tag[]>([]);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const router = useRouter();
   // add
@@ -48,7 +49,7 @@ const useCategorySubmit = () => {
         img: categoryImg,
         parent: data?.parent,
         description: data?.description,
-        children: categoryChildren,
+        children: categoryChildren.map(tag => tag.text),
       };
       const res = await addCategory({ ...category_data });
       if ('error' in res) {
@@ -62,7 +63,7 @@ const useCategorySubmit = () => {
         notifySuccess('Category added successfully');
         setIsSubmitted(true);
         reset();
-        setCategoryChildren([]);
+        setCategoryChildren([] as Tag[]);
         setCategoryImg('');
       }
     } catch (error) {
@@ -77,7 +78,7 @@ const useCategorySubmit = () => {
         img: categoryImg,
         parent: data?.parent,
         description: data?.description,
-        children: categoryChildren,
+        children: categoryChildren.map(tag => tag.text),
       };
       const res = await editCategory({ id, data: category_data });
       if ('error' in res) {

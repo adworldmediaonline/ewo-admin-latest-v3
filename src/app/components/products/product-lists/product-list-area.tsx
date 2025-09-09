@@ -1,140 +1,636 @@
 'use client';
-import Link from 'next/link';
-import React, { useState, useEffect } from 'react';
-import ProductTableHead from './prd-table-head';
-import ProductTableItem from './prd-table-item';
-import Pagination from '../../ui/Pagination';
-import { Search } from '@/svg';
-import ErrorMsg from '../../common/error-msg';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useGetAllProductsQuery } from '@/redux/product/productApi';
-import usePagination from '@/hooks/use-pagination';
 import { IProduct } from '@/types/product';
+import {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+  VisibilityState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
+import {
+  ArrowUpDown,
+  ChevronDown,
+  Edit,
+  Eye,
+  MoreHorizontal,
+  Package,
+  Search,
+  Star,
+  Trash2,
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useMemo, useState } from 'react';
+
+// Custom Star Rating Component
+const StarRating = ({
+  rating,
+  size = 16,
+}: {
+  rating: number;
+  size?: number;
+}) => {
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+  return (
+    <div className="flex items-center gap-0.5">
+      {/* Full stars */}
+      {Array.from({ length: fullStars }, (_, i) => (
+        <Star
+          key={`full-${i}`}
+          size={size}
+          className="fill-amber-400 text-amber-400 shrink-0 transition-colors"
+        />
+      ))}
+
+      {/* Half star */}
+      {hasHalfStar && (
+        <div className="relative">
+          <Star size={size} className="text-gray-300 shrink-0" />
+          <div className="absolute inset-0 overflow-hidden w-1/2">
+            <Star
+              size={size}
+              className="fill-amber-400 text-amber-400 shrink-0"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Empty stars */}
+      {Array.from({ length: emptyStars }, (_, i) => (
+        <Star
+          key={`empty-${i}`}
+          size={size}
+          className="text-gray-300 shrink-0"
+        />
+      ))}
+    </div>
+  );
+};
 
 export default function ProductListArea() {
   const { data: products, isError, isLoading } = useGetAllProductsQuery();
-  const [searchValue, setSearchValue] = useState<string>('');
-  const [selectValue, setSelectValue] = useState<string>('');
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
+  const [globalFilter, setGlobalFilter] = useState('');
 
-  // Filter and sort products
-  const filteredProducts = React.useMemo(() => {
-    if (!products?.data) return [];
+  // Global filter function for searching both title and SKU
+  const globalFilterFn = useMemo(
+    () => (row: any, columnId: string, filterValue: string) => {
+      if (!filterValue) return true;
 
-    let filtered = [...products.data];
+      const product = row.original;
+      const searchValue = filterValue.toLowerCase();
 
-    if (searchValue) {
-      const searchTerm = searchValue.toLowerCase();
-      filtered = filtered.filter(
-        p =>
-          p.title.toLowerCase().includes(searchTerm) ||
-          p.sku.toLowerCase().includes(searchTerm)
-      );
-    }
+      // Search in title
+      const titleMatch = product.title?.toLowerCase().includes(searchValue);
 
-    if (selectValue) {
-      filtered = filtered.filter(p => p.status === selectValue);
-    }
+      // Search in SKU
+      const skuMatch = product.sku?.toLowerCase().includes(searchValue);
 
-    // Sort by newest first (assuming _id contains timestamp)
-    return filtered.sort((a, b) => b._id.localeCompare(a._id));
-  }, [products?.data, searchValue, selectValue]);
+      return titleMatch || skuMatch;
+    },
+    []
+  );
 
-  // Apply pagination to filtered results
-  const { currentItems, handlePageClick, pageCount, forcePage } =
-    usePagination<IProduct>(filteredProducts, 8);
-
-  // Reset pagination when filters change
-  useEffect(() => {
-    forcePage(0);
-  }, [searchValue, selectValue]);
-
-  // Handle search input
-  const handleSearchProduct = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchValue(e.target.value);
-  };
-
-  // Handle status filter
-  const handleSelectField = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectValue(e.target.value);
-  };
-
-  // Render content based on state
-  let content = null;
-
-  if (isLoading) {
-    content = <h2>Loading....</h2>;
-  } else if (isError) {
-    content = <ErrorMsg msg="There was an error" />;
-  } else if (!products?.data?.length) {
-    content = <ErrorMsg msg="No Products Found" />;
-  } else if (filteredProducts.length === 0) {
-    content = <ErrorMsg msg="No products match your search" />;
-  } else {
-    content = (
-      <>
-        <div className="relative mx-8 overflow-x-auto">
-          <table className="w-full text-base text-left text-gray-500">
-            <ProductTableHead />
-            <tbody>
-              {currentItems.map(prd => (
-                <ProductTableItem key={prd._id} product={prd} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between mx-8">
-          <p className="mb-0 text-tiny">
-            Showing {currentItems.length} of {filteredProducts.length}
-          </p>
-          {pageCount > 1 && (
-            <div className="flex items-center justify-end py-3 mx-8 pagination">
-              <Pagination
-                handlePageClick={handlePageClick}
-                pageCount={pageCount}
-              />
+  // Define columns with advanced features
+  const columns: ColumnDef<IProduct>[] = useMemo(
+    () => [
+      {
+        accessorKey: 'title',
+        header: 'Product',
+        cell: ({ row }) => {
+          const product = row.original;
+          return (
+            <div className="flex items-center space-x-3">
+              <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted">
+                <Image
+                  src={
+                    product.img ||
+                    product.imageURLs?.[0] ||
+                    '/placeholder-product.png'
+                  }
+                  alt={product.title}
+                  fill
+                  className="object-cover"
+                  sizes="48px"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Link
+                  href={`/dashboard/super-admin/product/edit/${product._id}`}
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors truncate block"
+                >
+                  {product.title}
+                </Link>
+                <p className="text-xs text-muted-foreground truncate">
+                  {product.category?.name}
+                </p>
+              </div>
             </div>
-          )}
-        </div>
-      </>
+          );
+        },
+        enableHiding: true,
+      },
+      {
+        accessorKey: 'sku',
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="h-auto p-0 font-medium hover:bg-transparent"
+          >
+            SKU
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="font-mono text-sm text-muted-foreground">
+            #{row.getValue('sku')}
+          </div>
+        ),
+        enableHiding: true,
+      },
+      {
+        accessorKey: 'quantity',
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="h-auto p-0 font-medium hover:bg-transparent"
+          >
+            Quantity
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const quantity = row.getValue('quantity') as number;
+          return <div className="text-sm font-medium">{quantity}</div>;
+        },
+        enableHiding: true,
+      },
+      {
+        accessorKey: 'finalPriceDiscount',
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="h-auto p-0 font-medium hover:bg-transparent"
+          >
+            Final Price
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const finalPriceDiscount = row.getValue(
+            'finalPriceDiscount'
+          ) as number;
+          return (
+            <div className="text-sm font-medium">
+              ${finalPriceDiscount.toFixed(2)}
+            </div>
+          );
+        },
+        enableHiding: true,
+      },
+      {
+        accessorKey: 'reviews',
+        header: 'Rating',
+        cell: ({ row }) => {
+          const reviews = row.getValue('reviews') as IProduct['reviews'];
+          const averageRating =
+            reviews && reviews.length > 0
+              ? reviews.reduce((sum, review) => sum + review.rating, 0) /
+                reviews.length
+              : 0;
+
+          // Handle case where there are no reviews
+          if (!reviews || reviews.length === 0) {
+            return (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center shrink-0">
+                  <StarRating rating={0} size={14} />
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  No reviews
+                </span>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center shrink-0">
+                <StarRating rating={averageRating} size={14} />
+              </div>
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-xs text-amber-600 font-medium">
+                  {averageRating.toFixed(1)}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  ({reviews.length})
+                </span>
+              </div>
+            </div>
+          );
+        },
+        enableHiding: true,
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => {
+          const status = row.getValue('status') as string;
+          return (
+            <Badge
+              variant={status === 'in-stock' ? 'default' : 'secondary'}
+              className={`text-xs ${
+                status === 'in-stock'
+                  ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                  : 'bg-red-100 text-red-800 hover:bg-red-100'
+              }`}
+            >
+              {status === 'in-stock' ? (
+                <>
+                  <Package className="w-3 h-3 mr-1" />
+                  In Stock
+                </>
+              ) : (
+                'Out of Stock'
+              )}
+            </Badge>
+          );
+        },
+        enableHiding: true,
+      },
+      {
+        id: 'actions',
+        enableHiding: false,
+        cell: ({ row }) => {
+          const product = row.original;
+
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={`/dashboard/super-admin/product/edit/${product._id}`}
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Product
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={`/dashboard/super-admin/product/edit/${product._id}`}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Product
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => {
+                    // Handle delete - you can implement this
+                    console.log('Delete product:', product._id);
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Product
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  // Initialize table
+  const table = useReactTable({
+    data: products?.data || [],
+    columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    globalFilterFn,
+    onGlobalFilterChange: setGlobalFilter,
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+      globalFilter,
+    },
+  });
+
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Products</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-12 w-12 rounded-lg" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-[250px]" />
+                  <Skeleton className="h-4 w-[200px]" />
+                </div>
+                <Skeleton className="h-8 w-[100px]" />
+                <Skeleton className="h-8 w-[80px]" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <p className="text-destructive mb-2">Error loading products</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <>
-      <div className="py-4 bg-white shadow-xs rounded-t-md rounded-b-md">
-        <div className="flex items-center justify-between px-8 py-8 tp-search-box">
-          <div className="relative search-input">
-            <input
-              onChange={handleSearchProduct}
-              className="input h-[44px] w-full pl-14"
-              type="text"
-              placeholder="Search by product name"
-              value={searchValue}
-            />
-            <button className="absolute top-1/2 left-5 translate-y-[-50%] hover:text-theme">
-              <Search />
-            </button>
-          </div>
-          <div className="flex justify-end space-x-6">
-            <div className="flex items-center mr-3 space-x-3 search-select">
-              <span className="text-tiny inline-block leading-none -translate-y-[2px]">
-                Status :{' '}
-              </span>
-              <select onChange={handleSelectField} value={selectValue}>
-                <option value="">Status</option>
-                <option value="in-stock">In stock</option>
-                <option value="out-of-stock">Out of stock</option>
-              </select>
+    <div className="space-y-4">
+      {/* Header with Search and Filters */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Products
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Manage your product inventory
+              </p>
             </div>
-            <div className="flex product-add-btn">
-              <Link href="/add-product" className="tp-btn">
+            <Button asChild>
+              <Link href="/dashboard/super-admin/product/add">
+                <Package className="mr-2 h-4 w-4" />
                 Add Product
               </Link>
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products by name or SKU..."
+                value={globalFilter ?? ''}
+                onChange={event => setGlobalFilter(event.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <Select
+              value={
+                (table.getColumn('status')?.getFilterValue() as string) ?? ''
+              }
+              onValueChange={value =>
+                table
+                  .getColumn('status')
+                  ?.setFilterValue(value === 'all' ? '' : value)
+              }
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="in-stock">In Stock</SelectItem>
+                <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Column Visibility */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="ml-auto">
+                  Columns <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {table
+                  .getAllColumns()
+                  .filter(column => column.getCanHide())
+                  .map(column => {
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        className="capitalize"
+                        checked={column.getIsVisible()}
+                        onCheckedChange={value =>
+                          column.toggleVisibility(!!value)
+                        }
+                      >
+                        {column.id}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Table */}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map(headerGroup => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map(header => {
+                      return (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map(row => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && 'selected'}
+                    >
+                      {row.getVisibleCells().map(cell => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
+                      No products found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between space-x-2 py-4">
+            <div className="flex-1 text-sm text-muted-foreground">
+              {table.getFilteredSelectedRowModel().rows.length} of{' '}
+              {table.getFilteredRowModel().rows.length} product(s) selected.
+            </div>
+            <div className="flex items-center space-x-6 lg:space-x-8">
+              <div className="flex items-center space-x-2">
+                <p className="text-sm font-medium">Rows per page</p>
+                <Select
+                  value={`${table.getState().pagination.pageSize}`}
+                  onValueChange={value => {
+                    table.setPageSize(Number(value));
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[70px]">
+                    <SelectValue
+                      placeholder={table.getState().pagination.pageSize}
+                    />
+                  </SelectTrigger>
+                  <SelectContent side="top">
+                    {[10, 20, 30, 40, 50].map(pageSize => (
+                      <SelectItem key={pageSize} value={`${pageSize}`}>
+                        {pageSize}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                Page {table.getState().pagination.pageIndex + 1} of{' '}
+                {table.getPageCount()}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => table.setPageIndex(0)}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  <span className="sr-only">Go to first page</span>
+                  <span>&laquo;</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  <span className="sr-only">Go to previous page</span>
+                  <span>&lsaquo;</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                >
+                  <span className="sr-only">Go to next page</span>
+                  <span>&rsaquo;</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                  disabled={!table.getCanNextPage()}
+                >
+                  <span className="sr-only">Go to last page</span>
+                  <span>&raquo;</span>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-        {content}
-      </div>
-    </>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

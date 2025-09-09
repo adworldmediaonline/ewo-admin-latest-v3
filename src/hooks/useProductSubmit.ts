@@ -165,7 +165,7 @@ const useProductSubmit = () => {
     }
 
     const res = await addProduct(productData as any);
-    if ('error' in res) {
+    if ('error' in res && res.error) {
       if ('data' in res.error) {
         const errorData = res.error.data as { message?: string };
         if (typeof errorData.message === 'string') {
@@ -176,7 +176,7 @@ const useProductSubmit = () => {
       notifySuccess('Product created successfully');
       setIsSubmitted(true);
       resetForm();
-      router.push('/product-grid');
+      router.push('/dashboard/super-admin/product');
     }
   };
 
@@ -247,7 +247,7 @@ const useProductSubmit = () => {
       }
 
       const res = await editProduct({ id: id, data: productData as any });
-      if ('error' in res) {
+      if ('error' in res && res.error) {
         if ('data' in res.error) {
           const errorData = res.error.data as { message?: string };
           if (typeof errorData.message === 'string') {
@@ -257,7 +257,7 @@ const useProductSubmit = () => {
       } else {
         notifySuccess('Product updated successfully');
         setIsSubmitted(true);
-        router.push('/product-grid');
+        router.push('/dashboard/super-admin/product');
         resetForm();
       }
     } catch (error) {

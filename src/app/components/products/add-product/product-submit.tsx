@@ -1,21 +1,31 @@
 'use client';
-import React from 'react';
-import useProductSubmit from '@/hooks/useProductSubmit';
-// import DescriptionTextarea from './description-textarea';
-import OfferDatePicker from './offer-date-picker';
-import AdditionalInformation from './additional-information';
-import ProductVariants from './product-variants';
-import ProductImgUpload from './product-img-upload';
-import ProductCategory from '../../category/product-category';
-import Tags from './tags';
-import FormField from '../form-field';
-import { Controller } from 'react-hook-form';
-import ErrorMsg from '../../common/error-msg';
-import ProductOptions from './product-options';
-import ShippingPrice from '../shipping-price';
-import SEOFields from './seo-fields';
-
 import Tiptap from '@/components/tipTap/Tiptap';
+import useProductSubmit from '@/hooks/useProductSubmit';
+import { Controller } from 'react-hook-form';
+import ProductCategory from '../../category/product-category';
+import FormField from '../form-field';
+import ShippingPrice from '../shipping-price';
+// import AdditionalInformation from './additional-information';
+import OfferDatePicker from './offer-date-picker';
+import ProductImgUpload from './product-img-upload';
+import ProductOptions from './product-options';
+import ProductVariants from './product-variants';
+import SEOFields from './seo-fields';
+import Tags from './tags';
+
+// UI Components
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import {
+  DollarSign,
+  FileText,
+  Image as ImageIcon,
+  Package,
+  Save,
+  Settings,
+  Truck,
+} from 'lucide-react';
 
 const ProductSubmit = () => {
   const {
@@ -50,164 +60,397 @@ const ProductSubmit = () => {
   );
 
   return (
-    <form onSubmit={handleSubmit(handleSubmitProduct)}>
-      <div className="grid grid-cols-12 gap-6 mb-6">
-        {/* left side */}
-        <div className="col-span-12 xl:col-span-8 2xl:col-span-9">
-          <div className="px-8 py-8 mb-6 bg-white rounded-md">
-            <h4 className="text-[22px]">General</h4>
-            <FormField
-              title="title"
-              isRequired={true}
-              placeHolder="Product Title"
-              register={register}
-              errors={errors}
-            />
-            {/* tip tap editor start */}
-            <div className="mb-5">
-              <p className="mb-0 text-base text-black capitalize">
-                Description <span className="text-red">*</span>
-              </p>
-              <Controller
-                name="description"
-                control={control}
-                rules={{ required: true }}
-                render={({ field }) => <Tiptap {...field} />}
-              />
-              <ErrorMsg msg={(errors?.description?.message as string) || ''} />
-            </div>
-            {/* tip tap editor end */}
-          </div>
-
-          <div className="px-8 py-8 mb-6 bg-white rounded-md">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-6">
-              <FormField
-                title="price"
-                isRequired={true}
-                placeHolder="Product price"
-                bottomTitle="Set the base price of product."
-                type="number"
-                register={register}
-                errors={errors}
-                step="0.01"
-              />
-              <FormField
-                title="SKU"
-                isRequired={true}
-                placeHolder="SKU"
-                bottomTitle="Enter the product SKU."
-                register={register}
-                errors={errors}
-              />
-              <FormField
-                title="quantity"
-                isRequired={true}
-                placeHolder="Quantity"
-                bottomTitle="Enter the product quantity."
-                type="number"
-                register={register}
-                errors={errors}
-              />
-              <FormField
-                title="discount"
-                type="number"
-                isRequired={false}
-                placeHolder="Discount"
-                bottomTitle="Set the product Discount."
-                register={register}
-                errors={errors}
-                step="0.01"
-              />
-            </div>
-          </div>
-
-          <ShippingPrice register={register} errors={errors} />
-
-          <div className="px-8 py-8 mb-6 bg-white rounded-md">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-2 gap-x-6">
-              <FormField
-                title="youtube video Id"
-                isRequired={false}
-                placeHolder="video id"
-                bottomTitle="Set the video id of product."
-                register={register}
-                errors={errors}
-              />
-              {/* date picker start */}
-              <div>
-                <p className="mb-0 text-base text-black capitalize">
-                  start and end date
-                </p>
-                <OfferDatePicker
-                  offerDate={offerDate}
-                  setOfferDate={setOfferDate}
+    <div className="space-y-6">
+      <form
+        onSubmit={handleSubmit(handleSubmitProduct)}
+        noValidate
+        aria-labelledby="add-product-form"
+      >
+        <div
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+          role="main"
+          aria-label="Product creation form"
+        >
+          {/* left side */}
+          <div className="col-span-1 lg:col-span-8 xl:col-span-9 space-y-6">
+            {/* General Information */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      General Information
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Basic product details and description
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FormField
+                  title="title"
+                  isRequired={true}
+                  placeHolder="Product Title"
+                  register={register}
+                  errors={errors}
                 />
-                <span className="leading-4 text-tiny">
-                  set the product offer and end date
-                </span>
+
+                {/* Enhanced Description Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Description <span className="text-destructive">*</span>
+                    </label>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <svg
+                          className="w-3 h-3"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Rich text editor
+                      </span>
+                      <span>•</span>
+                      <span>Supports formatting</span>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <Controller
+                      name="description"
+                      control={control}
+                      rules={{
+                        required: 'Product description is required',
+                        validate: value => {
+                          if (!value || value.trim() === '') {
+                            return 'Product description cannot be empty';
+                          }
+                          if (value.length < 10) {
+                            return 'Description must be at least 10 characters long';
+                          }
+                          return true;
+                        },
+                      }}
+                      render={({ field }) => (
+                        <Tiptap
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Describe your product in detail. Include key features, benefits, specifications, and any important information for customers..."
+                          limit={50000}
+                          showCharacterCount={true}
+                        />
+                      )}
+                    />
+                  </div>
+
+                  {/* Enhanced Error Display */}
+                  {errors?.description && (
+                    <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                      <svg
+                        className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <div className="text-sm">
+                        <p className="font-medium text-destructive">
+                          Description Error
+                        </p>
+                        <p className="text-destructive/80 mt-0.5">
+                          {errors?.description?.message as string}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pricing & Inventory */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-green-50 flex items-center justify-center">
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Pricing & Inventory
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Set prices, stock levels, and product codes
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <FormField
+                    title="price"
+                    isRequired={true}
+                    placeHolder="Product price"
+                    bottomTitle="Set the base price of product."
+                    type="number"
+                    register={register}
+                    errors={errors}
+                    step="0.01"
+                  />
+                  <FormField
+                    title="SKU"
+                    isRequired={true}
+                    placeHolder="SKU"
+                    bottomTitle="Enter the product SKU."
+                    register={register}
+                    errors={errors}
+                  />
+                  <FormField
+                    title="quantity"
+                    isRequired={true}
+                    placeHolder="Quantity"
+                    bottomTitle="Enter the product quantity."
+                    type="number"
+                    register={register}
+                    errors={errors}
+                  />
+                  <FormField
+                    title="discount"
+                    type="number"
+                    isRequired={false}
+                    placeHolder="Discount"
+                    bottomTitle="Set the product Discount."
+                    register={register}
+                    errors={errors}
+                    step="0.01"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Shipping Information */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <Truck className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Shipping Information
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Configure shipping costs and delivery details for this
+                      product.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ShippingPrice register={register} errors={errors} />
+              </CardContent>
+            </Card>
+
+            {/* Media & Offers */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-pink-50 flex items-center justify-center">
+                    <ImageIcon className="h-4 w-4 text-pink-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Media & Special Offers
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Add videos and configure promotional periods
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <FormField
+                    title="youtube video Id"
+                    isRequired={false}
+                    placeHolder="video id"
+                    bottomTitle="Set the video id of product."
+                    register={register}
+                    errors={errors}
+                  />
+                  {/* date picker start */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Offer Period
+                    </label>
+                    <OfferDatePicker
+                      offerDate={offerDate}
+                      setOfferDate={setOfferDate}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Set the product offer start and end date
+                    </p>
+                  </div>
+                  {/* date picker end */}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Additional Information */}
+            {/* <AdditionalInformation
+              setAdditionalInformation={setAdditionalInformation}
+            /> */}
+
+            {/* Product Options */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                    <Package className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Product Options
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Add customizable options like size, color, or material for
+                      this product.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ProductOptions
+                  setOptions={setOptions}
+                  isSubmitted={isSubmitted}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Product Variations */}
+            <ProductVariants
+              isSubmitted={isSubmitted}
+              setImageURLs={setImageURLs}
+            />
+
+            {/* SEO Fields */}
+            <SEOFields register={register} errors={errors} />
+          </div>
+
+          {/* right side */}
+          <div className="col-span-1 lg:col-span-4 xl:col-span-3 space-y-6">
+            {/* Product Image */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-cyan-50 flex items-center justify-center">
+                    <ImageIcon className="h-4 w-4 text-cyan-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Product Image
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Upload a high-quality product image. Supports drag & drop.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <ProductImgUpload
+                  imgUrl={img}
+                  setImgUrl={setImg}
+                  isSubmitted={isSubmitted}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Product Category & Tags */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                    <Settings className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Category & Tags
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Categorize and tag your product
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Product Category
+                  </label>
+                  <ProductCategory
+                    setCategory={setCategory}
+                    setParent={setParent}
+                    setChildren={setChildren}
+                  />
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Product Tags
+                  </label>
+                  <Tags tags={tags} setTags={setTags} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <Card className="shadow-card">
+          <CardContent className="pt-6">
+            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-foreground">
+                  Ready to create your product?
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Your product will be added to the catalog and become available
+                  for purchase immediately.
+                </p>
               </div>
-              {/* date picker start */}
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2 hover:bg-muted/50 transition-all duration-200"
+                  onClick={() => window.history.back()}
+                >
+                  Cancel
+                </Button>
+                <Button variant="default" type="submit" className="gap-2">
+                  <Save className="h-4 w-4" />
+                  <span>Create Product</span>
+                </Button>
+              </div>
             </div>
-          </div>
-
-          {/* additional information page start */}
-          <AdditionalInformation
-            setAdditionalInformation={setAdditionalInformation}
-          />
-          {/* additional information page end */}
-
-          {/* product options start */}
-          <ProductOptions setOptions={setOptions} isSubmitted={isSubmitted} />
-          {/* product options end */}
-
-          {/* product variations start */}
-          <ProductVariants
-            isSubmitted={isSubmitted}
-            setImageURLs={setImageURLs}
-          />
-          {/* product variations end */}
-
-          {/* SEO fields start */}
-          <SEOFields
-            register={register}
-            errors={errors}
-          />
-          {/* SEO fields end */}
-        </div>
-
-        {/* right side */}
-        <div className="col-span-12 xl:col-span-4 2xl:col-span-3">
-          <ProductImgUpload
-            imgUrl={img}
-            setImgUrl={setImg}
-            isSubmitted={isSubmitted}
-          />
-
-          <div className="px-8 py-8 mb-6 bg-white rounded-md">
-            <p className="mb-5 text-base text-black">Product Category</p>
-            {/* category start */}
-            <div className="grid grid-cols-1 gap-3 mb-5 sm:grid-cols-1">
-              <ProductCategory
-                setCategory={setCategory}
-                setParent={setParent}
-                setChildren={setChildren}
-              />
-            </div>
-          </div>
-
-          <div className="px-8 py-8 mb-6 bg-white rounded-md">
-            <p className="mb-5 text-base text-black">Product Tags</p>
-            {/* tags start */}
-            <div className="grid grid-cols-1 gap-3 mb-5 sm:grid-cols-1">
-              <Tags tags={tags} setTags={setTags} />
-            </div>
-          </div>
-        </div>
-      </div>
-      <button className="px-5 py-2 mt-5 tp-btn" type="submit">
-        Submit Product
-      </button>
-    </form>
+          </CardContent>
+        </Card>
+      </form>
+    </div>
   );
 };
 

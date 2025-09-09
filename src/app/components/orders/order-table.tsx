@@ -5,7 +5,6 @@ import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
 // internal
 // import OrderActions from './order-actions';
-import { Search } from '@/svg';
 import ErrorMsg from '../common/error-msg';
 import ShippingActions from './shipping-actions';
 // import OrderStatusChange from './status-change';
@@ -19,154 +18,23 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import {
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Clock,
+  Download,
+  Eye,
+  Package,
+  Search,
+  Truck,
+  User,
+  XCircle,
+} from 'lucide-react';
 
-// Simple icon components for missing SVG icons
-const Filter = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-    />
-  </svg>
-);
-
-const Export = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-    />
-  </svg>
-);
-
-const Calendar = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-    />
-  </svg>
-);
-
-const User = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-    />
-  </svg>
-);
-
-const CreditCard = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-    />
-  </svg>
-);
-
-// Pagination Navigation Icons
-const ChevronLeft = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M15 19l-7-7 7-7"
-    />
-  </svg>
-);
-
-const ChevronRight = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M9 5l7 7-7 7"
-    />
-  </svg>
-);
-
-const ChevronsLeft = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-    />
-  </svg>
-);
-
-const ChevronsRight = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M13 5l7 7-7 7M5 5l7 7-7 7"
-    />
-  </svg>
-);
-
-const OrderTable = () => {
+const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   const { data: orders, isError, isLoading, error } = useGetAllOrdersQuery();
   const [searchVal, setSearchVal] = useState<string>('');
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
@@ -196,67 +64,123 @@ const OrderTable = () => {
   }, [searchVal]);
 
   // Status badge component
-  const StatusBadge = ({ status }: { status: string }) => {
-    const getStatusClass = (status: string) => {
+  const StatusBadge = ({ status, order }: { status: string; order: any }) => {
+    const getStatusStyles = (status: string) => {
       switch (status.toLowerCase()) {
         case 'pending':
-          return `${styles.statusBadge} ${styles.statusPending}`;
+          return {
+            bg: 'bg-yellow-100 dark:bg-yellow-950/20',
+            text: 'text-yellow-800 dark:text-yellow-200',
+            icon: <Clock className="w-3 h-3 mr-1" />,
+          };
         case 'processing':
-          return `${styles.statusBadge} ${styles.statusProcessing}`;
+          return {
+            bg: 'bg-blue-100 dark:bg-blue-950/20',
+            text: 'text-blue-800 dark:text-blue-200',
+            icon: <Package className="w-3 h-3 mr-1" />,
+          };
         case 'shipped':
-          return `${styles.statusBadge} ${styles.statusShipped}`;
+          return {
+            bg: 'bg-purple-100 dark:bg-purple-950/20',
+            text: 'text-purple-800 dark:text-purple-200',
+            icon: <Truck className="w-3 h-3 mr-1" />,
+            carrier: order.shippingDetails?.carrier,
+            trackingNumber: order.shippingDetails?.trackingNumber,
+          };
         case 'delivered':
-          return `${styles.statusBadge} ${styles.statusDelivered}`;
+          return {
+            bg: 'bg-green-100 dark:bg-green-950/20',
+            text: 'text-green-800 dark:text-green-200',
+            icon: <CheckCircle className="w-3 h-3 mr-1" />,
+            carrier: order.shippingDetails?.carrier,
+            trackingNumber: order.shippingDetails?.trackingNumber,
+          };
         case 'cancel':
         case 'cancelled':
-          return `${styles.statusBadge} ${styles.statusCancel}`;
+          return {
+            bg: 'bg-red-100 dark:bg-red-950/20',
+            text: 'text-red-800 dark:text-red-200',
+            icon: <XCircle className="w-3 h-3 mr-1" />,
+          };
         default:
-          return `${styles.statusBadge} ${styles.statusDefault}`;
+          return {
+            bg: 'bg-gray-100 dark:bg-gray-950/20',
+            text: 'text-gray-800 dark:text-gray-200',
+            icon: null,
+          };
       }
     };
 
+    const { bg, text, icon, carrier, trackingNumber } = getStatusStyles(status);
+
     return (
-      <span className={getStatusClass(status)}>
-        <span className={styles.statusDot}></span>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
+      <div className="flex flex-col gap-1 min-w-0">
+        <span
+          className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 transition-colors duration-150 ${bg} ${text}`}
+          tabIndex={0}
+          aria-label={`Order status: ${status}`}
+          role="status"
+        >
+          {icon}
+          <span className="ml-1">
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </span>
+        </span>
+        {(carrier || trackingNumber) && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {carrier && (
+              <span
+                className="text-xs text-gray-600 font-mono bg-gray-50 dark:bg-gray-900/30 px-1.5 py-0.5 rounded"
+                aria-label={`Carrier: ${carrier}`}
+                tabIndex={0}
+              >
+                {carrier}
+              </span>
+            )}
+            {trackingNumber && (
+              <span
+                className="text-xs text-gray-600 font-mono bg-gray-50 dark:bg-gray-900/30 px-1.5 py-0.5 rounded"
+                aria-label={`Tracking number: ${trackingNumber}`}
+                tabIndex={0}
+              >
+                {trackingNumber}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
     );
   };
 
   // Customer info component
   const CustomerInfo = ({ order }: { order: any }) => (
-    <div className={styles.customerInfo}>
-      <div className={styles.customerAvatar}>
+    <div className="flex items-center space-x-3">
+      <div className="flex-shrink-0">
         {order.user?.imageURL ? (
           <Image
-            className={styles.avatarImage}
+            className="w-10 h-10 rounded-full object-cover border border-border"
             src={order.user.imageURL}
             alt="customer"
-            width={48}
-            height={48}
+            width={40}
+            height={40}
           />
         ) : (
-          <div className={styles.avatarPlaceholder}>
-            <User className={styles.avatarIcon} />
+          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+            <User className="w-5 h-5 text-muted-foreground" />
           </div>
         )}
       </div>
-      <div className={styles.customerDetails}>
-        <p className={styles.customerName}>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground truncate">
           {order.isGuestOrder ? order.name : order.user?.name || order.name}
         </p>
-        {/* <p className={styles.customerEmail}>{order.email}</p>
-        {order.isGuestOrder && <span className={styles.guestBadge}>Guest</span>} */}
+        {order.isGuestOrder && (
+          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-950/20 dark:text-orange-200 rounded-full">
+            Guest
+          </span>
+        )}
       </div>
     </div>
-  );
-
-  // Payment method badge
-  const PaymentBadge = ({ method }: { method: string }) => (
-    <span className={styles.paymentBadge}>
-      <CreditCard className={styles.paymentIcon} />
-      {method}
-    </span>
   );
 
   // TanStack Table columns
@@ -267,7 +191,7 @@ const OrderTable = () => {
         header: ({ table }) => (
           <input
             type="checkbox"
-            className={styles.checkbox}
+            className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
             checked={table.getIsAllRowsSelected?.()}
             onChange={table.getToggleAllRowsSelectedHandler?.()}
           />
@@ -275,7 +199,7 @@ const OrderTable = () => {
         cell: ({ row }) => (
           <input
             type="checkbox"
-            className={styles.checkbox}
+            className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
             checked={!!selectedRows[row.original._id]}
             onChange={e => {
               setSelectedRows(prev => ({
@@ -291,7 +215,7 @@ const OrderTable = () => {
         accessorKey: 'orderId',
         header: 'Order ID',
         cell: info => (
-          <span className={styles.orderId}>
+          <span className="font-medium text-foreground">
             #{info.row.original.orderId || info.row.original.invoice}
           </span>
         ),
@@ -305,8 +229,8 @@ const OrderTable = () => {
         accessorKey: 'items',
         header: 'Items & Total',
         cell: info => (
-          <div className={styles.itemsInfo}>
-            <div className={styles.itemsCount}>
+          <div className="space-y-1">
+            <div className="text-sm text-muted-foreground">
               {info.row.original.cart.reduce(
                 (acc: number, curr: { orderQuantity: number }) =>
                   acc + curr.orderQuantity,
@@ -314,31 +238,27 @@ const OrderTable = () => {
               )}{' '}
               items
             </div>
-            <div className={styles.totalAmount}>
+            <div className="text-sm font-semibold text-foreground">
               ${info.row.original.totalAmount.toFixed(2)}
             </div>
             {info.row.original.discount > 0 && (
-              <div className={styles.discount}>
-                Discount: -${info.row.original.discount.toFixed(2)}
+              <div className="text-xs text-red-600 dark:text-red-400 font-medium">
+                -${info.row.original.discount.toFixed(2)}
               </div>
             )}
           </div>
         ),
       },
-      {
-        accessorKey: 'paymentMethod',
-        header: 'Payment',
-        cell: info => <PaymentBadge method={info.row.original.paymentMethod} />,
-      },
+
       {
         accessorKey: 'status',
         header: 'Status',
         cell: info => (
-          <div className={styles.statusContainer}>
-            <StatusBadge status={info.row.original.status} />
-            {/* <div className={styles.statusChangeContainer}>
-              <OrderStatusChange id={info.row.original._id} />
-            </div> */}
+          <div className="flex flex-col space-y-1">
+            <StatusBadge
+              status={info.row.original.status}
+              order={info.row.original}
+            />
           </div>
         ),
       },
@@ -346,11 +266,11 @@ const OrderTable = () => {
         accessorKey: 'createdAt',
         header: 'Date',
         cell: info => (
-          <div className={styles.dateContainer}>
-            <div className={styles.dateMain}>
+          <div className="space-y-1">
+            <div className="text-sm font-medium text-foreground">
               {dayjs(info.row.original.createdAt).format('MMM D, YYYY')}
             </div>
-            <div className={styles.dateTime}>
+            <div className="text-xs text-muted-foreground">
               {dayjs(info.row.original.createdAt).format('h:mm A')}
             </div>
           </div>
@@ -360,7 +280,7 @@ const OrderTable = () => {
         id: 'shipping',
         header: 'Shipping',
         cell: info => (
-          <div className={styles.shippingContainer}>
+          <div className="flex items-center">
             <ShippingActions order={info.row.original} />
           </div>
         ),
@@ -369,18 +289,14 @@ const OrderTable = () => {
         id: 'actions',
         header: 'Actions',
         cell: info => (
-          <div className={styles.actionsContainer}>
+          <div className="flex items-center space-x-2">
             <Link
-              href={`/order-details/${info.row.original._id}`}
-              className={styles.viewButton}
+              href={`/dashboard/${role}/order-details/${info.row.original._id}`}
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
             >
+              <Eye className="w-4 h-4 mr-1" />
               View
             </Link>
-            {/* <OrderActions
-              id={info.row.original._id}
-              cls={styles.inlineActions}
-              inline={true}
-            /> */}
           </div>
         ),
       },
@@ -447,9 +363,9 @@ const OrderTable = () => {
   let content = null;
   if (isLoading) {
     content = (
-      <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
-        <span className={styles.loadingText}>Loading orders...</span>
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+        <span className="text-muted-foreground">Loading orders...</span>
       </div>
     );
   } else if (!isLoading && isError) {
@@ -458,13 +374,16 @@ const OrderTable = () => {
     content = <ErrorMsg msg="No Orders Found" />;
   } else {
     content = (
-      <div className={styles.tableContainer}>
-        <table className={styles.table}>
-          <thead className={styles.tableHeader}>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted/50">
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
-                  <th key={header.id} className={styles.headerCell}>
+                  <th
+                    key={header.id}
+                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                  >
                     {flexRender(
                       header.column.columnDef.header,
                       header.getContext()
@@ -474,16 +393,16 @@ const OrderTable = () => {
               </tr>
             ))}
           </thead>
-          <tbody>
+          <tbody className="bg-background divide-y divide-border">
             {table.getRowModel().rows.map((row, idx) => (
               <tr
                 key={row.id}
-                className={`${styles.tableRow} ${
-                  idx % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd
+                className={`hover:bg-muted/50 transition-colors duration-150 ${
+                  idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'
                 }`}
               >
                 {row.getVisibleCells().map(cell => (
-                  <td key={cell.id} className={styles.tableCell}>
+                  <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -496,153 +415,178 @@ const OrderTable = () => {
   }
 
   return (
-    <div className={styles.container}>
-      {/* Search Bar and Export */}
-      <div className={styles.header}>
-        <div className={styles.searchContainer}>
-          <input
-            className={styles.searchInput}
-            type="text"
-            placeholder="Search by order ID, customer name, email, or phone..."
-            value={searchVal}
-            onChange={e => setSearchVal(e.target.value)}
-          />
-          <div className={styles.searchIcon}>
-            <Search />
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Search Bar and Export */}
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <input
+                className="w-full px-4 py-2 pr-10 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                type="text"
+                placeholder="Search by order ID, customer name, email, or phone..."
+                value={searchVal}
+                onChange={e => setSearchVal(e.target.value)}
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <Search className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </div>
+            <button
+              onClick={handleExport}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </button>
           </div>
         </div>
-        <button onClick={handleExport} className={styles.exportButton}>
-          Export CSV
-        </button>
-      </div>
-      <div className={styles.content}>{content}</div>
-      {/* TanStack Table Built-in Pagination */}
-      {filteredOrders.length > 0 && (
-        <div className={styles.paginationContainer}>
-          <div className={styles.paginationInfo}>
-            <span className={styles.paginationText}>
-              Showing{' '}
-              {table.getState().pagination.pageIndex *
-                table.getState().pagination.pageSize +
-                1}{' '}
-              to{' '}
-              {Math.min(
-                (table.getState().pagination.pageIndex + 1) *
-                  table.getState().pagination.pageSize,
-                filteredOrders.length
-              )}{' '}
-              of {filteredOrders.length} orders
-              {filteredOrders.length !== orders?.data?.length && (
-                <span className={styles.paginationFiltered}>
-                  {' '}
-                  (filtered from {orders?.data?.length} total)
-                </span>
-              )}
-            </span>
 
-            <div className={styles.pageSizeSelector}>
-              <span>Show:</span>
-              <select
-                className={styles.pageSizeSelect}
-                value={table.getState().pagination.pageSize}
-                onChange={e => {
-                  table.setPageSize(Number(e.target.value));
-                }}
-              >
-                {[5, 10, 20, 30, 50].map(pageSize => (
-                  <option key={pageSize} value={pageSize}>
-                    {pageSize}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+        {/* Table Container */}
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+          <div className="p-6">{content}</div>
 
-          <div className={styles.paginationControls}>
-            <button
-              className={`${styles.paginationButton} ${styles.paginationButtonIcon}`}
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <ChevronsLeft className={styles.paginationIcon} />
-            </button>
+          {/* TanStack Table Built-in Pagination */}
+          {filteredOrders.length > 0 && (
+            <div className="px-6 py-4 border-t border-border bg-muted/20">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                {/* Pagination Info */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <span className="text-sm text-muted-foreground">
+                    Showing{' '}
+                    {table.getState().pagination.pageIndex *
+                      table.getState().pagination.pageSize +
+                      1}{' '}
+                    to{' '}
+                    {Math.min(
+                      (table.getState().pagination.pageIndex + 1) *
+                        table.getState().pagination.pageSize,
+                      filteredOrders.length
+                    )}{' '}
+                    of {filteredOrders.length} orders
+                    {filteredOrders.length !== orders?.data?.length && (
+                      <span className="text-primary font-medium">
+                        {' '}
+                        (filtered from {orders?.data?.length} total)
+                      </span>
+                    )}
+                  </span>
 
-            <button
-              className={`${styles.paginationButton} ${styles.paginationButtonIcon}`}
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <ChevronLeft className={styles.paginationIcon} />
-            </button>
-
-            <div className={styles.pageNumbers}>
-              {Array.from(
-                { length: Math.min(5, table.getPageCount()) },
-                (_, i) => {
-                  const currentPage = table.getState().pagination.pageIndex;
-                  const totalPages = table.getPageCount();
-
-                  let startPage = Math.max(0, currentPage - 2);
-                  let endPage = Math.min(totalPages - 1, startPage + 4);
-
-                  if (endPage - startPage < 4) {
-                    startPage = Math.max(0, endPage - 4);
-                  }
-
-                  const pageIndex = startPage + i;
-
-                  if (pageIndex >= totalPages) return null;
-
-                  return (
-                    <button
-                      key={pageIndex}
-                      className={`${styles.paginationButton} ${
-                        pageIndex === currentPage
-                          ? styles.paginationButtonActive
-                          : ''
-                      }`}
-                      onClick={() => table.setPageIndex(pageIndex)}
+                  {/* Page Size Selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Show:</span>
+                    <select
+                      className="px-3 py-1 text-sm border border-input rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                      value={table.getState().pagination.pageSize}
+                      onChange={e => {
+                        table.setPageSize(Number(e.target.value));
+                      }}
                     >
-                      {pageIndex + 1}
-                    </button>
-                  );
-                }
-              )}
+                      {[5, 10, 20, 30, 50].map(pageSize => (
+                        <option key={pageSize} value={pageSize}>
+                          {pageSize}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center gap-1">
+                  <button
+                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    onClick={() => table.setPageIndex(0)}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1 mx-2">
+                    {Array.from(
+                      { length: Math.min(5, table.getPageCount()) },
+                      (_, i) => {
+                        const currentPage =
+                          table.getState().pagination.pageIndex;
+                        const totalPages = table.getPageCount();
+
+                        let startPage = Math.max(0, currentPage - 2);
+                        let endPage = Math.min(totalPages - 1, startPage + 4);
+
+                        if (endPage - startPage < 4) {
+                          startPage = Math.max(0, endPage - 4);
+                        }
+
+                        const pageIndex = startPage + i;
+
+                        if (pageIndex >= totalPages) return null;
+
+                        return (
+                          <button
+                            key={pageIndex}
+                            className={`px-3 py-1 text-sm rounded-lg transition-colors duration-200 ${
+                              pageIndex === currentPage
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-background'
+                            }`}
+                            onClick={() => table.setPageIndex(pageIndex)}
+                          >
+                            {pageIndex + 1}
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+
+                  <button
+                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Page Jump */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Go to page:
+                  </span>
+                  <input
+                    type="number"
+                    className="w-16 px-2 py-1 text-sm text-center border border-input rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    min={1}
+                    max={table.getPageCount()}
+                    defaultValue={table.getState().pagination.pageIndex + 1}
+                    onChange={e => {
+                      const page = e.target.value
+                        ? Number(e.target.value) - 1
+                        : 0;
+                      table.setPageIndex(page);
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-
-            <button
-              className={`${styles.paginationButton} ${styles.paginationButtonIcon}`}
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <ChevronRight className={styles.paginationIcon} />
-            </button>
-
-            <button
-              className={`${styles.paginationButton} ${styles.paginationButtonIcon}`}
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-            >
-              <ChevronsRight className={styles.paginationIcon} />
-            </button>
-          </div>
-
-          <div className={styles.pageJump}>
-            <span>Go to page:</span>
-            <input
-              type="number"
-              className={styles.pageJumpInput}
-              min={1}
-              max={table.getPageCount()}
-              defaultValue={table.getState().pagination.pageIndex + 1}
-              onChange={e => {
-                const page = e.target.value ? Number(e.target.value) - 1 : 0;
-                table.setPageIndex(page);
-              }}
-            />
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

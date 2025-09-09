@@ -121,3 +121,380 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Enhanced theme colors for admin panel */
+@layer utilities {
+  .text-success {
+    color: oklch(0.627 0.194 142.495);
+  }
+
+  .text-danger {
+    color: oklch(0.577 0.245 27.325);
+  }
+
+  .bg-success {
+    background-color: oklch(0.627 0.194 142.495);
+  }
+
+  .bg-danger {
+    background-color: oklch(0.577 0.245 27.325);
+  }
+
+  .bg-warning {
+    background-color: oklch(0.795 0.184 86.047);
+  }
+
+  .text-warning {
+    color: oklch(0.795 0.184 86.047);
+  }
+
+  .bg-info {
+    background-color: oklch(0.623 0.214 259.815);
+  }
+
+  .text-info {
+    color: oklch(0.623 0.214 259.815);
+  }
+
+  .bg-light {
+    background-color: oklch(0.97 0 0);
+  }
+
+  .text-light {
+    color: oklch(0.145 0 0);
+  }
+
+  .bg-dark {
+    background-color: oklch(0.145 0 0);
+  }
+
+  .text-dark {
+    color: oklch(0.985 0 0);
+  }
+
+  .border-light {
+    border-color: oklch(0.922 0 0);
+  }
+
+  .shadow-card {
+    box-shadow: 0 1px 3px 0 oklch(0 0 0 / 0.1),
+      0 1px 2px -1px oklch(0 0 0 / 0.1);
+  }
+
+  .shadow-card-lg {
+    box-shadow: 0 10px 15px -3px oklch(0 0 0 / 0.1),
+      0 4px 6px -4px oklch(0 0 0 / 0.1);
+  }
+
+  /* Enhanced form styling for admin panel */
+  .form-section {
+    @apply bg-card border rounded-lg p-6 shadow-card;
+  }
+
+  .form-section-header {
+    @apply flex items-center gap-2 mb-4 pb-2 border-b;
+  }
+
+  .form-section-title {
+    @apply text-lg font-semibold text-card-foreground;
+  }
+
+  /* TipTap Editor Styles - Best Practices */
+  .ProseMirror {
+    outline: none;
+    min-height: 200px;
+    padding: 0.875rem;
+    font-size: 0.875rem; /* 14px base font size for admin interface */
+    line-height: 1.5;
+    color: var(--foreground);
+  }
+
+  .ProseMirror p {
+    margin: 0.5rem 0;
+    line-height: 1.5;
+  }
+
+  /* Proper typographic scale for admin interface */
+  .ProseMirror h1 {
+    font-size: 1.25rem; /* 20px */
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 1rem 0 0.5rem 0;
+    color: var(--foreground);
+  }
+
+  .ProseMirror h2 {
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 0.875rem 0 0.5rem 0;
+    color: var(--foreground);
+  }
+
+  .ProseMirror h3 {
+    font-size: 1rem; /* 16px */
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0.75rem 0 0.5rem 0;
+    color: var(--foreground);
+  }
+
+  .ProseMirror h4 {
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 600;
+    line-height: 1.35;
+    margin: 0.625rem 0 0.5rem 0;
+    color: var(--foreground);
+  }
+
+  .ProseMirror h5 {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 0.5rem 0 0.375rem 0;
+    color: var(--foreground);
+  }
+
+  .ProseMirror h6 {
+    font-size: 0.8125rem; /* 13px */
+    font-weight: 600;
+    line-height: 1.45;
+    margin: 0.5rem 0 0.375rem 0;
+    color: var(--muted-foreground);
+  }
+
+  /* Lists with proper spacing */
+  .ProseMirror ul,
+  .ProseMirror ol {
+    padding-left: 1.25rem;
+    margin: 0.5rem 0;
+  }
+
+  .ProseMirror li {
+    margin: 0.25rem 0;
+    line-height: 1.5;
+  }
+
+  /* Blockquotes with subtle styling */
+  .ProseMirror blockquote {
+    border-left: 3px solid var(--primary);
+    padding-left: 0.875rem;
+    margin: 0.75rem 0;
+    color: var(--muted-foreground);
+    font-style: italic;
+    background-color: var(--muted) / 0.3;
+    padding: 0.75rem 0.875rem;
+    border-radius: 0 0.25rem 0.25rem 0;
+  }
+
+  /* Inline code with better contrast */
+  .ProseMirror code {
+    background-color: var(--muted);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem; /* Slightly smaller than base */
+    font-weight: 500;
+    color: var(--foreground);
+  }
+
+  /* Code blocks with syntax highlighting ready */
+  .ProseMirror pre {
+    background-color: var(--muted);
+    padding: 0.875rem;
+    border-radius: 0.375rem;
+    overflow-x: auto;
+    margin: 0.75rem 0;
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .ProseMirror pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+  }
+
+  /* Tables optimized for admin interface */
+  .ProseMirror table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+    font-size: 0.8125rem;
+  }
+
+  .ProseMirror table th,
+  .ProseMirror table td {
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .ProseMirror table th {
+    background-color: var(--muted);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: var(--foreground);
+  }
+
+  .ProseMirror table td {
+    color: var(--foreground);
+  }
+
+  /* Links with proper hover states */
+  .ProseMirror a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    transition: color 0.15s ease;
+  }
+
+  .ProseMirror a:hover {
+    color: var(--primary) / 0.8;
+  }
+
+  /* Focus states for accessibility */
+  .ProseMirror-focused {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+  }
+
+  /* Placeholder with better typography */
+  .ProseMirror p.is-editor-empty:first-child::before {
+    color: var(--muted-foreground);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    font-style: italic;
+    opacity: 0.7;
+  }
+
+  /* Enhanced Menu Bar Styling */
+  .tiptap-menu-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(to right, var(--background), var(--muted) / 30);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .tiptap-menu-bar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 0.375rem;
+    background-color: transparent;
+    color: var(--foreground);
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.875rem;
+    font-weight: 500;
+    position: relative;
+  }
+
+  .tiptap-menu-bar button:hover {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  }
+
+  .tiptap-menu-bar button:active {
+    transform: translateY(0);
+  }
+
+  .tiptap-menu-bar button.is-active {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 2px 6px -2px var(--primary), 0 0 0 1px var(--primary);
+  }
+
+  .tiptap-menu-bar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .tiptap-menu-bar button:disabled:hover {
+    background-color: transparent;
+    color: var(--foreground);
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Responsive design for mobile */
+  @media (max-width: 640px) {
+    .tiptap-menu-bar {
+      padding: 0.5rem;
+      gap: 0.125rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tiptap-menu-bar button {
+      width: 1.75rem;
+      height: 1.75rem;
+      flex-shrink: 0;
+    }
+
+    .ProseMirror {
+      padding: 0.625rem;
+      font-size: 0.8125rem; /* Slightly smaller on mobile for better fit */
+      line-height: 1.4;
+    }
+
+    .ProseMirror h1 {
+      font-size: 1.125rem; /* 18px on mobile */
+    }
+
+    .ProseMirror h2 {
+      font-size: 1rem; /* 16px on mobile */
+    }
+
+    .ProseMirror h3 {
+      font-size: 0.9375rem; /* 15px on mobile */
+    }
+
+    /* Scrollbar styling for webkit browsers */
+    .tiptap-menu-bar::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .tiptap-menu-bar::-webkit-scrollbar-track {
+      background: var(--muted);
+      border-radius: 2px;
+    }
+
+    .tiptap-menu-bar::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .tiptap-menu-bar::-webkit-scrollbar-thumb:hover {
+      background: var(--muted-foreground);
+    }
+  }
+
+  /* Dark mode adjustments */
+  @media (prefers-color-scheme: dark) {
+    .tiptap-menu-bar {
+      background: linear-gradient(
+        to right,
+        var(--background),
+        var(--muted) / 20
+      );
+    }
+  }
+}

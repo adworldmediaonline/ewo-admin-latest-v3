@@ -1,6 +1,9 @@
 'use client';
-import React from 'react';
-import { UseFormRegister, FieldErrors } from 'react-hook-form';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { DollarSign } from 'lucide-react';
+import { FieldErrors, UseFormRegister } from 'react-hook-form';
 import ErrorMsg from '../../common/error-msg';
 
 interface ShippingPriceProps {
@@ -23,44 +26,60 @@ export default function ShippingPrice({
       : undefined;
 
   return (
-    <div className="px-8 py-8 mb-6 bg-white rounded-md">
-      <h4 className="mb-5 text-[18px] text-black">Shipping Information</h4>
-      <div className="grid sm:grid-cols-2 gap-x-6">
-        <div className="mb-5">
-          <p className="mb-0 text-base text-black capitalize">Shipping Price</p>
-          <input
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Shipping Price Field */}
+      <div className="space-y-2">
+        <Label htmlFor="shipping-price" className="text-sm font-medium">
+          Shipping Price
+        </Label>
+        <div className="relative">
+          <Input
             {...register('shipping.price', {
               setValueAs: value => parseFloat(value || '0'),
             })}
-            className="input w-full h-[44px] rounded-md border border-gray6 px-6 text-base"
+            id="shipping-price"
             type="number"
-            placeholder="Enter shipping price"
+            placeholder="0.00"
             defaultValue={defaultPrice}
             step="0.01"
+            min="0"
+            className={cn(
+              'transition-all duration-200 pl-10',
+              shippingErrors?.price
+                ? 'border-destructive focus:border-destructive focus:ring-destructive/20'
+                : 'focus:border-primary focus:ring-primary/20'
+            )}
           />
-          <span className="leading-4 text-tiny">Set the shipping price</span>
-          {shippingErrors?.price && (
-            <ErrorMsg msg={String(shippingErrors.price.message || '')} />
-          )}
+          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
-        <div className="mb-5">
-          <p className="mb-0 text-base text-black capitalize">
-            Shipping Description
-          </p>
-          <input
-            {...register('shipping.description')}
-            className="input w-full h-[44px] rounded-md border border-gray6 px-6 text-base"
-            type="text"
-            placeholder="Enter shipping details"
-            defaultValue={defaultDescription}
-          />
-          <span className="leading-4 text-tiny">
-            Describe shipping policy or details
-          </span>
-          {shippingErrors?.description && (
-            <ErrorMsg msg={String(shippingErrors.description.message || '')} />
+
+        {shippingErrors?.price && (
+          <ErrorMsg msg={String(shippingErrors.price.message || '')} />
+        )}
+      </div>
+
+      {/* Shipping Description Field */}
+      <div className="space-y-2">
+        <Label htmlFor="shipping-description" className="text-sm font-medium">
+          Shipping Description
+        </Label>
+        <textarea
+          {...register('shipping.description')}
+          id="shipping-description"
+          placeholder="Enter shipping details"
+          defaultValue={defaultDescription}
+          rows={3}
+          className={cn(
+            'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 resize-none',
+            shippingErrors?.description
+              ? 'border-destructive focus:border-destructive focus:ring-destructive/20'
+              : 'focus:border-primary focus:ring-primary/20'
           )}
-        </div>
+        />
+
+        {shippingErrors?.description && (
+          <ErrorMsg msg={String(shippingErrors.description.message || '')} />
+        )}
       </div>
     </div>
   );
