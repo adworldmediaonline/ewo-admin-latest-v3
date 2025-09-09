@@ -19,8 +19,8 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import ProductCategory from '../../category/product-category';
-import ErrorMsg from '../../common/error-msg';
 // import AdditionalInformation from '../add-product/additional-information';
+import { useRouter } from 'next/navigation';
 import OfferDatePicker from '../add-product/offer-date-picker';
 import ProductImgUpload from '../add-product/product-img-upload';
 import ProductOptions from '../add-product/product-options';
@@ -32,6 +32,7 @@ import ShippingPrice from '../shipping-price';
 
 const EditProductSubmit = ({ id }: { id: string }) => {
   const { data: product, isError, isLoading } = useGetProductQuery(id);
+  const router = useRouter();
   const [formProgress, setFormProgress] = useState(0);
 
   // Memoize the default tags value to prevent infinite re-renders
@@ -141,8 +142,6 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     );
   }
   if (!isLoading && !isError && product) {
-    console.log('product--->', product);
-    console.log('product.options', product.options);
     content = (
       <div className="space-y-6">
         <form
@@ -183,21 +182,108 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                     defaultValue={product.title}
                   />
 
-                  {/* Description Section */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Description <span className="text-destructive">*</span>
-                    </label>
-                    <Controller
-                      name="description"
-                      control={control}
-                      defaultValue={product.description}
-                      rules={{ required: true }}
-                      render={({ field }) => <Tiptap {...field} />}
-                    />
-                    <ErrorMsg
-                      msg={(errors?.description?.message as string) || ''}
-                    />
+                  {/* Enhanced Description Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Description <span className="text-destructive">*</span>
+                      </label>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          Rich text editor
+                        </span>
+                        <span>•</span>
+                        <span>Supports formatting</span>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <Controller
+                        name="description"
+                        control={control}
+                        defaultValue={product.description}
+                        rules={{
+                          required: 'Product description is required',
+                          validate: value => {
+                            if (!value || value.trim() === '') {
+                              return 'Product description cannot be empty';
+                            }
+                            if (value.length < 10) {
+                              return 'Description must be at least 10 characters long';
+                            }
+                            return true;
+                          },
+                        }}
+                        render={({ field }) => (
+                          <Tiptap
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Describe your product in detail. Include key features, benefits, specifications, and any important information for customers..."
+                            limit={50000}
+                            showCharacterCount={true}
+                          />
+                        )}
+                      />
+                    </div>
+
+                    {/* Enhanced Error Display */}
+                    {errors?.description && (
+                      <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <svg
+                          className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <div className="text-sm">
+                          <p className="font-medium text-destructive">
+                            Description Error
+                          </p>
+                          <p className="text-destructive/80 mt-0.5">
+                            {errors?.description?.message as string}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Description Preview Toggle */}
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <div className="text-xs text-muted-foreground">
+                        Your description will be displayed to customers on the
+                        product page
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          Preview
+                        </span>
+                        <button
+                          type="button"
+                          className="text-xs px-2 py-1 bg-muted hover:bg-muted/80 rounded transition-colors"
+                          onClick={() => {
+                            // Could implement a preview modal here
+                            console.log('Preview clicked');
+                          }}
+                        >
+                          👁️ View
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -495,7 +581,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => window.history.back()}
+                    onClick={() => router.back()}
                     className="gap-2 hover:bg-muted/50 transition-all duration-200"
                     disabled={editLoading}
                   >
@@ -503,9 +589,10 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                     Cancel Changes
                   </Button>
                   <Button
+                    variant="default"
                     type="submit"
                     disabled={editLoading}
-                    className="gap-2 bg-gradient-to-r from-success to-success/90 hover:from-success/90 hover:to-success/80 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] disabled:hover:scale-100"
+                    className="gap-2"
                   >
                     {editLoading ? (
                       <>

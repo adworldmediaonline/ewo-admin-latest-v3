@@ -45,7 +45,7 @@ const data = {
     },
     {
       title: 'Products',
-      url: '/dashboard/super-admin/product-list',
+      url: '/dashboard/super-admin/product',
       icon: IconUsers,
     },
   ],
