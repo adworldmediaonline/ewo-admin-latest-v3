@@ -53,10 +53,6 @@ export default function ShippingPrice({
           <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          Set the shipping price for this product
-        </p>
-
         {shippingErrors?.price && (
           <ErrorMsg msg={String(shippingErrors.price.message || '')} />
         )}
@@ -80,10 +76,6 @@ export default function ShippingPrice({
               : 'focus:border-primary focus:ring-primary/20'
           )}
         />
-
-        <p className="text-xs text-muted-foreground">
-          Describe shipping policy or details
-        </p>
 
         {shippingErrors?.description && (
           <ErrorMsg msg={String(shippingErrors.description.message || '')} />

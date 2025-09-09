@@ -1,16 +1,17 @@
-import EditProductSubmit from '@/app/components/products/edit-product/edit-product-submit';
 import Wrapper from '@/layout/wrapper';
 
 import { Link, Package } from 'lucide-react';
-import { Button } from '../../../../../../../components/ui/button';
+
+import { Button } from '../../../../../../components/ui/button';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '../../../../../../../components/ui/card';
+} from '../../../../../../components/ui/card';
+import ProductSubmit from '../../../../../components/products/add-product/product-submit';
 
-const EditProduct = ({ params }: { params: { id: string } }) => {
+const AddProduct = () => {
   return (
     <Wrapper>
       <Card>
@@ -19,7 +20,7 @@ const EditProduct = ({ params }: { params: { id: string } }) => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                Edit Product
+                Add Product
               </CardTitle>
             </div>
             <Button variant="outline" asChild>
@@ -32,11 +33,11 @@ const EditProduct = ({ params }: { params: { id: string } }) => {
         </CardHeader>
 
         <CardContent>
-          <EditProductSubmit id={params.id} />
+          <ProductSubmit />
         </CardContent>
       </Card>
     </Wrapper>
   );
 };
 
-export default EditProduct;
+export default AddProduct;

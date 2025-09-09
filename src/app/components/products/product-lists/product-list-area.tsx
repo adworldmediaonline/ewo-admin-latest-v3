@@ -433,7 +433,7 @@ export default function ProductListArea() {
               </p>
             </div>
             <Button asChild>
-              <Link href="/add-product">
+              <Link href="/dashboard/super-admin/product/add">
                 <Package className="mr-2 h-4 w-4" />
                 Add Product
               </Link>

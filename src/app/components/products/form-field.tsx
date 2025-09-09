@@ -120,13 +120,6 @@ export default function FormField({
           {bottomTitle}
         </p>
       )}
-
-      {/* Character Count for text inputs */}
-      {type === 'text' && placeHolder && (
-        <div className="text-xs text-muted-foreground text-right">
-          {fieldValue?.toString().length || 0} / 100
-        </div>
-      )}
     </div>
   );
 }
