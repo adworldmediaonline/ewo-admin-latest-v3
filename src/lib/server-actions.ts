@@ -22,7 +22,7 @@ export async function getCurrentUser() {
 /**
  * Server action to test protected route
  */
-export async function testProtectedRoute() {
+export async function adminProtectedRoute() {
   try {
     const session = await authClient.getSession();
 
@@ -37,7 +37,7 @@ export async function testProtectedRoute() {
     // Get cookies from the request to forward to API
     const cookieHeader = await getSessionCookieHeader();
 
-    const response = await fetch(`${API_BASE_URL}/api/protected`, {
+    const response = await fetch(`${API_BASE_URL}/api/protected/admin`, {
       method: 'GET',
       headers: {
         Cookie: cookieHeader,
@@ -62,7 +62,7 @@ export async function testProtectedRoute() {
       data: data.data,
     };
   } catch (error) {
-    console.error('Error testing protected route:', error);
+    // console.error('Error testing protected route:', error);
     return {
       success: false,
       error: 'Failed to test protected route',
@@ -104,7 +104,7 @@ export async function testPublicRoute() {
       data: data.data,
     };
   } catch (error) {
-    console.error('Error testing public route:', error);
+    // console.error('Error testing public route:', error);
     return {
       success: false,
       error: 'Failed to test public route',
@@ -156,7 +156,7 @@ export async function testAdminRoute() {
       data: data.data,
     };
   } catch (error) {
-    console.error('Error testing admin route:', error);
+    // console.error('Error testing admin route:', error);
     return {
       success: false,
       error: 'Failed to test admin route',
@@ -208,7 +208,7 @@ export async function getUserProfile() {
       data: data.data,
     };
   } catch (error) {
-    console.error('Error getting user profile:', error);
+    // console.error('Error getting user profile:', error);
     return {
       success: false,
       error: 'Failed to get user profile',

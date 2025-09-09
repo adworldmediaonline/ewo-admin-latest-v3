@@ -894,22 +894,20 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                   </div>
                 </div>
 
-                {order.status !== 'cancelled' && (
+                {/* {order.status !== 'cancel' && (
                   <>
                     <div className="relative flex items-start space-x-4">
                       <div className="absolute left-6 top-12 w-px h-16 bg-border"></div>
                       <div className="flex-shrink-0">
                         <div
                           className={`flex items-center justify-center w-12 h-12 rounded-full ${
-                            order.status === 'processing' ||
                             order.status === 'shipped' ||
                             order.status === 'delivered'
                               ? 'bg-green-100 dark:bg-green-900'
                               : 'bg-muted'
                           }`}
                         >
-                          {order.status === 'processing' ||
-                          order.status === 'shipped' ||
+                          {order.status === 'shipped' ||
                           order.status === 'delivered' ? (
                             <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                           ) : (
@@ -917,35 +915,11 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                           )}
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4
-                              className={`text-sm font-semibold ${
-                                order.status === 'processing' ||
-                                order.status === 'shipped' ||
-                                order.status === 'delivered'
-                                  ? 'text-foreground'
-                                  : 'text-muted-foreground'
-                              }`}
-                            >
-                              Order Processing
-                            </h4>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Your order is being prepared and processed.
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-muted-foreground">-</p>
-                            <p className="text-xs text-muted-foreground">-</p>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </>
-                )}
+                )} */}
 
-                {order.status !== 'cancelled' && (
+                {order.status !== 'cancel' && (
                   <>
                     <div className="relative flex items-start space-x-4">
                       <div className="absolute left-6 top-12 w-px h-16 bg-border"></div>
@@ -984,8 +958,20 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm text-muted-foreground">-</p>
-                            <p className="text-xs text-muted-foreground">-</p>
+                            <div className="text-right">
+                              {order.status === 'shipped' && (
+                                <>
+                                  <p className="text-sm font-medium text-foreground">
+                                    {dayjs(order.updatedAt).format(
+                                      'MMM D, YYYY'
+                                    )}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {dayjs(order.updatedAt).format('h:mm A')}
+                                  </p>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -993,7 +979,7 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                   </>
                 )}
 
-                {order.status !== 'cancelled' && (
+                {order.status !== 'cancel' && (
                   <>
                     <div className="relative flex items-start space-x-4">
                       <div className="flex-shrink-0">
@@ -1028,8 +1014,20 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm text-muted-foreground">-</p>
-                            <p className="text-xs text-muted-foreground">-</p>
+                            <div className="text-right">
+                              {order.status === 'delivered' && (
+                                <>
+                                  <p className="text-sm font-medium text-foreground">
+                                    {dayjs(order.updatedAt).format(
+                                      'MMM D, YYYY'
+                                    )}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {dayjs(order.updatedAt).format('h:mm A')}
+                                  </p>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1037,7 +1035,7 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                   </>
                 )}
 
-                {order.status === 'cancelled' && (
+                {order.status === 'cancel' && (
                   <>
                     <div className="relative flex items-start space-x-4">
                       <div className="flex-shrink-0">
@@ -1056,8 +1054,20 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm text-muted-foreground">-</p>
-                            <p className="text-xs text-muted-foreground">-</p>
+                            <div className="text-right">
+                              {order.status === 'cancel' && (
+                                <>
+                                  <p className="text-sm font-medium text-foreground">
+                                    {dayjs(order.updatedAt).format(
+                                      'MMM D, YYYY'
+                                    )}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {dayjs(order.updatedAt).format('h:mm A')}
+                                  </p>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

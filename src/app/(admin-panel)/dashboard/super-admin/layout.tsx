@@ -1,42 +1,42 @@
-'use client';
-
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { AppSidebarAdmin } from '../../../../components/app-sidebar-admin';
-import { authClient } from '../../../../lib/auth-client';
 
-export default function DashboardLayout({
+import { redirect } from 'next/navigation';
+import { AppSidebarSuperAdmin } from '../../../../components/app-sidebar-super-admin';
+import { adminProtectedRoute } from '../../../../lib/server-actions';
+
+type fullSessionData = {
+  success: boolean;
+  data?: {
+    user: {
+      id: string;
+      email: string;
+      name: string;
+      role: string;
+    };
+    session: {
+      id: string;
+      createdAt: string;
+      expiresAt: string;
+    };
+  };
+  error?: string;
+  message?: string;
+  status?: number;
+};
+
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session, isPending } = authClient.useSession();
-  const router = useRouter();
+  const data: fullSessionData = await adminProtectedRoute();
 
-  // Handle role-based redirect
-  useEffect(() => {
-    if (!isPending && session?.user.role !== 'super-admin') {
-      router.push('/sign-in');
-    }
-  }, [session, isPending, router]);
-
-  if (isPending) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="animate-spin" />
-      </div>
-    );
+  if (!data?.data?.session) {
+    redirect('/sign-in');
   }
 
-  // Don't render anything if user doesn't have super-admin role
-  if (session?.user.role !== 'super-admin') {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="animate-spin" />
-      </div>
-    );
+  if (data.data.user.role !== 'super-admin') {
+    redirect('/sign-in');
   }
 
   return (
@@ -48,7 +48,7 @@ export default function DashboardLayout({
         } as React.CSSProperties
       }
     >
-      <AppSidebarAdmin variant="inset" />
+      <AppSidebarSuperAdmin variant="inset" />
       <SidebarInset>
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">

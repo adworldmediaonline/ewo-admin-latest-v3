@@ -25,7 +25,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Clock,
-  CreditCard,
   Download,
   Eye,
   Package,
@@ -65,7 +64,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   }, [searchVal]);
 
   // Status badge component
-  const StatusBadge = ({ status }: { status: string }) => {
+  const StatusBadge = ({ status, order }: { status: string; order: any }) => {
     const getStatusStyles = (status: string) => {
       switch (status.toLowerCase()) {
         case 'pending':
@@ -85,12 +84,16 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             bg: 'bg-purple-100 dark:bg-purple-950/20',
             text: 'text-purple-800 dark:text-purple-200',
             icon: <Truck className="w-3 h-3 mr-1" />,
+            carrier: order.shippingDetails?.carrier,
+            trackingNumber: order.shippingDetails?.trackingNumber,
           };
         case 'delivered':
           return {
             bg: 'bg-green-100 dark:bg-green-950/20',
             text: 'text-green-800 dark:text-green-200',
             icon: <CheckCircle className="w-3 h-3 mr-1" />,
+            carrier: order.shippingDetails?.carrier,
+            trackingNumber: order.shippingDetails?.trackingNumber,
           };
         case 'cancel':
         case 'cancelled':
@@ -108,15 +111,44 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       }
     };
 
-    const { bg, text, icon } = getStatusStyles(status);
+    const { bg, text, icon, carrier, trackingNumber } = getStatusStyles(status);
 
     return (
-      <span
-        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${bg} ${text}`}
-      >
-        {icon}
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
+      <div className="flex flex-col gap-1 min-w-0">
+        <span
+          className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 transition-colors duration-150 ${bg} ${text}`}
+          tabIndex={0}
+          aria-label={`Order status: ${status}`}
+          role="status"
+        >
+          {icon}
+          <span className="ml-1">
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </span>
+        </span>
+        {(carrier || trackingNumber) && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {carrier && (
+              <span
+                className="text-xs text-gray-600 font-mono bg-gray-50 dark:bg-gray-900/30 px-1.5 py-0.5 rounded"
+                aria-label={`Carrier: ${carrier}`}
+                tabIndex={0}
+              >
+                {carrier}
+              </span>
+            )}
+            {trackingNumber && (
+              <span
+                className="text-xs text-gray-600 font-mono bg-gray-50 dark:bg-gray-900/30 px-1.5 py-0.5 rounded"
+                aria-label={`Tracking number: ${trackingNumber}`}
+                tabIndex={0}
+              >
+                {trackingNumber}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -149,14 +181,6 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         )}
       </div>
     </div>
-  );
-
-  // Payment method badge
-  const PaymentBadge = ({ method }: { method: string }) => (
-    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-950/20 dark:text-blue-200 rounded-lg">
-      <CreditCard className="w-3 h-3 mr-1" />
-      {method}
-    </span>
   );
 
   // TanStack Table columns
@@ -225,17 +249,16 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           </div>
         ),
       },
-      {
-        accessorKey: 'paymentMethod',
-        header: 'Payment',
-        cell: info => <PaymentBadge method={info.row.original.paymentMethod} />,
-      },
+
       {
         accessorKey: 'status',
         header: 'Status',
         cell: info => (
           <div className="flex flex-col space-y-1">
-            <StatusBadge status={info.row.original.status} />
+            <StatusBadge
+              status={info.row.original.status}
+              order={info.row.original}
+            />
           </div>
         ),
       },

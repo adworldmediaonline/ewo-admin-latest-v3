@@ -1,11 +1,11 @@
 'use client';
-import React, { useState } from 'react';
 import {
+  useSendDeliveryNotificationMutation,
   useShipOrderMutation,
   useUpdateStatusMutation,
-  useSendDeliveryNotificationMutation,
 } from '@/redux/order/orderApi';
 import { Order } from '@/types/order-amount-type';
+import React, { useState } from 'react';
 import ShippingModal from './shipping-modal';
 
 interface ShippingActionsProps {
@@ -155,7 +155,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
           )}
 
           {/* Confirmation Message */}
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg break-words">
             <div className="flex items-start gap-3">
               <svg
                 className="w-5 h-5 text-yellow-600 mt-0.5"
@@ -171,10 +171,10 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
                 />
               </svg>
               <div>
-                <p className="text-sm font-medium text-yellow-800">
+                <p className="text-sm font-medium text-yellow-800 break-words">
                   Are you sure you want to mark this order as delivered?
                 </p>
-                <p className="text-xs text-yellow-700 mt-1">
+                <p className="text-xs text-yellow-700 mt-1 break-words">
                   This action will update the order status and send a delivery
                   confirmation email to the customer.
                 </p>
@@ -353,11 +353,11 @@ const ShippingActions: React.FC<ShippingActionsProps> = ({ order }) => {
           <DeliveredIcon />
           Delivered
         </div>
-        {order.shippingDetails?.trackingNumber && (
+        {/* {order.shippingDetails?.trackingNumber && (
           <span className="text-xs text-gray-600 font-mono">
             {order.shippingDetails.trackingNumber}
           </span>
-        )}
+        )} */}
       </div>
     );
   }
@@ -371,11 +371,11 @@ const ShippingActions: React.FC<ShippingActionsProps> = ({ order }) => {
             <TruckIcon />
             Shipped
           </div>
-          {order.shippingDetails?.trackingNumber && (
+          {/* {order.shippingDetails?.trackingNumber && (
             <span className="text-xs text-gray-600 font-mono truncate">
               {order.shippingDetails.trackingNumber}
             </span>
-          )}
+          )} */}
         </div>
         <button
           onClick={() => setIsDeliveryModalOpen(true)}
