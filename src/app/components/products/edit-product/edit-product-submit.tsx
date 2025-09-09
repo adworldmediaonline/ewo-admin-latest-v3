@@ -1,6 +1,5 @@
 'use client';
 import Tiptap from '@/components/tipTap/Tiptap';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -9,7 +8,6 @@ import { useGetProductQuery } from '@/redux/product/productApi';
 import {
   ArrowLeft,
   DollarSign,
-  Edit3,
   FileText,
   Image as ImageIcon,
   Loader2,
@@ -147,41 +145,6 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     console.log('product.options', product.options);
     content = (
       <div className="space-y-6">
-        {/* Header Section */}
-        <Card className="shadow-card">
-          <CardHeader className="pb-6">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-sm self-start sm:self-center">
-                  <Edit3 className="h-6 w-6 text-primary" />
-                </div>
-                <div className="space-y-2 flex-1">
-                  <CardTitle
-                    id="edit-product-form"
-                    className="text-xl sm:text-2xl font-bold"
-                  >
-                    Edit Product
-                  </CardTitle>
-                  <p className="text-muted-foreground text-sm sm:text-base">
-                    Update your product information, pricing, and settings
-                  </p>
-                  <Badge
-                    variant="secondary"
-                    className="gap-1.5 w-fit self-start"
-                  >
-                    <Package className="h-3 w-3" />
-                    ID: {(product as any)._id?.slice(-8) || 'N/A'}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            {/* Progress Indicator
-            <div className="mt-6 pt-6 border-t">
-              <FormProgress progress={formProgress} />
-            </div> */}
-          </CardHeader>
-        </Card>
-
         <form
           onSubmit={handleSubmit(data => handleEditProduct(data, id))}
           noValidate
