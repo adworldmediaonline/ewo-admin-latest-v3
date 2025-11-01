@@ -6,12 +6,11 @@ import {
   IconInnerShadowTop,
   IconShoppingCart,
   IconUsers,
+  IconStar,
 } from '@tabler/icons-react';
 import * as React from 'react';
 
-// import { NavDocuments } from '@/components/nav-documents';
 import { NavMain } from '@/components/nav-main';
-// import { NavSecondary } from '@/components/nav-secondary';
 import { NavUser } from '@/components/nav-user';
 import {
   Sidebar,
@@ -45,6 +44,12 @@ const data = {
       url: '/dashboard/admin/users',
       icon: IconUsers,
     },
+    {
+      title: 'Reviews',
+      url: '/dashboard/admin/reviews',
+      icon: IconStar,
+    }
+
   ],
   // navClouds: [
   //   {
@@ -154,8 +159,8 @@ export function AppSidebarAdmin({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        {/* <NavDocuments items={data.documents} /> */}
-        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
+        {/* <NavDocuments items={data.documents} />
+        <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

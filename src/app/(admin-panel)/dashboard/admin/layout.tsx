@@ -1,9 +1,9 @@
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { AppSidebarAdmin } from '../../../../components/app-sidebar-admin';
 
 import { redirect } from 'next/navigation';
-import { SiteHeader } from '../../../../components/site-header';
 import { adminProtectedRoute } from '../../../../lib/server-actions';
+import { SiteHeader } from '../../../../components/site-header';
+import { AppSidebarAdmin } from '@/components/app-sidebar-admin';
 
 type fullSessionData = {
   success: boolean;
@@ -50,6 +50,7 @@ export default async function DashboardLayout({
       }
     >
       <AppSidebarAdmin variant="inset" />
+
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">
