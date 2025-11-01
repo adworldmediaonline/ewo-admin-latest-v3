@@ -21,7 +21,7 @@ const OrderActions = ({
   const { data: orderData, isLoading, isError } = useGetSingleOrderQuery(id);
 
   const handlePrint = useReactToPrint({
-    content: () => printRefTwo?.current,
+    contentRef: printRefTwo,
     documentTitle: 'Receipt',
   });
 

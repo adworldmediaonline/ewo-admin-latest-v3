@@ -1,3 +1,4 @@
+// @ts-nocheck - Material Tailwind components have type incompatibilities with React 19
 'use client';
 import React, { SetStateAction, useEffect, useState } from 'react';
 import {

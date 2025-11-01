@@ -81,7 +81,7 @@ export default function CouponListArea() {
       if (result.isConfirmed) {
         try {
           const res = await deleteCoupon(id);
-          if ('data' in res && res.data.success) {
+          if ('data' in res && res.data && res.data.success) {
             Swal.fire('Deleted!', res.data.message || 'Coupon deleted successfully.', 'success');
           } else {
             Swal.fire('Error!', 'Failed to delete coupon', 'error');

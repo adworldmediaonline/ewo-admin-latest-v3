@@ -20,8 +20,8 @@ type IPropType = {
     register: UseFormRegister<any>;
     errors: FieldErrors<any>;
     logo: string;
-    handleSubmit: UseFormHandleSubmit<any, undefined>;
-    control: Control;
+    handleSubmit: UseFormHandleSubmit<any, any>;
+    control: Control<any>;
   };
 };
 

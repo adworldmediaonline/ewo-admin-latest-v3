@@ -53,7 +53,7 @@ const useCategorySubmit = () => {
       };
       const res = await addCategory({ ...category_data });
       if ('error' in res) {
-        if ('data' in res.error) {
+        if (res.error && 'data' in res.error) {
           const errorData = res.error.data as { message?: string };
           if (typeof errorData.message === 'string') {
             return notifyError(errorData.message);
@@ -82,7 +82,7 @@ const useCategorySubmit = () => {
       };
       const res = await editCategory({ id, data: category_data });
       if ('error' in res) {
-        if ('data' in res.error) {
+        if (res.error && 'data' in res.error) {
           const errorData = res.error.data as { message?: string };
           if (typeof errorData.message === 'string') {
             return notifyError(errorData.message);
