@@ -8,9 +8,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import Link from 'next/link';
-import EditCategory from '@/app/components/category/edit-category';
+import AddCategory from '@/app/components/category/add-category';
 
-const EditCategoryPage = ({ params }: { params: { id: string } }) => {
+const AddCategoryPage = () => {
   return (
     <Wrapper>
       <Card>
@@ -19,7 +19,7 @@ const EditCategoryPage = ({ params }: { params: { id: string } }) => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Folder className="h-5 w-5" />
-                Edit Category
+                Add Category
               </CardTitle>
             </div>
             <Button variant="outline" asChild>
@@ -32,11 +32,12 @@ const EditCategoryPage = ({ params }: { params: { id: string } }) => {
         </CardHeader>
 
         <CardContent>
-          <EditCategory id={params.id} />
+          <AddCategory showTable={false} />
         </CardContent>
       </Card>
     </Wrapper>
   );
 };
 
-export default EditCategoryPage;
+export default AddCategoryPage;
+

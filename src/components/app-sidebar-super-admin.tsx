@@ -6,6 +6,7 @@ import {
   IconInnerShadowTop,
   IconShoppingCart,
   IconUsers,
+  IconCategory,
 } from '@tabler/icons-react';
 import * as React from 'react';
 
@@ -44,10 +45,16 @@ const data = {
       icon: IconUsers,
     },
     {
+      title: 'Categories',
+      url: '/dashboard/super-admin/category',
+      icon: IconCategory,
+    },
+    {
       title: 'Products',
       url: '/dashboard/super-admin/product',
       icon: IconUsers,
     },
+
   ],
   // navClouds: [
   //   {

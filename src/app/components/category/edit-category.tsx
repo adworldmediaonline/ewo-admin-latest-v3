@@ -1,13 +1,16 @@
 'use client';
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
+import type { Tag } from 'react-tag-input';
 import useCategorySubmit from '@/hooks/useCategorySubmit';
-import CategoryTables from './category-tables';
 import CategoryImgUpload from './global-img-upload';
 import CategoryChildren from './category-children';
-import ErrorMsg from '../common/error-msg';
 import { useGetCategoryQuery } from '@/redux/category/categoryApi';
 import CategoryParent from './category-parent';
 import CategoryDescription from './category-description';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Folder, Image as ImageIcon, FileText, Loader2, Save } from 'lucide-react';
 
 const EditCategory = ({ id }: { id: string }) => {
   const { data: categoryData, isError, isLoading } = useGetCategoryQuery(id);
@@ -24,53 +27,234 @@ const EditCategory = ({ id }: { id: string }) => {
     isSubmitted,
     handleSubmitEditCategory,
   } = useCategorySubmit();
-  return (
-    <div className="grid grid-cols-12 gap-6">
-      <div className="col-span-12 lg:col-span-4">
-        {categoryData && (
-          <form
-            onSubmit={handleSubmit(data => handleSubmitEditCategory(data, id))}
-          >
-            <div className="mb-6 bg-white px-8 py-8 rounded-md">
-              {/* category image upload */}
-              <CategoryImgUpload
-                isSubmitted={isSubmitted}
-                setImage={setCategoryImg}
-                default_img={categoryData.img}
-                image={categoryImg}
-              />
-              {/* category image upload */}
 
-              {/* category parent */}
-              <CategoryParent
-                register={register}
-                errors={errors}
-                default_value={categoryData.parent}
-              />
-              {/* category parent */}
+  // Convert children array (string[]) to Tag[] format
+  const defaultChildrenTags = useMemo(() => {
+    if (!categoryData?.children || !Array.isArray(categoryData.children)) {
+      return [];
+    }
+    return categoryData.children.map((child: string, index: number) => ({
+      id: `child-${index}`,
+      text: child || '',
+    }));
+  }, [categoryData?.children]);
 
-              <CategoryChildren
-                categoryChildren={categoryChildren}
-                setCategoryChildren={setCategoryChildren}
-                error={error}
-                default_value={categoryData.children}
-              />
+  // Set default children when categoryData is loaded
+  useEffect(() => {
+    if (defaultChildrenTags.length > 0 && categoryChildren.length === 0) {
+      setCategoryChildren(defaultChildrenTags);
+    }
+  }, [defaultChildrenTags, categoryChildren.length, setCategoryChildren]);
 
-              {/* Category Description */}
-              <CategoryDescription
-                register={register}
-                default_value={categoryData.description}
-              />
-              {/* Category Description */}
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">
+              Loading Category
+            </h3>
+            <p className="text-sm text-muted-foreground text-center">
+              Please wait while we fetch the category details...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-              <button className="tp-btn px-7 py-2">Edit Category</button>
+  // Error state
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Card className="w-full max-w-md border-destructive/50">
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <Folder className="h-6 w-6 text-destructive" />
             </div>
-          </form>
-        )}
+            <h3 className="text-lg font-medium text-destructive mb-2">
+              Error Loading Category
+            </h3>
+            <p className="text-sm text-muted-foreground text-center mb-4">
+              We couldn't load the category details. Please try again.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => window.location.reload()}
+              className="gap-2"
+            >
+              <Loader2 className="h-4 w-4" />
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
-      <div className="col-span-12 lg:col-span-8">
-        <CategoryTables />
-      </div>
+    );
+  }
+
+  if (!categoryData) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-6">
+      <form
+        onSubmit={handleSubmit(data => handleSubmitEditCategory(data, id))}
+        noValidate
+        aria-labelledby="edit-category-form"
+      >
+        <div
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+          role="main"
+          aria-label="Category edit form"
+        >
+          {/* Left side - Main content */}
+          <div className="col-span-1 lg:col-span-8 xl:col-span-9 space-y-6">
+            {/* General Information */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      General Information
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Basic category details and description
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Category Parent Name */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Category Name <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    {...register('parent', {
+                      required: 'Category name is required',
+                    })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    type="text"
+                    placeholder="Enter category name"
+                    defaultValue={categoryData.parent}
+                  />
+                  {errors?.parent && (
+                    <p className="text-sm text-destructive">
+                      {errors.parent.message as string}
+                    </p>
+                  )}
+                </div>
+
+                {/* Category Description */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Description
+                  </label>
+                  <CategoryDescription
+                    register={register}
+                    default_value={categoryData.description}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sub-Categories */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                    <Folder className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Sub-Categories
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Add sub-categories for better organization
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CategoryChildren
+                  categoryChildren={categoryChildren}
+                  setCategoryChildren={setCategoryChildren}
+                  error={error}
+                  default_value={defaultChildrenTags}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right side - Sidebar */}
+          <div className="col-span-1 lg:col-span-4 xl:col-span-3 space-y-6">
+            {/* Category Image */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-cyan-50 flex items-center justify-center">
+                    <ImageIcon className="h-4 w-4 text-cyan-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Category Image
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Upload a high-quality category image
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <CategoryImgUpload
+                  isSubmitted={isSubmitted}
+                  setImage={setCategoryImg}
+                  default_img={categoryData.img}
+                  image={categoryImg}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <Card className="shadow-card">
+          <CardContent className="pt-6">
+            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-foreground">
+                  Ready to update your category?
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Changes will be saved and applied immediately to your category
+                  listing.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2 hover:bg-muted/50 transition-all duration-200"
+                  onClick={() => window.history.back()}
+                >
+                  Cancel
+                </Button>
+                <Button variant="default" type="submit" className="gap-2">
+                  <Save className="h-4 w-4" />
+                  <span>Update Category</span>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </form>
     </div>
   );
 };

@@ -5,6 +5,8 @@ import upload_default from '../../../../public/assets/img/icons/upload.png';
 
 import Loading from '../common/loading';
 import UploadImage from '../products/add-product/upload-image';
+import { Button } from '@/components/ui/button';
+import { Upload } from 'lucide-react';
 
 // prop type
 type IPropType = {
@@ -27,7 +29,9 @@ const GlobalImgUpload = ({
   const showDefaultImage = !uploadData && !isLoading && !isError && default_img;
 
   const upload_img = isLoading ? (
-    <Loading loading={isLoading} spinner="scale" />
+    <div className="flex items-center justify-center py-8">
+      <Loading loading={isLoading} spinner="scale" />
+    </div>
   ) : uploadData?.data.url ? (
     <UploadImage
       file={{
@@ -38,9 +42,28 @@ const GlobalImgUpload = ({
       setImgUrl={setImage}
     />
   ) : showDefaultImage ? (
-    <Image src={default_img} alt="upload-img" width={100} height={91} />
+    <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 bg-muted/5 flex items-center justify-center">
+      <Image
+        src={default_img}
+        alt="Category image"
+        fill
+        className="object-cover"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      />
+    </div>
   ) : (
-    <Image src={upload_default} alt="upload-img" width={100} height={91} />
+    <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 bg-muted/5 flex items-center justify-center">
+      <div className="text-center">
+        <Image
+          src={upload_default}
+          alt="Upload placeholder"
+          width={80}
+          height={80}
+          className="mx-auto mb-2 opacity-50"
+        />
+        <p className="text-sm text-muted-foreground">No image uploaded</p>
+      </div>
+    </div>
   );
 
   // set upload image
@@ -59,37 +82,53 @@ const GlobalImgUpload = ({
   }, [default_img, uploadData, isError, isLoading, setImage]);
 
   return (
-    <div className="mb-6">
-      <p className="mb-2 text-base text-black">Upload Image</p>
+    <div className="space-y-4">
       <div className="text-center">
         {isSubmitted ? (
-          <Image
-            src={upload_default}
-            alt="upload-img"
-            width={100}
-            height={91}
-          />
+          <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 bg-muted/5 flex items-center justify-center">
+            <div className="text-center">
+              <Image
+                src={upload_default}
+                alt="Upload placeholder"
+                width={80}
+                height={80}
+                className="mx-auto mb-2 opacity-50"
+              />
+              <p className="text-sm text-muted-foreground">No image uploaded</p>
+            </div>
+          </div>
         ) : (
           upload_img
         )}
       </div>
-      <span className="text-tiny text-center w-full inline-block mb-3">
-        (Only png* jpg* jpeg* webp/ will be accepted)
-      </span>
-      <div className="">
+
+      <div className="space-y-2">
         <input
           onChange={handleImageUpload}
           type="file"
           name="image"
           id="categoryImage"
+          accept="image/png,image/jpg,image/jpeg,image/webp"
           className="hidden"
         />
-        <label
-          htmlFor="categoryImage"
-          className="text-tiny w-full inline-block py-1 px-4 rounded-md border border-gray6 text-center hover:cursor-pointer hover:bg-theme hover:text-white hover:border-theme transition"
-        >
-          Upload Image
+        <label htmlFor="categoryImage" className="w-full">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2 cursor-pointer"
+            asChild
+          >
+            <span>
+              <Upload className="h-4 w-4" />
+              {uploadData?.data.url || showDefaultImage
+                ? 'Change Image'
+                : 'Upload Image'}
+            </span>
+          </Button>
         </label>
+        <p className="text-xs text-center text-muted-foreground">
+          Supported formats: PNG, JPG, JPEG, WEBP (Max 5MB)
+        </p>
       </div>
     </div>
   );
