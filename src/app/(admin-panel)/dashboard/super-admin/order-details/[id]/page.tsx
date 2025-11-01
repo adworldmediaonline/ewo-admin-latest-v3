@@ -1,7 +1,8 @@
 import OrderDetailsArea from '@/app/components/order-details/order-details-area';
 
-const OrdersPage = ({ params }: { params: { id: string } }) => {
-  return <OrderDetailsArea id={params.id} role="super-admin" />;
+const OrdersPage = async ({ params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  return <OrderDetailsArea id={id} role="super-admin" />;
 };
 
 export default OrdersPage;
