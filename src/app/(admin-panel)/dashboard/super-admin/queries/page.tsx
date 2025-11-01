@@ -1,10 +1,12 @@
+import QueryListArea from '@/app/components/contact/query-list-area';
 import Wrapper from '@/layout/wrapper';
-import ContactArea from '../../../../components/contact/contact-area';
 
 const ContactQueriesPage = () => {
   return (
     <Wrapper>
-      <ContactArea />
+      <div className="body-content px-8 py-8">
+        <QueryListArea />
+      </div>
     </Wrapper>
   );
 };
