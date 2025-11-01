@@ -36,6 +36,7 @@ const EditCategory = ({ id }: { id: string }) => {
     return categoryData.children.map((child: string, index: number) => ({
       id: `child-${index}`,
       text: child || '',
+      className: '',
     }));
   }, [categoryData?.children]);
 

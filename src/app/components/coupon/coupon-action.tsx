@@ -6,7 +6,7 @@ import EditTooltip from "../tooltip/edit-tooltip";
 import { useDeleteCouponMutation } from "@/redux/coupon/couponApi";
 import Link from "next/link";
 
-// prop type 
+// prop type
 type IPropType = {
   id:string;
   setOpenSidebar?: React.Dispatch<React.SetStateAction<boolean>>;
@@ -34,7 +34,7 @@ const CouponAction = ({ id,setOpenSidebar }: IPropType) => {
         try {
           const res = await deleteCoupon(delId);
           if ("data" in res) {
-            if ("success" in res.data) {
+            if (res.data && "success" in res.data) {
               Swal.fire("Deleted!", `Your coupon has been deleted.`, "success");
             }
           }

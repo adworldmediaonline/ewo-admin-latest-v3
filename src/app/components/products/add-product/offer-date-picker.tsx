@@ -33,7 +33,7 @@ const OfferDatePicker = ({
     <Datepicker
       useRange={isRange ? true : false}
       inputClassName="input w-full h-[44px] rounded-md border border-gray6 px-6 text-base"
-      value={defaultValue ? defaultValue : offerDate}
+      value={(defaultValue ? defaultValue : offerDate) as any}
       onChange={handleValueChange}
     />
   );

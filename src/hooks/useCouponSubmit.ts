@@ -27,7 +27,7 @@ const useCouponSubmit = () => {
     formState: { errors },
     reset,
     control,
-  } = useForm();
+  } = useForm<IAddCoupon>();
 
   useEffect(() => {
     if (!openSidebar) {
@@ -86,7 +86,7 @@ const useCouponSubmit = () => {
 
       const res = await addCoupon({ ...coupon_data });
       if ('error' in res) {
-        if ('data' in res.error) {
+        if (res.error && 'data' in res.error) {
           const errorData = res.error.data as {
             message?: string;
             errorMessages?: Array<{ path: string; message: string }>;
@@ -169,7 +169,7 @@ const useCouponSubmit = () => {
 
       const res = await editCoupon({ id, data: coupon_data });
       if ('error' in res) {
-        if ('data' in res.error) {
+        if (res.error && 'data' in res.error) {
           const errorData = res.error.data as {
             message?: string;
             errorMessages?: Array<{ path: string; message: string }>;

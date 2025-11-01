@@ -1,6 +1,6 @@
 import React from "react";
 
-const SmClose = () => {
+const SmClose = (props: React.SVGProps<SVGSVGElement>) => {
   return (
     <svg
       stroke="#FF0000"
@@ -12,6 +12,7 @@ const SmClose = () => {
       height="1em"
       width="1em"
       xmlns="http://www.w3.org/2000/svg"
+      {...props}
     >
       <circle cx="12" cy="12" r="10"></circle>
       <line x1="15" y1="9" x2="9" y2="15"></line>

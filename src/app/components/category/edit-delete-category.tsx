@@ -34,7 +34,7 @@ const CategoryEditDelete = ({ id }: IPropType) => {
         try {
           const res = await deleteCategory(id);
           if ("error" in res) {
-            if ("data" in res.error) {
+            if (res.error && "data" in res.error) {
               const errorData = res.error.data as { message?: string };
               if (typeof errorData.message === "string") {
                 return notifyError(errorData.message);

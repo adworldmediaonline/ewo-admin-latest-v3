@@ -25,7 +25,7 @@ const DeleteReviews = ({ id }: { id: string }) => {
           try {
             const res = await deleteReviews(id);
             if('data' in res){
-              if('message' in res.data){
+              if(res.data && 'message' in res.data){
                 Swal.fire("Deleted!", `${res.data.message}`, "success");
               }
             }

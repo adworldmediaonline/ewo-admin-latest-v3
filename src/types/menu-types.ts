@@ -1,6 +1,8 @@
+import React from 'react';
+
 export interface ISidebarMenus {
   id: number;
-  icon: () => JSX.Element;
+  icon: () => React.ReactElement;
   link: string;
   title: string;
   subMenus?: {
