@@ -6,7 +6,7 @@ import EditTooltip from "../tooltip/edit-tooltip";
 import { useDeleteCouponMutation } from "@/redux/coupon/couponApi";
 import Link from "next/link";
 
-// prop type 
+// prop type
 type IPropType = {
   id:string;
   setOpenSidebar?: React.Dispatch<React.SetStateAction<boolean>>;
