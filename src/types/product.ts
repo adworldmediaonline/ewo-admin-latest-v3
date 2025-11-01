@@ -68,6 +68,8 @@ export interface IProduct {
   };
   featured?: boolean;
   sellCount?: number;
+  finalPriceDiscount?: number;
+  updatedPrice?: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/table';
 import { useGetAllProductsQuery } from '@/redux/product/productApi';
 import { IProduct } from '@/types/product';
+import { exportProductsToCSV } from '@/utils/export-products';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -45,6 +46,7 @@ import {
 import {
   ArrowUpDown,
   ChevronDown,
+  Download,
   Edit,
   Eye,
   MoreHorizontal,
@@ -432,12 +434,28 @@ export default function ProductListArea() {
                 Manage your product inventory
               </p>
             </div>
-            <Button asChild>
-              <Link href="/dashboard/super-admin/product/add">
-                <Package className="mr-2 h-4 w-4" />
-                Add Product
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (products?.data && products.data.length > 0) {
+                    exportProductsToCSV(products.data);
+                  } else {
+                    alert('No products available to export');
+                  }
+                }}
+                disabled={isLoading || !products?.data || products.data.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export Data
+              </Button>
+              <Button asChild>
+                <Link href="/dashboard/super-admin/product/add">
+                  <Package className="mr-2 h-4 w-4" />
+                  Add Product
+                </Link>
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
