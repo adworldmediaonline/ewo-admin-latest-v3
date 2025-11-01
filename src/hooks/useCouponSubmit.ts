@@ -111,6 +111,7 @@ const useCouponSubmit = () => {
         setLogo('');
         setOpenSidebar(false);
         reset();
+        router.push('/dashboard/super-admin/coupon');
       }
     } catch (error) {
       console.log('Coupon submission error:', error);

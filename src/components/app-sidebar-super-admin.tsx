@@ -8,6 +8,7 @@ import {
   IconUsers,
   IconCategory,
   IconStar,
+  IconDiscount,
 } from '@tabler/icons-react';
 import * as React from 'react';
 
@@ -60,7 +61,12 @@ const data = {
       title: 'Reviews',
       url: '/dashboard/super-admin/reviews',
       icon: IconStar,
-    }
+    },
+    {
+      title: 'Coupons',
+      url: '/dashboard/super-admin/coupon',
+      icon: IconDiscount,
+    },
 
   ],
   // navClouds: [

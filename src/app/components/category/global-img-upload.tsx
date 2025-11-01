@@ -42,26 +42,26 @@ const GlobalImgUpload = ({
       setImgUrl={setImage}
     />
   ) : showDefaultImage ? (
-    <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 bg-muted/5 flex items-center justify-center">
+    <div className="relative w-32 h-32 mx-auto rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 bg-muted/5 flex items-center justify-center">
       <Image
         src={default_img}
         alt="Category image"
         fill
         className="object-cover"
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        sizes="128px"
       />
     </div>
   ) : (
-    <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 bg-muted/5 flex items-center justify-center">
+    <div className="relative w-32 h-32 mx-auto rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 bg-muted/5 flex items-center justify-center">
       <div className="text-center">
         <Image
           src={upload_default}
           alt="Upload placeholder"
-          width={80}
-          height={80}
+          width={40}
+          height={40}
           className="mx-auto mb-2 opacity-50"
         />
-        <p className="text-sm text-muted-foreground">No image uploaded</p>
+        <p className="text-xs text-muted-foreground">No image</p>
       </div>
     </div>
   );
@@ -82,19 +82,19 @@ const GlobalImgUpload = ({
   }, [default_img, uploadData, isError, isLoading, setImage]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="text-center">
         {isSubmitted ? (
-          <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 bg-muted/5 flex items-center justify-center">
+          <div className="relative w-32 h-32 mx-auto rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/25 bg-muted/5 flex items-center justify-center">
             <div className="text-center">
               <Image
                 src={upload_default}
                 alt="Upload placeholder"
-                width={80}
-                height={80}
+                width={40}
+                height={40}
                 className="mx-auto mb-2 opacity-50"
               />
-              <p className="text-sm text-muted-foreground">No image uploaded</p>
+              <p className="text-xs text-muted-foreground">No image</p>
             </div>
           </div>
         ) : (
