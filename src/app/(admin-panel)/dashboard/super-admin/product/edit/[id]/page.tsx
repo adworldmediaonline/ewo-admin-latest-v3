@@ -10,7 +10,8 @@ import {
   CardTitle,
 } from '../../../../../../../components/ui/card';
 
-const EditProduct = ({ params }: { params: { id: string } }) => {
+const EditProduct = async ({ params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
   return (
     <Wrapper>
       <Card>
@@ -32,7 +33,7 @@ const EditProduct = ({ params }: { params: { id: string } }) => {
         </CardHeader>
 
         <CardContent>
-          <EditProductSubmit id={params.id} />
+          <EditProductSubmit id={id} />
         </CardContent>
       </Card>
     </Wrapper>
