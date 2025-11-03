@@ -12,6 +12,7 @@ import ProductOptions from './product-options';
 import ProductVariants from './product-variants';
 import SEOFields from './seo-fields';
 import Tags from './tags';
+import YouTubeVideoInput from './youtube-video-input';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ const ProductSubmit = () => {
     handleSubmit,
     handleSubmitProduct,
     register,
+    setValue,
     errors,
     tags,
     setTags,
@@ -264,7 +266,33 @@ const ProductSubmit = () => {
               </CardContent>
             </Card>
 
-            {/* Media & Offers */}
+            {/* YouTube Video */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-red-50 flex items-center justify-center">
+                    <ImageIcon className="h-4 w-4 text-red-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Product Video
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Add a YouTube video to showcase your product
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <YouTubeVideoInput
+                  register={register}
+                  setValue={setValue}
+                  errors={errors}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Special Offers */}
             <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
@@ -273,39 +301,29 @@ const ProductSubmit = () => {
                   </div>
                   <div>
                     <CardTitle className="text-lg font-semibold">
-                      Media & Special Offers
+                      Special Offers
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Add videos and configure promotional periods
+                      Configure promotional periods for this product
                     </p>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <FormField
-                    title="youtube video Id"
-                    isRequired={false}
-                    placeHolder="video id"
-                    bottomTitle="Set the video id of product."
-                    register={register}
-                    errors={errors}
+                {/* date picker start */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Offer Period
+                  </label>
+                  <OfferDatePicker
+                    offerDate={offerDate}
+                    setOfferDate={setOfferDate}
                   />
-                  {/* date picker start */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Offer Period
-                    </label>
-                    <OfferDatePicker
-                      offerDate={offerDate}
-                      setOfferDate={setOfferDate}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Set the product offer start and end date
-                    </p>
-                  </div>
-                  {/* date picker end */}
+                  <p className="text-xs text-muted-foreground">
+                    Set the product offer start and end date
+                  </p>
                 </div>
+                {/* date picker end */}
               </CardContent>
             </Card>
 

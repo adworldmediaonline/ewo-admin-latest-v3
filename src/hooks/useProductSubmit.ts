@@ -125,7 +125,7 @@ const useProductSubmit = () => {
         endDate: offerDate.endDate,
       },
       description: data.description,
-      videoId: data.youtube_video_Id,
+      videoId: data.videoId || '',
       additionalInformation: additionalInformation,
       tags: tags.map(tag => tag.text),
       seo: {
@@ -207,7 +207,7 @@ const useProductSubmit = () => {
           endDate: offerDate.endDate,
         },
         description: data.description,
-        videoId: data.youtube_video_Id,
+        videoId: data.videoId || '',
         additionalInformation: additionalInformation,
         tags: tags.map(tag => tag.text),
         seo: {
@@ -268,6 +268,7 @@ const useProductSubmit = () => {
   return {
     register,
     handleSubmit,
+    setValue,
     handleSubmitProduct,
     errors,
     tags,
