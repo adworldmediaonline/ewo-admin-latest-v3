@@ -27,6 +27,7 @@ export const apiSlice = createApi({
   }),
   tagTypes: [
     'DashboardAmount',
+    'OrderBreakdown',
     'DashboardSalesReport',
     'DashboardMostSellingCategory',
     'DashboardRecentOrders',

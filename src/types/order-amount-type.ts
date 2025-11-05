@@ -117,3 +117,27 @@ export interface IUpdateStatusOrderRes {
   success: boolean;
   message: string;
 }
+
+// order breakdown types
+export interface IOrderBreakdownStatus {
+  count: number;
+  totalAmount: number;
+  percentage: number | string;
+}
+
+export interface IOrderBreakdownData {
+  delivered: IOrderBreakdownStatus;
+  pending: IOrderBreakdownStatus;
+  processing: IOrderBreakdownStatus;
+  shipped: IOrderBreakdownStatus;
+  cancelled: IOrderBreakdownStatus;
+  total: {
+    orders: number;
+    revenue: number;
+  };
+}
+
+export interface IOrderBreakdownRes {
+  success: boolean;
+  data: IOrderBreakdownData;
+}
