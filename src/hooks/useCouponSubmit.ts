@@ -27,6 +27,7 @@ const useCouponSubmit = () => {
     formState: { errors },
     reset,
     control,
+    setValue,
   } = useForm<IAddCoupon>();
 
   useEffect(() => {
@@ -50,18 +51,18 @@ const useCouponSubmit = () => {
           : undefined,
         endTime: dayjs(data.endTime).format('YYYY-MM-DDTHH:mm:ss.SSSZ'),
 
-        // Discount Configuration
+        // Discount Configuration - Parse as exact numbers
         discountType: data.discountType || 'percentage',
-        discountPercentage: data.discountPercentage,
-        discountAmount: data.discountAmount,
-        buyQuantity: data.buyQuantity,
-        getQuantity: data.getQuantity,
+        discountPercentage: data.discountPercentage ? Number(data.discountPercentage) : undefined,
+        discountAmount: data.discountAmount ? Number(data.discountAmount) : undefined,
+        buyQuantity: data.buyQuantity ? Number(data.buyQuantity) : undefined,
+        getQuantity: data.getQuantity ? Number(data.getQuantity) : undefined,
 
-        // Usage Restrictions
-        minimumAmount: data.minimumAmount,
-        maximumAmount: data.maximumAmount,
-        usageLimit: data.usageLimit,
-        usageLimitPerUser: data.usageLimitPerUser,
+        // Usage Restrictions - Parse as exact numbers
+        minimumAmount: data.minimumAmount ? Number(data.minimumAmount) : undefined,
+        maximumAmount: data.maximumAmount ? Number(data.maximumAmount) : undefined,
+        usageLimit: data.usageLimit ? Number(data.usageLimit) : undefined,
+        usageLimitPerUser: data.usageLimitPerUser ? Number(data.usageLimitPerUser) : undefined,
 
         // Product/Category Restrictions
         applicableType: data.applicableType || 'all',
@@ -81,8 +82,6 @@ const useCouponSubmit = () => {
         status: data.status || 'active',
         isPublic: data.isPublic !== false,
       };
-
-      console.log('Submitting coupon data:', coupon_data);
 
       const res = await addCoupon({ ...coupon_data });
       if ('error' in res) {
@@ -133,18 +132,18 @@ const useCouponSubmit = () => {
           : undefined,
         endTime: dayjs(data.endTime).format('YYYY-MM-DDTHH:mm:ss.SSSZ'),
 
-        // Discount Configuration
+        // Discount Configuration - Parse as exact numbers
         discountType: data.discountType || 'percentage',
-        discountPercentage: data.discountPercentage,
-        discountAmount: data.discountAmount,
-        buyQuantity: data.buyQuantity,
-        getQuantity: data.getQuantity,
+        discountPercentage: data.discountPercentage ? Number(data.discountPercentage) : undefined,
+        discountAmount: data.discountAmount ? Number(data.discountAmount) : undefined,
+        buyQuantity: data.buyQuantity ? Number(data.buyQuantity) : undefined,
+        getQuantity: data.getQuantity ? Number(data.getQuantity) : undefined,
 
-        // Usage Restrictions
-        minimumAmount: data.minimumAmount,
-        maximumAmount: data.maximumAmount,
-        usageLimit: data.usageLimit,
-        usageLimitPerUser: data.usageLimitPerUser,
+        // Usage Restrictions - Parse as exact numbers
+        minimumAmount: data.minimumAmount ? Number(data.minimumAmount) : undefined,
+        maximumAmount: data.maximumAmount ? Number(data.maximumAmount) : undefined,
+        usageLimit: data.usageLimit ? Number(data.usageLimit) : undefined,
+        usageLimitPerUser: data.usageLimitPerUser ? Number(data.usageLimitPerUser) : undefined,
 
         // Product/Category Restrictions
         applicableType: data.applicableType || 'all',
@@ -164,8 +163,6 @@ const useCouponSubmit = () => {
         status: data.status || 'active',
         isPublic: data.isPublic !== false,
       };
-
-      console.log('Updating coupon data:', coupon_data);
 
       const res = await editCoupon({ id, data: coupon_data });
       if ('error' in res) {
@@ -190,7 +187,7 @@ const useCouponSubmit = () => {
         return notifyError('Failed to update coupon');
       } else {
         notifySuccess('Coupon updated successfully');
-        router.push('/coupon');
+        router.push('/dashboard/super-admin/coupon');
         setIsSubmitted(true);
         reset();
       }
@@ -214,6 +211,7 @@ const useCouponSubmit = () => {
     control,
     handleSubmitEditCoupon,
     setEditId,
+    setValue,
   };
 };
 
