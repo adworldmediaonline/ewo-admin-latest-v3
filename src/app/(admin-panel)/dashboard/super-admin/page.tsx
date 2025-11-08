@@ -2,6 +2,7 @@
 
 import { ChartAreaInteractive } from '@/components/chart-area-interactive';
 import { DataTable } from '@/components/data-table';
+import { OrderBreakdown } from '@/components/order-breakdown';
 import { SectionCards } from '@/components/section-cards';
 
 export default function Page() {
@@ -11,6 +12,7 @@ export default function Page() {
       <div className="px-4 lg:px-6">
         <ChartAreaInteractive />
       </div>
+      <OrderBreakdown />
       <DataTable />
     </div>
   );

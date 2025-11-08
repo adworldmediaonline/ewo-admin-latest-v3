@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import ReactSelect, { MultiValue } from 'react-select';
 import GlobalImgUpload from '../category/global-img-upload';
+import { SimpleNumberInput } from './simple-number-input';
 
 interface SelectOption {
   value: string;
@@ -38,14 +39,38 @@ export default function EnhancedCouponForm({
   const [applicableType, setApplicableType] = useState<string>(
     defaultValues?.applicableType || 'all'
   );
-  const [selectedProducts, setSelectedProducts] = useState<string[]>(
-    defaultValues?.applicableProducts || []
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [isFormPopulated, setIsFormPopulated] = useState(false);
+
+  // Controlled state for numeric fields to prevent auto-conversion bugs
+  const [discountPercentageValue, setDiscountPercentageValue] = useState<number | undefined>(
+    defaultValues?.discountPercentage
   );
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    defaultValues?.applicableCategories || []
+  const [discountAmountValue, setDiscountAmountValue] = useState<number | undefined>(
+    defaultValues?.discountAmount
   );
-  const [selectedBrands, setSelectedBrands] = useState<string[]>(
-    defaultValues?.applicableBrands || []
+  const [minimumAmountValue, setMinimumAmountValue] = useState<number | undefined>(
+    defaultValues?.minimumAmount
+  );
+  const [maximumAmountValue, setMaximumAmountValue] = useState<number | undefined>(
+    defaultValues?.maximumAmount
+  );
+  const [buyQuantityValue, setBuyQuantityValue] = useState<number | undefined>(
+    defaultValues?.buyQuantity || 1
+  );
+  const [getQuantityValue, setGetQuantityValue] = useState<number | undefined>(
+    defaultValues?.getQuantity || 1
+  );
+  const [usageLimitValue, setUsageLimitValue] = useState<number | undefined>(
+    defaultValues?.usageLimit
+  );
+  const [usageLimitPerUserValue, setUsageLimitPerUserValue] = useState<number | undefined>(
+    defaultValues?.usageLimitPerUser
+  );
+  const [priorityValue, setPriorityValue] = useState<number | undefined>(
+    defaultValues?.priority || 0
   );
 
   const {
@@ -62,21 +87,13 @@ export default function EnhancedCouponForm({
       description: defaultValues?.description || '',
       couponCode: defaultValues?.couponCode || '',
       discountType: defaultValues?.discountType || 'percentage',
-      discountPercentage: defaultValues?.discountPercentage || 0,
-      discountAmount: defaultValues?.discountAmount || 0,
-      buyQuantity: defaultValues?.buyQuantity || 1,
-      getQuantity: defaultValues?.getQuantity || 1,
-      minimumAmount: defaultValues?.minimumAmount || 0,
-      maximumAmount: defaultValues?.maximumAmount || undefined,
-      usageLimit: defaultValues?.usageLimit || undefined,
-      usageLimitPerUser: defaultValues?.usageLimitPerUser || undefined,
+      // Numeric fields are now controlled via state, not defaultValues
       applicableType: defaultValues?.applicableType || 'all',
       productType: defaultValues?.productType || '',
       applicableProducts: defaultValues?.applicableProducts || [],
       applicableCategories: defaultValues?.applicableCategories || [],
       applicableBrands: defaultValues?.applicableBrands || [],
       stackable: defaultValues?.stackable || false,
-      priority: defaultValues?.priority || 0,
       status: defaultValues?.status || 'active',
       isPublic: defaultValues?.isPublic !== false,
       userRestrictions: {
@@ -107,6 +124,92 @@ export default function EnhancedCouponForm({
   useEffect(() => {
     setApplicableType(watchedApplicableType || 'all');
   }, [watchedApplicableType]);
+
+  // Populate form values when editing (only once on mount)
+  useEffect(() => {
+    if (defaultValues && isEdit && !isFormPopulated) {
+      // Set basic form values
+      if (defaultValues.title) setValue('title', defaultValues.title);
+      if (defaultValues.description) setValue('description', defaultValues.description);
+      if (defaultValues.couponCode) setValue('couponCode', defaultValues.couponCode);
+
+      // Set discount configuration - Use controlled state setters
+      if (defaultValues.discountType) setValue('discountType', defaultValues.discountType);
+      if (defaultValues.discountPercentage !== undefined) {
+        setDiscountPercentageValue(defaultValues.discountPercentage);
+      }
+      if (defaultValues.discountAmount !== undefined) {
+        setDiscountAmountValue(defaultValues.discountAmount);
+      }
+      if (defaultValues.buyQuantity !== undefined) {
+        setBuyQuantityValue(defaultValues.buyQuantity);
+      }
+      if (defaultValues.getQuantity !== undefined) {
+        setGetQuantityValue(defaultValues.getQuantity);
+      }
+
+      // Set usage restrictions - Use controlled state setters
+      if (defaultValues.minimumAmount !== undefined) {
+        setMinimumAmountValue(defaultValues.minimumAmount);
+      }
+      if (defaultValues.maximumAmount !== undefined) {
+        setMaximumAmountValue(defaultValues.maximumAmount);
+      }
+      if (defaultValues.usageLimit !== undefined) {
+        setUsageLimitValue(defaultValues.usageLimit);
+      }
+      if (defaultValues.usageLimitPerUser !== undefined) {
+        setUsageLimitPerUserValue(defaultValues.usageLimitPerUser);
+      }
+
+      // Set product restrictions
+      if (defaultValues.applicableType) setValue('applicableType', defaultValues.applicableType);
+      if (defaultValues.productType) setValue('productType', defaultValues.productType);
+
+      // Set applicable items
+      if (defaultValues.applicableProducts && Array.isArray(defaultValues.applicableProducts)) {
+        const productIds = defaultValues.applicableProducts.map((p: any) => typeof p === 'string' ? p : p._id);
+        setSelectedProducts(productIds);
+      }
+      if (defaultValues.applicableCategories) {
+        setSelectedCategories(defaultValues.applicableCategories);
+      }
+      if (defaultValues.applicableBrands) {
+        setSelectedBrands(defaultValues.applicableBrands);
+      }
+
+      // Set advanced settings
+      if (defaultValues.stackable !== undefined) setValue('stackable', defaultValues.stackable);
+      if (defaultValues.priority !== undefined) {
+        setPriorityValue(defaultValues.priority);
+      }
+      if (defaultValues.status) setValue('status', defaultValues.status);
+      if (defaultValues.isPublic !== undefined) setValue('isPublic', defaultValues.isPublic);
+
+      // Set user restrictions
+      if (defaultValues.userRestrictions?.newUsersOnly !== undefined) {
+        setValue('userRestrictions.newUsersOnly', defaultValues.userRestrictions.newUsersOnly);
+      }
+
+      // Set dates
+      if (defaultValues.startTime) {
+        const startDate = new Date(defaultValues.startTime).toISOString().slice(0, 16);
+        setValue('startTime', startDate);
+      }
+      if (defaultValues.endTime) {
+        const endDate = new Date(defaultValues.endTime).toISOString().slice(0, 16);
+        setValue('endTime', endDate);
+      }
+
+      // Set logo if exists
+      if (defaultValues.logo) {
+        setLogo(defaultValues.logo);
+      }
+
+      // Mark form as populated to prevent re-population
+      setIsFormPopulated(true);
+    }
+  }, [defaultValues, isEdit, setValue, setLogo, isFormPopulated]);
 
   // Clear selections when applicable type changes
   useEffect(() => {
@@ -153,11 +256,22 @@ export default function EnhancedCouponForm({
     const formData: IAddCoupon = {
       ...data,
       logo,
+      // Use controlled state values for all numeric fields
+      discountPercentage: discountPercentageValue,
+      discountAmount: discountAmountValue,
+      minimumAmount: minimumAmountValue || 0,
+      maximumAmount: maximumAmountValue || 0,
+      buyQuantity: buyQuantityValue || 0,
+      getQuantity: getQuantityValue || 0,
+      usageLimit: usageLimitValue || 0,
+      usageLimitPerUser: usageLimitPerUserValue || 0,
+      priority: priorityValue || 0,
       applicableProducts: applicableType === 'product' ? selectedProducts : [],
       applicableCategories:
         applicableType === 'category' ? selectedCategories : [],
       applicableBrands: applicableType === 'brand' ? selectedBrands : [],
     };
+
     onSubmit(formData);
   };
 
@@ -283,92 +397,66 @@ export default function EnhancedCouponForm({
 
         {/* Conditional Discount Fields */}
         {discountType === 'percentage' && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Discount Percentage *
-            </label>
-            <input
-              {...register('discountPercentage', {
-                required: 'Discount percentage is required',
-                min: { value: 0, message: 'Must be at least 0' },
-                max: { value: 100, message: 'Cannot exceed 100' },
-              })}
-              type="number"
-              step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter percentage (0-100)"
-            />
-            {errors.discountPercentage && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.discountPercentage.message}
-              </p>
-            )}
-          </div>
+          <SimpleNumberInput
+            label="Discount Percentage"
+            value={discountPercentageValue}
+            onChange={setDiscountPercentageValue}
+            placeholder="Enter percentage (0-100)"
+            required={true}
+            min={0}
+            max={100}
+            error={
+              discountPercentageValue === undefined
+                ? 'Discount percentage is required'
+                : undefined
+            }
+          />
         )}
 
         {discountType === 'fixed_amount' && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Discount Amount *
-            </label>
-            <input
-              {...register('discountAmount', {
-                required: 'Discount amount is required',
-                min: { value: 0, message: 'Must be at least 0' },
-              })}
-              type="number"
-              step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter discount amount"
-            />
-            {errors.discountAmount && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.discountAmount.message}
-              </p>
-            )}
-          </div>
+          <SimpleNumberInput
+            label="Discount Amount"
+            value={discountAmountValue}
+            onChange={setDiscountAmountValue}
+            placeholder="Enter discount amount"
+            required={true}
+            min={0}
+            error={
+              discountAmountValue === undefined
+                ? 'Discount amount is required'
+                : undefined
+            }
+          />
         )}
 
         {discountType === 'buy_x_get_y' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Buy Quantity *
-              </label>
-              <input
-                {...register('buyQuantity', {
-                  required: 'Buy quantity is required',
-                  min: { value: 1, message: 'Must be at least 1' },
-                })}
-                type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Buy quantity"
-              />
-              {errors.buyQuantity && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.buyQuantity.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Get Quantity *
-              </label>
-              <input
-                {...register('getQuantity', {
-                  required: 'Get quantity is required',
-                  min: { value: 1, message: 'Must be at least 1' },
-                })}
-                type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Get quantity"
-              />
-              {errors.getQuantity && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.getQuantity.message}
-                </p>
-              )}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SimpleNumberInput
+              label="Buy Quantity"
+              value={buyQuantityValue}
+              onChange={setBuyQuantityValue}
+              placeholder="Buy quantity"
+              required={true}
+              min={1}
+              error={
+                buyQuantityValue === undefined || buyQuantityValue < 1
+                  ? 'Buy quantity is required (min: 1)'
+                  : undefined
+              }
+            />
+            <SimpleNumberInput
+              label="Get Quantity"
+              value={getQuantityValue}
+              onChange={setGetQuantityValue}
+              placeholder="Get quantity"
+              required={true}
+              min={1}
+              error={
+                getQuantityValue === undefined || getQuantityValue < 1
+                  ? 'Get quantity is required (min: 1)'
+                  : undefined
+              }
+            />
           </div>
         )}
       </div>
@@ -378,69 +466,46 @@ export default function EnhancedCouponForm({
         <h3 className="text-lg font-semibold mb-4">Usage Restrictions</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Minimum Order Amount *
-            </label>
-            <input
-              {...register('minimumAmount', {
-                required: 'Minimum amount is required',
-                min: { value: 0, message: 'Must be at least 0' },
-              })}
-              type="number"
-              step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Minimum order amount"
-            />
-            {errors.minimumAmount && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.minimumAmount.message}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Maximum Order Amount
-            </label>
-            <input
-              {...register('maximumAmount', {
-                min: { value: 0, message: 'Must be at least 0' },
-              })}
-              type="number"
-              step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Maximum order amount (optional)"
-            />
-          </div>
+          <SimpleNumberInput
+            label="Minimum Order Amount"
+            value={minimumAmountValue}
+            onChange={setMinimumAmountValue}
+            placeholder="Minimum order amount"
+            required={true}
+            min={0}
+            error={
+              minimumAmountValue === undefined
+                ? 'Minimum amount is required'
+                : undefined
+            }
+          />
+          <SimpleNumberInput
+            label="Maximum Order Amount"
+            value={maximumAmountValue}
+            onChange={setMaximumAmountValue}
+            placeholder="Maximum order amount (optional)"
+            required={false}
+            min={0}
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Total Usage Limit
-            </label>
-            <input
-              {...register('usageLimit', {
-                min: { value: 1, message: 'Must be at least 1' },
-              })}
-              type="number"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Total usage limit (optional)"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Usage Limit Per User
-            </label>
-            <input
-              {...register('usageLimitPerUser', {
-                min: { value: 1, message: 'Must be at least 1' },
-              })}
-              type="number"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Usage limit per user (optional)"
-            />
-          </div>
+          <SimpleNumberInput
+            label="Total Usage Limit"
+            value={usageLimitValue}
+            onChange={setUsageLimitValue}
+            placeholder="Total usage limit (optional)"
+            required={false}
+            min={1}
+          />
+          <SimpleNumberInput
+            label="Usage Limit Per User"
+            value={usageLimitPerUserValue}
+            onChange={setUsageLimitPerUserValue}
+            placeholder="Usage limit per user (optional)"
+            required={false}
+            min={1}
+          />
         </div>
       </div>
 
@@ -602,17 +667,14 @@ export default function EnhancedCouponForm({
         <h3 className="text-lg font-semibold mb-4">Advanced Settings</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Priority
-            </label>
-            <input
-              {...register('priority')}
-              type="number"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Priority (higher = more priority)"
-            />
-          </div>
+          <SimpleNumberInput
+            label="Priority"
+            value={priorityValue}
+            onChange={setPriorityValue}
+            placeholder="Priority (higher = more priority)"
+            required={false}
+            min={0}
+          />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Status
@@ -663,20 +725,70 @@ export default function EnhancedCouponForm({
       </div>
 
       {/* Submit Button */}
-      <div className="flex justify-end space-x-4">
-        <button
-          type="button"
-          onClick={() => reset()}
-          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-        >
-          Reset
-        </button>
-        <button
-          type="submit"
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          {isEdit ? 'Update Coupon' : 'Create Coupon'}
-        </button>
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            {isEdit ? (
+              <p>
+                <span className="font-medium">Editing:</span>{' '}
+                <span className="text-blue-600 font-semibold">
+                  {defaultValues?.couponCode}
+                </span>
+              </p>
+            ) : (
+              <p>All required fields must be filled before submitting</p>
+            )}
+          </div>
+          <div className="flex space-x-4">
+            <button
+              type="button"
+              onClick={() => reset()}
+              className="px-6 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
+            >
+              Reset Form
+            </button>
+            <button
+              type="submit"
+              className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+            >
+              {isEdit ? (
+                <>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  Update Coupon
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Create Coupon
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </form>
   );

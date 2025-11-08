@@ -28,6 +28,7 @@ import {
   Download,
   Eye,
   Package,
+  RefreshCw,
   Search,
   Truck,
   User,
@@ -35,7 +36,11 @@ import {
 } from 'lucide-react';
 
 const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
-  const { data: orders, isError, isLoading, error } = useGetAllOrdersQuery();
+  const { data: orders, isError, isLoading, error, refetch, isFetching } = useGetAllOrdersQuery(undefined, {
+    pollingInterval: 30000, // Auto-refresh every 30 seconds
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  });
   const [searchVal, setSearchVal] = useState<string>('');
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [pagination, setPagination] = useState<PaginationState>({
@@ -417,7 +422,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Bar and Export */}
+        {/* Search Bar, Refresh, and Export */}
         <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="relative flex-1 max-w-md">
@@ -432,14 +437,33 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                 <Search className="w-4 h-4 text-muted-foreground" />
               </div>
             </div>
-            <button
-              onClick={handleExport}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh orders"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <button
+                onClick={handleExport}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </button>
+            </div>
           </div>
+
+          {/* Auto-refresh indicator */}
+          {isFetching && !isLoading && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              <span>Updating orders...</span>
+            </div>
+          )}
         </div>
 
         {/* Table Container */}

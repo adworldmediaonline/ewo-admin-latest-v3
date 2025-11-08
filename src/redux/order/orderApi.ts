@@ -3,6 +3,7 @@ import {
   IGetAllOrdersRes,
   IMostSellingCategory,
   IOrderAmounts,
+  IOrderBreakdownRes,
   ISalesReport,
   IUpdateStatusOrderRes,
   Order,
@@ -16,6 +17,12 @@ export const authApi = apiSlice.injectEndpoints({
     getDashboardAmount: builder.query<IOrderAmounts, void>({
       query: () => `/api/user-order/dashboard-amount`,
       providesTags: ['DashboardAmount'],
+      keepUnusedDataFor: 600,
+    }),
+    // get order breakdown
+    getOrderBreakdown: builder.query<IOrderBreakdownRes, void>({
+      query: () => `/api/user-order/order-breakdown`,
+      providesTags: ['OrderBreakdown'],
       keepUnusedDataFor: 600,
     }),
     // get sales report
@@ -59,7 +66,7 @@ export const authApi = apiSlice.injectEndpoints({
           body: status,
         };
       },
-      invalidatesTags: ['AllOrders', 'DashboardRecentOrders'],
+      invalidatesTags: ['AllOrders', 'DashboardRecentOrders', 'OrderBreakdown', 'DashboardAmount'],
     }),
     // ship order with tracking
     shipOrder: builder.mutation<
@@ -80,7 +87,7 @@ export const authApi = apiSlice.injectEndpoints({
           body: shippingData,
         };
       },
-      invalidatesTags: ['AllOrders', 'DashboardRecentOrders'],
+      invalidatesTags: ['AllOrders', 'DashboardRecentOrders', 'OrderBreakdown'],
     }),
     // send shipping notification
     sendShippingNotification: builder.mutation<
@@ -101,7 +108,7 @@ export const authApi = apiSlice.injectEndpoints({
           body: shippingData,
         };
       },
-      invalidatesTags: ['AllOrders', 'DashboardRecentOrders'],
+      invalidatesTags: ['AllOrders', 'DashboardRecentOrders', 'OrderBreakdown'],
     }),
     // update shipping details
     updateShippingDetails: builder.mutation<
@@ -124,7 +131,7 @@ export const authApi = apiSlice.injectEndpoints({
           body: shippingData,
         };
       },
-      invalidatesTags: ['AllOrders', 'DashboardRecentOrders'],
+      invalidatesTags: ['AllOrders', 'DashboardRecentOrders', 'OrderBreakdown'],
     }),
     // send delivery notification
     sendDeliveryNotification: builder.mutation<
@@ -143,7 +150,7 @@ export const authApi = apiSlice.injectEndpoints({
           body: deliveryData,
         };
       },
-      invalidatesTags: ['AllOrders', 'DashboardRecentOrders'],
+      invalidatesTags: ['AllOrders', 'DashboardRecentOrders', 'OrderBreakdown', 'DashboardAmount'],
     }),
     // process refund
     processRefund: builder.mutation<
@@ -163,7 +170,7 @@ export const authApi = apiSlice.injectEndpoints({
           body: refundData,
         };
       },
-      invalidatesTags: ['AllOrders', 'DashboardRecentOrders'],
+      invalidatesTags: ['AllOrders', 'DashboardRecentOrders', 'OrderBreakdown'],
     }),
     // cancel order
     cancelOrder: builder.mutation<
@@ -182,7 +189,7 @@ export const authApi = apiSlice.injectEndpoints({
           body: cancelData,
         };
       },
-      invalidatesTags: ['AllOrders', 'DashboardRecentOrders'],
+      invalidatesTags: ['AllOrders', 'DashboardRecentOrders', 'OrderBreakdown', 'DashboardAmount'],
     }),
     // get payment details
     getPaymentDetails: builder.query<any, string>({
@@ -194,6 +201,7 @@ export const authApi = apiSlice.injectEndpoints({
 
 export const {
   useGetDashboardAmountQuery,
+  useGetOrderBreakdownQuery,
   useGetSalesReportQuery,
   useGetMostSellingCategoryQuery,
   useGetRecentOrdersQuery,

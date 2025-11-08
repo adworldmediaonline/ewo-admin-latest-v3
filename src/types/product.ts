@@ -76,7 +76,12 @@ export interface IProduct {
 
 export interface IOrderProduct extends IProduct {
   orderQuantity: number;
+  selectedOption?: {
+    title: string;
+    price: number;
+  };
+  basePrice?: number;
 }
 
 export interface IAddProduct
-  extends Omit<IProduct, '_id' | 'reviews' | 'sellCount'> {}
+  extends Omit<IProduct, '_id' | 'reviews' | 'sellCount'> { }
