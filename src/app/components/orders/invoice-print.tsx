@@ -8,7 +8,7 @@ type IPropType = {
 };
 
 const InvoicePrint = ({ orderData }: IPropType) => {
-  const total = orderData.cart.reduce((acc, curr) => acc + curr.price, 0);
+  const total = orderData.cart.reduce((acc, curr) => acc + Number(curr.finalPriceDiscount || 0), 0);
   const grand_total = total + orderData.shippingCost;
   return (
     <>
@@ -58,16 +58,23 @@ const InvoicePrint = ({ orderData }: IPropType) => {
                     >
                       <td className="pr-8 py-5 whitespace-nowrap">
                         <a href="#" className="flex items-center space-x-5">
-                          <span className="font-medium text-heading text-hover-primary transition">
-                            {p.title}
-                          </span>
+                          <div>
+                            <span className="font-medium text-heading text-hover-primary transition block">
+                              {p.title}
+                            </span>
+                            {p.selectedOption && (
+                              <span className="text-xs text-gray-500 block mt-1">
+                                {p.selectedOption.title} (+${Number(p.selectedOption.price || 0).toFixed(2)})
+                              </span>
+                            )}
+                          </div>
                         </a>
                       </td>
                       <td className="px-3 py-3 font-normal text-[#55585B] text-end">
                         {p.orderQuantity}
                       </td>
                       <td className="px-3 py-3 font-normal text-[#55585B] text-end">
-                        ${(p.orderQuantity * p.price).toFixed(2)}
+                        ${(p.orderQuantity * Number(p.finalPriceDiscount || 0)).toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -112,7 +119,7 @@ const InvoicePrint = ({ orderData }: IPropType) => {
         </div>
       </div>
       {/* details table */}
-      
+
       {/* details table */}
       <div className="grid grid-cols-12 gap-6 px-6 py-6">
         <div className="col-span-12">
@@ -161,7 +168,7 @@ const InvoicePrint = ({ orderData }: IPropType) => {
       {/* details table */}
 
       <div className="flex items-center justify-center flex-wrap px-8 mb-6 bg-white rounded-t-md rounded-b-md  py-6 text-center">
-          <h3 className="font-normal mb-0">Thank you for your order. Come again!</h3>
+        <h3 className="font-normal mb-0">Thank you for your order. Come again!</h3>
       </div>
     </>
   );

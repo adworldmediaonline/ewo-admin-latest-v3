@@ -6,21 +6,21 @@ export interface ICoupon {
   couponCode: string;
   startTime: string;
   endTime: string;
-  
+
   // Discount Configuration
   discountType: 'percentage' | 'fixed_amount' | 'buy_x_get_y' | 'free_shipping';
   discountPercentage?: number;
   discountAmount?: number;
   buyQuantity?: number;
   getQuantity?: number;
-  
+
   // Usage Restrictions
   minimumAmount: number;
   maximumAmount?: number;
   usageLimit?: number;
   usageLimitPerUser?: number;
   usageCount: number;
-  
+
   // Product/Category Restrictions
   applicableType: 'all' | 'category' | 'product' | 'brand';
   productType?: string;
@@ -28,23 +28,23 @@ export interface ICoupon {
   applicableCategories?: string[];
   applicableBrands?: string[];
   excludedProducts?: string[];
-  
+
   // User Restrictions
   userRestrictions: {
     newUsersOnly: boolean;
     allowedUsers?: string[];
     excludedUsers?: string[];
   };
-  
+
   // Advanced Settings
   stackable: boolean;
   priority: number;
-  
+
   // Status and Metadata
   status: 'active' | 'inactive' | 'expired' | 'exhausted';
   isPublic: boolean;
   createdBy?: string;
-  
+
   // Analytics
   analytics: {
     totalUsage: number;
@@ -52,7 +52,7 @@ export interface ICoupon {
     totalRevenue: number;
     lastUsed?: string;
   };
-  
+
   createdAt: string;
   updatedAt: string;
 }
@@ -64,20 +64,20 @@ export interface IAddCoupon {
   couponCode: string;
   startTime?: string;
   endTime: string;
-  
+
   // Discount Configuration
   discountType?: 'percentage' | 'fixed_amount' | 'buy_x_get_y' | 'free_shipping';
   discountPercentage?: number;
   discountAmount?: number;
   buyQuantity?: number;
   getQuantity?: number;
-  
+
   // Usage Restrictions
-  minimumAmount: number;
+  minimumAmount?: number;
   maximumAmount?: number;
   usageLimit?: number;
   usageLimitPerUser?: number;
-  
+
   // Product/Category Restrictions
   applicableType?: 'all' | 'category' | 'product' | 'brand';
   productType?: string;
@@ -85,18 +85,18 @@ export interface IAddCoupon {
   applicableCategories?: string[];
   applicableBrands?: string[];
   excludedProducts?: string[];
-  
+
   // User Restrictions
   userRestrictions?: {
     newUsersOnly?: boolean;
     allowedUsers?: string[];
     excludedUsers?: string[];
   };
-  
+
   // Advanced Settings
   stackable?: boolean;
   priority?: number;
-  
+
   // Status
   status?: 'active' | 'inactive' | 'expired' | 'exhausted';
   isPublic?: boolean;

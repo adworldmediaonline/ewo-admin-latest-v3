@@ -9,7 +9,7 @@ type IPropType = {
 };
 
 const OrderDetailsBottom = ({ productData, ship_cost }: IPropType) => {
-  const total = productData.reduce((acc, curr) => acc + curr.price, 0);
+  const total = productData.reduce((acc, curr) => acc + Number(curr.finalPriceDiscount || 0), 0);
   const grand_total = total + ship_cost;
   return (
     <div className="grid grid-cols-12 gap-6">
@@ -60,19 +60,26 @@ const OrderDetailsBottom = ({ productData, ship_cost }: IPropType) => {
                           width={282}
                           height={300}
                         />
-                        <span className="font-medium transition text-heading text-hover-primary">
-                          {p.title}
-                        </span>
+                        <div>
+                          <span className="font-medium transition text-heading text-hover-primary block">
+                            {p.title}
+                          </span>
+                          {p.selectedOption && (
+                            <span className="text-xs text-gray-500 block mt-1">
+                              {p.selectedOption.title} (+${Number(p.selectedOption.price || 0).toFixed(2)})
+                            </span>
+                          )}
+                        </div>
                       </a>
                     </td>
                     <td className="px-3 py-3 font-normal text-[#55585B] text-end">
-                      ${p.price.toFixed(2)}
+                      ${Number(p.finalPriceDiscount || 0).toFixed(2)}
                     </td>
                     <td className="px-3 py-3 font-normal text-[#55585B] text-end">
                       {p.orderQuantity}
                     </td>
                     <td className="px-3 py-3 font-normal text-[#55585B] text-end">
-                      ${(p.orderQuantity * p.price).toFixed(2)}
+                      ${(p.orderQuantity * Number(p.finalPriceDiscount || 0)).toFixed(2)}
                     </td>
                   </tr>
                 ))}

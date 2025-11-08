@@ -190,11 +190,25 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
     return fallback;
   };
 
-  // Helper function to render product options
+  // Helper function to render product options (handles both selectedOption and options array)
   const renderProductOptions = (options: any) => {
     if (!options) return null;
 
-    // Handle array of options
+    // Handle single selectedOption object (preferred format)
+    if (typeof options === 'object' && !Array.isArray(options) && options.title) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-xs bg-muted text-muted-foreground rounded">
+          {safeRenderString(options.title)}
+          {Number(options.price || 0) > 0 && (
+            <span className="ml-1 text-green-600 dark:text-green-400 font-medium">
+              (+${Number(options.price || 0).toFixed(2)})
+            </span>
+          )}
+        </span>
+      );
+    }
+
+    // Handle array of options (legacy support)
     if (Array.isArray(options)) {
       return options.map((option: any, index: number) => (
         <span
@@ -202,27 +216,13 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
           className="inline-flex items-center px-2 py-1 text-xs bg-muted text-muted-foreground rounded"
         >
           {safeRenderString(option.title)}
-          {option.price > 0 && (
+          {Number(option.price || 0) > 0 && (
             <span className="ml-1 text-green-600 dark:text-green-400 font-medium">
-              (+${safeRenderNumber(option.price).toFixed(2)})
+              (+${Number(option.price || 0).toFixed(2)})
             </span>
           )}
         </span>
       ));
-    }
-
-    // Handle single option object
-    if (typeof options === 'object' && options.title) {
-      return (
-        <span className="inline-flex items-center px-2 py-1 text-xs bg-muted text-muted-foreground rounded">
-          {safeRenderString(options.title)}
-          {options.price > 0 && (
-            <span className="ml-1 text-green-600 dark:text-green-400 font-medium">
-              (+${safeRenderNumber(options.price).toFixed(2)})
-            </span>
-          )}
-        </span>
-      );
     }
 
     // Handle string
@@ -349,15 +349,14 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                 </p>
               </div>
               <div
-                className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
-                  statusColor === 'delivered'
+                className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${statusColor === 'delivered'
                     ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                     : statusColor === 'cancelled'
-                    ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                    : statusColor === 'processing'
-                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                    : 'bg-muted text-muted-foreground'
-                }`}
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                      : statusColor === 'processing'
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        : 'bg-muted text-muted-foreground'
+                  }`}
               >
                 {statusColor === 'delivered' && (
                   <CheckCircle className="w-4 h-4 mr-2" />
@@ -367,8 +366,8 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                 )}
                 {(statusColor === 'pending' ||
                   statusColor === 'processing') && (
-                  <Clock className="w-4 h-4 mr-2" />
-                )}
+                    <Clock className="w-4 h-4 mr-2" />
+                  )}
                 {order.status?.charAt(0).toUpperCase() + order.status?.slice(1)}
               </div>
             </div>
@@ -624,10 +623,10 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                                 <h4 className="text-sm font-medium text-foreground truncate">
                                   {safeRenderString(item.title, 'Product Name')}
                                 </h4>
-                                {item.options && (
+                                {(item.selectedOption || item.options) && (
                                   <div className="mt-1">
                                     <div className="flex flex-wrap gap-1">
-                                      {renderProductOptions(item.options)}
+                                      {renderProductOptions(item.selectedOption || item.options)}
                                     </div>
                                   </div>
                                 )}
@@ -646,14 +645,14 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="text-sm font-medium text-foreground">
-                              ${safeRenderNumber(item.price).toFixed(2)}
+                              ${safeRenderNumber(item.finalPriceDiscount || 0).toFixed(2)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="text-sm font-semibold text-foreground">
                               $
                               {(
-                                safeRenderNumber(item.price) *
+                                safeRenderNumber(item.finalPriceDiscount || 0) *
                                 (item.orderQuantity || 0)
                               ).toFixed(2)}
                             </span>
@@ -692,9 +691,8 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
             <div className="space-y-6">
               <div className="flex items-center space-x-4">
                 <div
-                  className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                    order.user?.imageURL ? 'bg-transparent' : 'bg-muted'
-                  }`}
+                  className={`w-16 h-16 rounded-full flex items-center justify-center ${order.user?.imageURL ? 'bg-transparent' : 'bg-muted'
+                    }`}
                 >
                   {order.user?.imageURL ? (
                     <Image
@@ -715,11 +713,10 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       : order.user?.name || order.name}
                   </h3>
                   <span
-                    className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                      order.isGuestOrder
+                    className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${order.isGuestOrder
                         ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
                         : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    }`}
+                      }`}
                   >
                     {order.isGuestOrder
                       ? 'Guest Customer'
@@ -741,11 +738,10 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       </span>
                       <button
                         onClick={handleCopyEmail}
-                        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded transition-colors duration-200 ${
-                          copiedEmail
+                        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded transition-colors duration-200 ${copiedEmail
                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                             : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                        }`}
+                          }`}
                         title="Copy email address"
                         type="button"
                       >
@@ -780,11 +776,10 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       </span>
                       <button
                         onClick={handleCopyPhone}
-                        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded transition-colors duration-200 ${
-                          copiedPhone
+                        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded transition-colors duration-200 ${copiedPhone
                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                             : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                        }`}
+                          }`}
                         title="Copy phone number"
                         type="button"
                       >
@@ -819,11 +814,10 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       </span>
                       <button
                         onClick={handleCopyAddress}
-                        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded transition-colors duration-200 ${
-                          copiedAddress
+                        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded transition-colors duration-200 ${copiedAddress
                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                             : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                        }`}
+                          }`}
                         title="Copy shipping address"
                         type="button"
                       >
@@ -925,15 +919,14 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       <div className="absolute left-6 top-12 w-px h-16 bg-border"></div>
                       <div className="flex-shrink-0">
                         <div
-                          className={`flex items-center justify-center w-12 h-12 rounded-full ${
-                            order.status === 'shipped' ||
-                            order.status === 'delivered'
+                          className={`flex items-center justify-center w-12 h-12 rounded-full ${order.status === 'shipped' ||
+                              order.status === 'delivered'
                               ? 'bg-blue-100 dark:bg-blue-900'
                               : 'bg-muted'
-                          }`}
+                            }`}
                         >
                           {order.status === 'shipped' ||
-                          order.status === 'delivered' ? (
+                            order.status === 'delivered' ? (
                             <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                           ) : (
                             <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
@@ -944,12 +937,11 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                         <div className="flex items-center justify-between">
                           <div>
                             <h4
-                              className={`text-sm font-semibold ${
-                                order.status === 'shipped' ||
-                                order.status === 'delivered'
+                              className={`text-sm font-semibold ${order.status === 'shipped' ||
+                                  order.status === 'delivered'
                                   ? 'text-foreground'
                                   : 'text-muted-foreground'
-                              }`}
+                                }`}
                             >
                               Order Shipped
                             </h4>
@@ -984,11 +976,10 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                     <div className="relative flex items-start space-x-4">
                       <div className="flex-shrink-0">
                         <div
-                          className={`flex items-center justify-center w-12 h-12 rounded-full ${
-                            order.status === 'delivered'
+                          className={`flex items-center justify-center w-12 h-12 rounded-full ${order.status === 'delivered'
                               ? 'bg-green-100 dark:bg-green-900'
                               : 'bg-muted'
-                          }`}
+                            }`}
                         >
                           {order.status === 'delivered' ? (
                             <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -1001,11 +992,10 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                         <div className="flex items-center justify-between">
                           <div>
                             <h4
-                              className={`text-sm font-semibold ${
-                                order.status === 'delivered'
+                              className={`text-sm font-semibold ${order.status === 'delivered'
                                   ? 'text-foreground'
                                   : 'text-muted-foreground'
-                              }`}
+                                }`}
                             >
                               Order Delivered
                             </h4>
