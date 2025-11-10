@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import BannerImageUpload from './banner-image-upload';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { useRouter } from 'next/navigation';
 
 const EditBanner = ({ id }: { id: string }) => {
@@ -42,6 +43,8 @@ const EditBanner = ({ id }: { id: string }) => {
     setMobileImg,
     status,
     setStatus,
+    includeCaption,
+    setIncludeCaption,
     isSubmitted,
     setIsSubmitted,
     handleEditBanner,
@@ -54,6 +57,7 @@ const EditBanner = ({ id }: { id: string }) => {
       setDesktopImg(banner.desktopImg || '');
       setMobileImg(banner.mobileImg || '');
       setStatus(banner.status || 'active');
+      setIncludeCaption(banner.includeCaption ?? true);
       // Set form field values
       setValue('heading', banner.heading || '');
       setValue('description', banner.description || '');
@@ -62,7 +66,7 @@ const EditBanner = ({ id }: { id: string }) => {
       setValue('ctaLink', banner.cta?.link || '');
       setValue('order', banner.order || 0);
     }
-  }, [banner, setDesktopImg, setMobileImg, setStatus, setValue]);
+  }, [banner, setDesktopImg, setMobileImg, setStatus, setIncludeCaption, setValue]);
 
   if (isLoading) {
     return (
@@ -128,7 +132,7 @@ const EditBanner = ({ id }: { id: string }) => {
                 default_img={banner.desktopImg}
               />
               <p className="text-xs text-muted-foreground mt-2">
-                Recommended: 1920x800px (21:9 aspect ratio)
+                Recommended: 1920x800px (12:5 aspect ratio)
               </p>
             </CardContent>
           </Card>
@@ -151,7 +155,7 @@ const EditBanner = ({ id }: { id: string }) => {
                 default_img={banner.mobileImg}
               />
               <p className="text-xs text-muted-foreground mt-2">
-                Recommended: 720x1280px (9:16 aspect ratio)
+                Recommended: 480x511px (~1:1 aspect ratio)
               </p>
             </CardContent>
           </Card>
@@ -294,34 +298,50 @@ const EditBanner = ({ id }: { id: string }) => {
             <Separator />
 
             {/* Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={status}
-                  onValueChange={(value) => setStatus(value as 'active' | 'inactive')}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-6">
+              {/* Include Caption Switch */}
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Include Caption</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Show heading, description, and CTA button on banner
+                  </p>
+                </div>
+                <Switch
+                  checked={includeCaption}
+                  onCheckedChange={setIncludeCaption}
+                />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="order">Display Order</Label>
-                <Input
-                  id="order"
-                  type="number"
-                  {...register('order')}
-                  placeholder="0"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Lower numbers appear first
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={status}
+                    onValueChange={(value) => setStatus(value as 'active' | 'inactive')}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="order">Display Order</Label>
+                  <Input
+                    id="order"
+                    type="number"
+                    {...register('order')}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Lower numbers appear first
+                  </p>
+                </div>
               </div>
             </div>
 

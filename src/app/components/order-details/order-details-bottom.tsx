@@ -62,8 +62,8 @@ const OrderDetailsBottom = ({ productData, ship_cost }: IPropType) => {
                         />
                         <div>
                           <span className="font-medium transition text-heading text-hover-primary block">
-                            {p.title}
-                          </span>
+                          {p.title}
+                        </span>
                           {p.selectedOption && (
                             <span className="text-xs text-gray-500 block mt-1">
                               {p.selectedOption.title} (+${Number(p.selectedOption.price || 0).toFixed(2)})
