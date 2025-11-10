@@ -10,6 +10,7 @@ import {
   IconStar,
   IconDiscount,
   IconPhoto,
+  IconSpeakerphone,
 } from '@tabler/icons-react';
 import * as React from 'react';
 
@@ -31,6 +32,11 @@ const data = {
       title: 'Dashboard',
       url: '/dashboard/super-admin',
       icon: IconDashboard,
+    },
+    {
+      title: 'Announcements',
+      url: '/dashboard/super-admin/announcements',
+      icon: IconSpeakerphone,
     },
     {
       title: 'Hero Banner',

@@ -13,6 +13,7 @@ const useBannerSubmit = () => {
   const [desktopImg, setDesktopImg] = useState<string>('');
   const [mobileImg, setMobileImg] = useState<string>('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [includeCaption, setIncludeCaption] = useState<boolean>(true);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const router = useRouter();
 
@@ -42,6 +43,7 @@ const useBannerSubmit = () => {
         text: data.ctaText,
         link: data.ctaLink,
       },
+      includeCaption,
       status,
       order: data.order ? Number(data.order) : 0,
     };
@@ -82,6 +84,7 @@ const useBannerSubmit = () => {
         text: data.ctaText,
         link: data.ctaLink,
       },
+      includeCaption,
       status,
       order: data.order ? Number(data.order) : 0,
     };
@@ -117,6 +120,8 @@ const useBannerSubmit = () => {
     setMobileImg,
     status,
     setStatus,
+    includeCaption,
+    setIncludeCaption,
     isSubmitted,
     setIsSubmitted,
     handleSubmitBanner,

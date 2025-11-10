@@ -9,6 +9,7 @@ export interface Banner {
     text: string;
     link: string;
   };
+  includeCaption?: boolean;
   status: 'active' | 'inactive';
   order: number;
   createdAt: string;
@@ -35,6 +36,7 @@ export interface IAddBanner {
     text: string;
     link: string;
   };
+  includeCaption?: boolean;
   status?: 'active' | 'inactive';
   order?: number;
 }
