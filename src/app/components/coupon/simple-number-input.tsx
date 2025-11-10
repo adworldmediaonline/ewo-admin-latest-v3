@@ -11,6 +11,7 @@ interface SimpleNumberInputProps {
   min?: number;
   max?: number;
   error?: string;
+  helperText?: string;
 }
 
 /**
@@ -26,6 +27,7 @@ export const SimpleNumberInput = ({
   min,
   max,
   error,
+  helperText,
 }: SimpleNumberInputProps) => {
   const [inputValue, setInputValue] = useState<string>(
     value !== undefined && value !== null ? String(value) : ''
@@ -78,6 +80,7 @@ export const SimpleNumberInput = ({
         max={max}
       />
       {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+      {!error && helperText && <p className="text-gray-500 text-xs mt-1">{helperText}</p>}
     </div>
   );
 };
