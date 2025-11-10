@@ -52,10 +52,10 @@ export default function EnhancedCouponForm({
     defaultValues?.discountAmount
   );
   const [minimumAmountValue, setMinimumAmountValue] = useState<number | undefined>(
-    defaultValues?.minimumAmount
+    defaultValues?.minimumAmount ?? 0 // Default to 0 for new coupons
   );
   const [maximumAmountValue, setMaximumAmountValue] = useState<number | undefined>(
-    defaultValues?.maximumAmount
+    defaultValues?.maximumAmount ?? 0 // Default to 0 (no maximum)
   );
   const [buyQuantityValue, setBuyQuantityValue] = useState<number | undefined>(
     defaultValues?.buyQuantity || 1
@@ -149,11 +149,16 @@ export default function EnhancedCouponForm({
       }
 
       // Set usage restrictions - Use controlled state setters
-      if (defaultValues.minimumAmount !== undefined) {
+      // Explicitly handle 0 values (0 is valid, undefined is not)
+      if (defaultValues.minimumAmount !== undefined && defaultValues.minimumAmount !== null) {
         setMinimumAmountValue(defaultValues.minimumAmount);
+      } else {
+        setMinimumAmountValue(0); // Default to 0 for no minimum
       }
-      if (defaultValues.maximumAmount !== undefined) {
+      if (defaultValues.maximumAmount !== undefined && defaultValues.maximumAmount !== null) {
         setMaximumAmountValue(defaultValues.maximumAmount);
+      } else {
+        setMaximumAmountValue(0); // Default to 0 for no maximum
       }
       if (defaultValues.usageLimit !== undefined) {
         setUsageLimitValue(defaultValues.usageLimit);
@@ -257,15 +262,16 @@ export default function EnhancedCouponForm({
       ...data,
       logo,
       // Use controlled state values for all numeric fields
+      // Use ?? instead of || to properly handle 0 values
       discountPercentage: discountPercentageValue,
       discountAmount: discountAmountValue,
-      minimumAmount: minimumAmountValue || 0,
-      maximumAmount: maximumAmountValue || 0,
-      buyQuantity: buyQuantityValue || 0,
-      getQuantity: getQuantityValue || 0,
-      usageLimit: usageLimitValue || 0,
-      usageLimitPerUser: usageLimitPerUserValue || 0,
-      priority: priorityValue || 0,
+      minimumAmount: minimumAmountValue ?? 0,
+      maximumAmount: maximumAmountValue ?? 0,
+      buyQuantity: buyQuantityValue ?? 0,
+      getQuantity: getQuantityValue ?? 0,
+      usageLimit: usageLimitValue ?? 0,
+      usageLimitPerUser: usageLimitPerUserValue ?? 0,
+      priority: priorityValue ?? 0,
       applicableProducts: applicableType === 'product' ? selectedProducts : [],
       applicableCategories:
         applicableType === 'category' ? selectedCategories : [],
@@ -470,22 +476,20 @@ export default function EnhancedCouponForm({
             label="Minimum Order Amount"
             value={minimumAmountValue}
             onChange={setMinimumAmountValue}
-            placeholder="Minimum order amount"
-            required={true}
+            placeholder="0"
+            required={false}
             min={0}
-            error={
-              minimumAmountValue === undefined
-                ? 'Minimum amount is required'
-                : undefined
-            }
+            error={undefined}
+            helperText="Enter 0 to apply coupon to any order amount"
           />
           <SimpleNumberInput
             label="Maximum Order Amount"
             value={maximumAmountValue}
             onChange={setMaximumAmountValue}
-            placeholder="Maximum order amount (optional)"
+            placeholder="0"
             required={false}
             min={0}
+            helperText="Enter 0 for no maximum limit"
           />
         </div>
 
