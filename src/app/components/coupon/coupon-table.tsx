@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import dayjs from "dayjs";
+import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 // internal
 import Loading from "../common/loading";
 import ErrorMsg from "../common/error-msg";
@@ -108,7 +110,7 @@ const CouponTable = ({cls,setOpenSidebar,selectValue,searchValue}: IPropType) =>
                     </span>
                   </td>
                   <td className="px-3 py-3 font-normal text-[#55585B] text-end">
-                    {coupon.discountType === 'percentage' 
+                    {coupon.discountType === 'percentage'
                       ? `${coupon.discountPercentage}%`
                       : coupon.discountType === 'fixed_amount'
                       ? `$${coupon.discountAmount}`
@@ -146,10 +148,18 @@ const CouponTable = ({cls,setOpenSidebar,selectValue,searchValue}: IPropType) =>
                   </td>
 
                   <td className="px-3 py-3 text-end">
-                    {dayjs(coupon.createdAt).format("MMM D, YYYY")}
+                    {coupon.startTime ? (() => {
+                      const utcDate = new Date(coupon.startTime);
+                      const usaDate = toZonedTime(utcDate, 'America/New_York');
+                      return format(usaDate, 'MMM d, yyyy') + ' at ' + format(usaDate, 'h:mm a');
+                    })() : '-'}
                   </td>
                   <td className="px-3 py-3 text-end">
-                    {dayjs(coupon.endTime).format("MMM D, YYYY")}
+                    {coupon.endTime ? (() => {
+                      const utcDate = new Date(coupon.endTime);
+                      const usaDate = toZonedTime(utcDate, 'America/New_York');
+                      return format(usaDate, 'MMM d, yyyy') + ' at ' + format(usaDate, 'h:mm a');
+                    })() : '-'}
                   </td>
                   <td className="px-9 py-3 text-end">
                     <CouponAction

@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import ReactSelect, { MultiValue } from 'react-select';
 import GlobalImgUpload from '../category/global-img-upload';
 import { SimpleNumberInput } from './simple-number-input';
+import { DateTimePicker } from './date-time-picker';
 
 interface SelectOption {
   value: string;
@@ -99,14 +100,18 @@ export default function EnhancedCouponForm({
       userRestrictions: {
         newUsersOnly: defaultValues?.userRestrictions?.newUsersOnly || false,
       },
-      startTime: defaultValues?.startTime
-        ? new Date(defaultValues.startTime).toISOString().slice(0, 16)
-        : '',
-      endTime: defaultValues?.endTime
-        ? new Date(defaultValues.endTime).toISOString().slice(0, 16)
-        : '',
+      startTime: defaultValues?.startTime || '',
+      endTime: defaultValues?.endTime || '',
     },
+    mode: 'onChange',
   });
+
+  // Register endTime with validation
+  React.useEffect(() => {
+    register('endTime', {
+      required: 'End time is required',
+    });
+  }, [register]);
 
   // Fetch data for dropdowns
   const { data: products } = useGetAllProductsQuery();
@@ -196,14 +201,12 @@ export default function EnhancedCouponForm({
         setValue('userRestrictions.newUsersOnly', defaultValues.userRestrictions.newUsersOnly);
       }
 
-      // Set dates
+      // Set dates (already in ISO format from backend)
       if (defaultValues.startTime) {
-        const startDate = new Date(defaultValues.startTime).toISOString().slice(0, 16);
-        setValue('startTime', startDate);
+        setValue('startTime', defaultValues.startTime);
       }
       if (defaultValues.endTime) {
-        const endDate = new Date(defaultValues.endTime).toISOString().slice(0, 16);
-        setValue('endTime', endDate);
+        setValue('endTime', defaultValues.endTime);
       }
 
       // Set logo if exists
@@ -276,6 +279,9 @@ export default function EnhancedCouponForm({
       applicableCategories:
         applicableType === 'category' ? selectedCategories : [],
       applicableBrands: applicableType === 'brand' ? selectedBrands : [],
+      // Explicitly include status to ensure it's always sent
+      status: data.status || 'active',
+      isPublic: data.isPublic !== false,
     };
 
     onSubmit(formData);
@@ -351,31 +357,21 @@ export default function EnhancedCouponForm({
 
         {/* Date Range */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Time
-            </label>
-            <input
-              {...register('startTime')}
-              type="datetime-local"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Time *
-            </label>
-            <input
-              {...register('endTime', { required: 'End time is required' })}
-              type="datetime-local"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.endTime && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.endTime.message}
-              </p>
-            )}
-          </div>
+          <DateTimePicker
+            label="Start Time"
+            value={watch('startTime')}
+            onChange={(value) => setValue('startTime', value)}
+            error={errors.startTime?.message}
+          />
+          <DateTimePicker
+            label="End Time"
+            value={watch('endTime')}
+            onChange={(value) => {
+              setValue('endTime', value, { shouldValidate: true });
+            }}
+            required
+            error={errors.endTime?.message}
+          />
         </div>
       </div>
 
