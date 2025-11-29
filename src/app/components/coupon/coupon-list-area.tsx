@@ -58,6 +58,8 @@ import { useMemo, useState, useCallback } from 'react';
 import dayjs from 'dayjs';
 import Swal from 'sweetalert2';
 import { notifyError } from '@/utils/toast';
+import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
 export default function CouponListArea() {
   const { data: coupons = [], isError, isLoading } = useGetAllCouponsQuery();
@@ -254,9 +256,13 @@ export default function CouponListArea() {
         ),
         cell: ({ row }) => {
           const date = row.getValue('startTime') as string;
+          if (!date) return <div className="text-sm text-muted-foreground">-</div>;
+          // Convert UTC date to USA timezone for display
+          const utcDate = new Date(date);
+          const usaDate = toZonedTime(utcDate, 'America/New_York');
           return (
             <div className="text-sm text-muted-foreground">
-              {dayjs(date).format('MMM D, YYYY')}
+              {format(usaDate, 'MMM d, yyyy')} at {format(usaDate, 'h:mm a')}
             </div>
           );
         },
@@ -276,10 +282,14 @@ export default function CouponListArea() {
         ),
         cell: ({ row }) => {
           const date = row.getValue('endTime') as string;
+          if (!date) return <div className="text-sm text-muted-foreground">-</div>;
+          // Convert UTC date to USA timezone for display
+          const utcDate = new Date(date);
+          const usaDate = toZonedTime(utcDate, 'America/New_York');
           const isExpired = dayjs(date).isBefore(dayjs());
           return (
             <div className={`text-sm ${isExpired ? 'text-red-600' : 'text-muted-foreground'}`}>
-              {dayjs(date).format('MMM D, YYYY')}
+              {format(usaDate, 'MMM d, yyyy')} at {format(usaDate, 'h:mm a')}
             </div>
           );
         },

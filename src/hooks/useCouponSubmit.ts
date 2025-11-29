@@ -46,10 +46,10 @@ const useCouponSubmit = () => {
         title: data.title,
         description: data.description,
         couponCode: data.couponCode,
-        startTime: data.startTime
-          ? dayjs(data.startTime).format('YYYY-MM-DDTHH:mm:ss.SSSZ')
-          : undefined,
-        endTime: dayjs(data.endTime).format('YYYY-MM-DDTHH:mm:ss.SSSZ'),
+        // Dates are already in ISO format from DateTimePicker (UTC)
+        // Just pass them through - backend expects ISO strings
+        startTime: data.startTime || undefined,
+        endTime: data.endTime,
 
         // Discount Configuration - Parse as exact numbers
         discountType: data.discountType || 'percentage',
@@ -127,10 +127,10 @@ const useCouponSubmit = () => {
         title: data.title,
         description: data.description,
         couponCode: data.couponCode,
-        startTime: data.startTime
-          ? dayjs(data.startTime).format('YYYY-MM-DDTHH:mm:ss.SSSZ')
-          : undefined,
-        endTime: dayjs(data.endTime).format('YYYY-MM-DDTHH:mm:ss.SSSZ'),
+        // Dates are already in ISO format from DateTimePicker (UTC)
+        // Just pass them through - backend expects ISO strings
+        startTime: data.startTime || undefined,
+        endTime: data.endTime,
 
         // Discount Configuration - Parse as exact numbers
         discountType: data.discountType || 'percentage',
@@ -159,10 +159,16 @@ const useCouponSubmit = () => {
         stackable: data.stackable,
         priority: data.priority,
 
-        // Status
-        status: data.status || 'active',
+        // Status - always include status, default to 'active' if not provided
+        // Make sure to explicitly set status even if it's 'inactive'
+        status: data.status ? data.status : 'active',
         isPublic: data.isPublic !== false,
       };
+
+      // Ensure status is always included in the update
+      if (!coupon_data.status) {
+        coupon_data.status = 'active';
+      }
 
       const res = await editCoupon({ id, data: coupon_data });
       if ('error' in res) {
