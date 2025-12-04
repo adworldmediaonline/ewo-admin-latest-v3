@@ -27,6 +27,7 @@ const useBannerSubmit = () => {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
     reset,
   } = useForm();
@@ -46,6 +47,7 @@ const useBannerSubmit = () => {
       includeCaption,
       status,
       order: data.order ? Number(data.order) : 0,
+      selectedCoupon: data.selectedCoupon || undefined,
     };
 
     if (!desktopImg) {
@@ -87,6 +89,7 @@ const useBannerSubmit = () => {
       includeCaption,
       status,
       order: data.order ? Number(data.order) : 0,
+      selectedCoupon: data.selectedCoupon || undefined,
     };
 
     if (!desktopImg) {
@@ -113,6 +116,7 @@ const useBannerSubmit = () => {
     register,
     handleSubmit,
     setValue,
+    watch,
     errors,
     desktopImg,
     setDesktopImg,

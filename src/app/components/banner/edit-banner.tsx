@@ -2,6 +2,8 @@
 import React, { useEffect } from 'react';
 import useBannerSubmit from '@/hooks/useBannerSubmit';
 import { useGetBannerQuery } from '@/redux/banner/bannerApi';
+import { useGetAllCouponsQuery } from '@/redux/coupon/couponApi';
+import { ICoupon } from '@/types/coupon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,6 +24,7 @@ import {
   Save,
   Loader2,
   AlertCircle,
+  Tag,
 } from 'lucide-react';
 import BannerImageUpload from './banner-image-upload';
 import { Separator } from '@/components/ui/separator';
@@ -32,11 +35,18 @@ const EditBanner = ({ id }: { id: string }) => {
   const { data: banner, isError, isLoading } = useGetBannerQuery(id);
   const router = useRouter();
 
+  // Fetch active coupons
+  const { data: allCoupons = [] } = useGetAllCouponsQuery();
+  const activeCoupons = React.useMemo(() => {
+    return allCoupons.filter((coupon: ICoupon) => coupon.status === 'active');
+  }, [allCoupons]);
+
   const {
     errors,
     handleSubmit,
     register,
     setValue,
+    watch,
     desktopImg,
     setDesktopImg,
     mobileImg,
@@ -65,6 +75,7 @@ const EditBanner = ({ id }: { id: string }) => {
       setValue('ctaText', banner.cta?.text || '');
       setValue('ctaLink', banner.cta?.link || '');
       setValue('order', banner.order || 0);
+      setValue('selectedCoupon', banner.selectedCoupon || '');
     }
   }, [banner, setDesktopImg, setMobileImg, setStatus, setIncludeCaption, setValue]);
 
@@ -342,6 +353,48 @@ const EditBanner = ({ id }: { id: string }) => {
                     Lower numbers appear first
                   </p>
                 </div>
+              </div>
+
+              {/* Coupon Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="selectedCouponId" className="flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  Related Coupon (Optional)
+                </Label>
+                <Select
+                  value={watch('selectedCoupon') || '__none__'}
+                  onValueChange={(value) => {
+                    if (value === '__none__') {
+                      setValue('selectedCoupon', undefined);
+                    } else {
+                      // Store the coupon title as the value
+                      setValue('selectedCoupon', value);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="-- Select a coupon --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeCoupons.length === 0 ? (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        No active coupons available
+                      </div>
+                    ) : (
+                      <>
+                        <SelectItem value="__none__">-- None --</SelectItem>
+                        {activeCoupons.map((coupon: ICoupon) => (
+                          <SelectItem key={coupon._id} value={coupon.title}>
+                            {coupon.title}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Select an active coupon to associate with this banner
+                </p>
               </div>
             </div>
 
