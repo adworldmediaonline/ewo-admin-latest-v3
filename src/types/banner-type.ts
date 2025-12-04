@@ -12,6 +12,7 @@ export interface Banner {
   includeCaption?: boolean;
   status: 'active' | 'inactive';
   order: number;
+  selectedCoupon?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +40,7 @@ export interface IAddBanner {
   includeCaption?: boolean;
   status?: 'active' | 'inactive';
   order?: number;
+  selectedCoupon?: string;
 }
 
 export interface IBannerAddResponse {
