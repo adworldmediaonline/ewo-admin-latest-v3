@@ -1,0 +1,640 @@
+'use client';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import {
+  AlertCircle,
+  CheckCircle2,
+  DollarSign,
+  Plus,
+  Settings,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { ChangeEvent, SetStateAction, useEffect, useState } from 'react';
+
+interface ConfigurationOption {
+  name: string;
+  price: number | string;
+  isSelected: boolean;
+}
+
+interface ConfigurationData {
+  title: string;
+  options: ConfigurationOption[];
+}
+
+type IPropType = {
+  setConfigurations: React.Dispatch<SetStateAction<ConfigurationData[]>>;
+  default_value?: ConfigurationData[];
+  isSubmitted?: boolean;
+};
+
+// Enhanced ConfigurationData interface with validation
+interface EnhancedConfigurationData extends ConfigurationData {
+  isValid: boolean;
+  hasError: boolean;
+  titleError: string;
+}
+
+export default function ProductConfigurations({
+  setConfigurations,
+  default_value,
+  isSubmitted,
+}: IPropType) {
+  const [formData, setFormData] = useState<EnhancedConfigurationData[]>(
+    default_value && default_value.length > 0
+      ? default_value.map(item => ({
+          ...item,
+          isValid: true,
+          hasError: false,
+          titleError: '',
+          options: item.options.map(opt => ({
+            ...opt,
+            price: typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0,
+          })),
+        }))
+      : []
+  );
+  const [hasDefaultValues, setHasDefaultValues] = useState<boolean>(false);
+
+  // Validation functions
+  const validateTitle = (title: string): string => {
+    if (!title.trim()) return 'Configuration title is required';
+    if (title.trim().length < 2)
+      return 'Title must be at least 2 characters';
+    if (title.trim().length > 100)
+      return 'Title must be less than 100 characters';
+    return '';
+  };
+
+  const validateOptionName = (name: string): string => {
+    if (!name.trim()) return 'Option name is required';
+    if (name.trim().length < 2)
+      return 'Option name must be at least 2 characters';
+    if (name.trim().length > 100)
+      return 'Option name must be less than 100 characters';
+    return '';
+  };
+
+  const validatePrice = (price: string | number): string => {
+    if (price === '' || price === null || price === undefined) return '';
+
+    const numPrice =
+      typeof price === 'number' ? price : parseFloat(price.toString());
+
+    if (isNaN(numPrice)) return 'Please enter a valid price';
+    if (numPrice < 0) return 'Price cannot be negative';
+    if (numPrice > 99999) return 'Price cannot exceed $99,999';
+    return '';
+  };
+
+  // Parse a price from any format to a valid number
+  const parsePrice = (price: number | string): number => {
+    if (price === '') return 0;
+    if (typeof price === 'number') return price;
+
+    const parsed = parseFloat(price.toString());
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  // Set default values
+  useEffect(() => {
+    if (default_value && !hasDefaultValues && default_value.length > 0) {
+      const processedValues = default_value.map(item => ({
+        ...item,
+        options: item.options.map(opt => ({
+          ...opt,
+          price: parsePrice(opt.price),
+        })),
+      }));
+
+      setConfigurations(processedValues);
+      setHasDefaultValues(true);
+    }
+  }, [default_value, hasDefaultValues, setConfigurations]);
+
+  // Handle configuration title change
+  const handleConfigurationTitleChange = (
+    configIndex: number,
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const { value } = e.target;
+    const updatedFormData = [...formData];
+    updatedFormData[configIndex] = {
+      ...updatedFormData[configIndex],
+      title: value,
+    };
+
+    const titleError = validateTitle(value);
+    updatedFormData[configIndex] = {
+      ...updatedFormData[configIndex],
+      titleError,
+      hasError: !!titleError,
+      isValid: !titleError,
+    };
+
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
+  // Handle option name change
+  const handleOptionNameChange = (
+    configIndex: number,
+    optionIndex: number,
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const { value } = e.target;
+    const updatedFormData = [...formData];
+    updatedFormData[configIndex].options[optionIndex] = {
+      ...updatedFormData[configIndex].options[optionIndex],
+      name: value,
+    };
+
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
+  // Handle option price change
+  const handleOptionPriceChange = (
+    configIndex: number,
+    optionIndex: number,
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const { value } = e.target;
+    const updatedFormData = [...formData];
+
+    // Allow empty string, numbers, and numbers with decimals only
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+      updatedFormData[configIndex].options[optionIndex] = {
+        ...updatedFormData[configIndex].options[optionIndex],
+        price: value,
+      };
+
+      setFormData(updatedFormData);
+      updateParentState(updatedFormData);
+    }
+  };
+
+  // Handle option selection (preselected)
+  const handleOptionSelect = (configIndex: number, optionIndex: number) => {
+    const updatedFormData = [...formData];
+    const config = updatedFormData[configIndex];
+    const option = config.options[optionIndex];
+
+    // Only allow selection if the option has a name
+    if (!option.name.trim()) {
+      return;
+    }
+
+    // Unselect all options in this configuration
+    config.options.forEach(opt => {
+      opt.isSelected = false;
+    });
+
+    // Select the clicked option
+    config.options[optionIndex].isSelected = true;
+
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
+  // Add new configuration
+  const handleAddConfiguration = () => {
+    const newConfiguration: EnhancedConfigurationData = {
+      title: '',
+      options: [
+        {
+          name: '',
+          price: '',
+          isSelected: false, // Don't preselect empty options
+        },
+      ],
+      isValid: true,
+      hasError: false,
+      titleError: '',
+    };
+
+    setFormData([...formData, newConfiguration]);
+    updateParentState([...formData, newConfiguration]);
+  };
+
+  // Remove configuration
+  const handleRemoveConfiguration = (configIndex: number) => {
+    const updatedFormData = [...formData];
+    updatedFormData.splice(configIndex, 1);
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
+  // Add option to configuration
+  const handleAddOption = (configIndex: number) => {
+    const updatedFormData = [...formData];
+    const config = updatedFormData[configIndex];
+
+    // Check if last option is valid
+    const lastOption = config.options[config.options.length - 1];
+    if (lastOption && lastOption.name.trim() !== '') {
+      const newOption: ConfigurationOption = {
+        name: '',
+        price: '',
+        isSelected: false,
+      };
+
+      config.options.push(newOption);
+      setFormData(updatedFormData);
+      updateParentState(updatedFormData);
+    }
+  };
+
+  // Remove option from configuration
+  const handleRemoveOption = (configIndex: number, optionIndex: number) => {
+    const updatedFormData = [...formData];
+    const config = updatedFormData[configIndex];
+
+    // Ensure at least one option remains
+    if (config.options.length > 1) {
+      const wasSelected = config.options[optionIndex].isSelected;
+      config.options.splice(optionIndex, 1);
+
+      // If the removed option was selected, select the first option that has a name
+      if (wasSelected && config.options.length > 0) {
+        const firstOptionWithName = config.options.find(opt => opt.name.trim());
+        if (firstOptionWithName) {
+          // Unselect all first
+          config.options.forEach(opt => {
+            opt.isSelected = false;
+          });
+          // Select the first option with a name
+          firstOptionWithName.isSelected = true;
+        }
+      }
+
+      setFormData(updatedFormData);
+      updateParentState(updatedFormData);
+    }
+  };
+
+  // Update parent state with valid data
+  const updateParentState = (data: EnhancedConfigurationData[]) => {
+    const validDataForParent = data
+      .filter(config => config.title.trim() !== '')
+      .map(config => {
+        const validOptions = config.options.filter(opt => opt.name.trim() !== '');
+
+        // Ensure only one option is selected per configuration
+        // If multiple are selected, keep only the first one
+        let hasSelected = false;
+        const processedOptions = validOptions.map(opt => {
+          if (opt.isSelected && hasSelected) {
+            // If we already have a selected option, unselect this one
+            return {
+              name: opt.name.trim(),
+              price: parsePrice(opt.price),
+              isSelected: false,
+            };
+          }
+          if (opt.isSelected && !hasSelected) {
+            hasSelected = true;
+            return {
+              name: opt.name.trim(),
+              price: parsePrice(opt.price),
+              isSelected: true,
+            };
+          }
+          return {
+            name: opt.name.trim(),
+            price: parsePrice(opt.price),
+            isSelected: false,
+          };
+        });
+
+        return {
+          title: config.title.trim(),
+          options: processedOptions,
+        };
+      });
+
+    setConfigurations(validDataForParent);
+  };
+
+  // Reset form when submitted
+  useEffect(() => {
+    if (isSubmitted) {
+      setFormData([]);
+      setHasDefaultValues(false);
+    }
+  }, [isSubmitted]);
+
+  const validConfigurationsCount = formData.filter(
+    config => config.title.trim() !== '' && !config.hasError
+  ).length;
+  const hasErrors = formData.some(config => config.hasError);
+
+  return (
+    <div className="space-y-6">
+      {/* Configurations Summary */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="gap-1">
+            <Settings className="h-3 w-3" />
+            {validConfigurationsCount} configuration
+            {validConfigurationsCount !== 1 ? 's' : ''}
+          </Badge>
+          {hasErrors && (
+            <Badge variant="destructive" className="gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Has errors
+            </Badge>
+          )}
+        </div>
+        <Button
+          type="button"
+          onClick={handleAddConfiguration}
+          className="gap-2"
+          variant="outline"
+        >
+          <Plus className="h-4 w-4" />
+          Add Configuration
+        </Button>
+      </div>
+
+      {/* Configurations List */}
+      <div className="space-y-6">
+        {formData.map((config, configIndex) => {
+          const canRemoveConfig = formData.length > 0;
+
+          return (
+            <div
+              key={configIndex}
+              className={cn(
+                'relative p-6 rounded-lg border transition-all duration-200',
+                config.hasError
+                  ? 'border-destructive/50 bg-destructive/5'
+                  : config.isValid && config.title.trim()
+                  ? 'border-green-500/50 bg-green-50/50'
+                  : 'border-muted hover:border-primary/50'
+              )}
+            >
+              {/* Configuration Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-medium text-primary">
+                      {configIndex + 1}
+                    </span>
+                  </div>
+                  <span className="text-sm font-medium text-foreground">
+                    Configuration {configIndex + 1}
+                  </span>
+                  {config.isValid && config.title.trim() && (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  )}
+                  {config.hasError && (
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                  )}
+                </div>
+
+                {canRemoveConfig && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleRemoveConfiguration(configIndex)}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    type="button"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Configuration Title */}
+              <div className="space-y-2 mb-6">
+                <Label
+                  htmlFor={`config-title-${configIndex}`}
+                  className="text-sm font-medium flex items-center gap-1"
+                >
+                  Configuration Title
+                  <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id={`config-title-${configIndex}`}
+                    type="text"
+                    placeholder="e.g. Bore Misalignment, Thread Direction"
+                    value={config.title}
+                    onChange={e => handleConfigurationTitleChange(configIndex, e)}
+                    className={cn(
+                      'transition-all duration-200',
+                      config.titleError
+                        ? 'border-destructive focus:border-destructive focus:ring-destructive/20'
+                        : config.title && !config.titleError
+                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
+                        : 'focus:border-primary focus:ring-primary/20'
+                    )}
+                  />
+                  {config.title && !config.titleError && (
+                    <CheckCircle2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-green-500" />
+                  )}
+                  {config.titleError && (
+                    <AlertCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-destructive" />
+                  )}
+                </div>
+                {config.titleError && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {config.titleError}
+                  </p>
+                )}
+              </div>
+
+              {/* Options Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">
+                    Options ({config.options.length})
+                  </Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAddOption(configIndex)}
+                    className="gap-1 h-8"
+                    disabled={
+                      config.options.length > 0 &&
+                      config.options[config.options.length - 1].name.trim() ===
+                        ''
+                    }
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add Option
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {config.options.map((option, optionIndex) => {
+                    const canRemoveOption = config.options.length > 1;
+
+                    return (
+                      <div
+                        key={optionIndex}
+                        className={cn(
+                          'p-4 rounded-lg border transition-all duration-200',
+                          option.isSelected
+                            ? 'border-primary bg-primary/5'
+                            : 'border-muted bg-background hover:border-primary/30'
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* Selection Button */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleOptionSelect(configIndex, optionIndex)
+                            }
+                            disabled={!option.name.trim()}
+                            className={cn(
+                              'mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0',
+                              option.isSelected
+                                ? 'border-primary bg-primary'
+                                : option.name.trim()
+                                ? 'border-muted-foreground/30 hover:border-primary/50 cursor-pointer'
+                                : 'border-muted-foreground/20 opacity-50 cursor-not-allowed'
+                            )}
+                            aria-label={
+                              option.name.trim()
+                                ? `Select ${option.name}`
+                                : 'Option name required to select'
+                            }
+                          >
+                            {option.isSelected && (
+                              <div className="h-2 w-2 rounded-full bg-white" />
+                            )}
+                          </button>
+
+                          {/* Option Fields */}
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Option Name */}
+                            <div className="space-y-2">
+                              <Label
+                                htmlFor={`option-name-${configIndex}-${optionIndex}`}
+                                className="text-xs font-medium"
+                              >
+                                Option Name
+                                <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id={`option-name-${configIndex}-${optionIndex}`}
+                                type="text"
+                                placeholder='e.g. 1"-3/4" STAINLESS STEEL'
+                                value={option.name}
+                                onChange={e =>
+                                  handleOptionNameChange(
+                                    configIndex,
+                                    optionIndex,
+                                    e
+                                  )
+                                }
+                                className="text-sm"
+                              />
+                            </div>
+
+                            {/* Option Price */}
+                            <div className="space-y-2">
+                              <Label
+                                htmlFor={`option-price-${configIndex}-${optionIndex}`}
+                                className="text-xs font-medium flex items-center gap-1"
+                              >
+                                <DollarSign className="h-3 w-3" />
+                                Price
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id={`option-price-${configIndex}-${optionIndex}`}
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="0.00"
+                                  value={option.price}
+                                  onChange={e =>
+                                    handleOptionPriceChange(
+                                      configIndex,
+                                      optionIndex,
+                                      e
+                                    )
+                                  }
+                                  className="text-sm pl-8"
+                                />
+                                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Default: $0.00
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Remove Option Button */}
+                          {canRemoveOption && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                handleRemoveOption(configIndex, optionIndex)
+                              }
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Selected Badge */}
+                        {option.isSelected && (
+                          <div className="mt-3 pt-3 border-t border-primary/20">
+                            <Badge
+                              variant="default"
+                              className="gap-1 bg-primary/10 text-primary hover:bg-primary/20"
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              Preselected Option
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Empty State */}
+      {formData.length === 0 && (
+        <div className="text-center py-12 border-2 border-dashed rounded-lg">
+          <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">
+            No Configurations Added
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Add product configurations to allow customers to customize their
+            purchase.
+          </p>
+          <Button
+            type="button"
+            onClick={handleAddConfiguration}
+            variant="outline"
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Your First Configuration
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+

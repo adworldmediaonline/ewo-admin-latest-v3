@@ -36,6 +36,16 @@ const useProductSubmit = () => {
   const [options, setOptions] = useState<{ title: string; price: number }[]>(
     []
   );
+  const [productConfigurations, setProductConfigurations] = useState<
+    {
+      title: string;
+      options: {
+        name: string;
+        price: number;
+        isSelected: boolean;
+      }[];
+    }[]
+  >([]);
   const [offerDate, setOfferDate] = useState<{
     startDate: null;
     endDate: null;
@@ -90,6 +100,7 @@ const useProductSubmit = () => {
     setDescription('');
     setVideoId('');
     setOptions([]);
+    setProductConfigurations([]);
     setOfferDate({
       startDate: null,
       endDate: null,
@@ -122,6 +133,8 @@ const useProductSubmit = () => {
       category: category,
       status: status,
       options: options.filter(option => option.title.trim() !== ''),
+      productConfigurations:
+        productConfigurations.length > 0 ? productConfigurations : undefined,
       offerDate: {
         startDate: offerDate.startDate,
         endDate: offerDate.endDate,
@@ -206,6 +219,8 @@ const useProductSubmit = () => {
         category: category,
         status: status,
         options: options.filter(option => option.title.trim() !== ''),
+        productConfigurations:
+          productConfigurations.length > 0 ? productConfigurations : undefined,
         offerDate: {
           startDate: offerDate.startDate,
           endDate: offerDate.endDate,
@@ -290,6 +305,8 @@ const useProductSubmit = () => {
     setOfferDate,
     options,
     setOptions,
+    productConfigurations,
+    setProductConfigurations,
     isSubmitted,
     setIsSubmitted,
     handleEditProduct,
