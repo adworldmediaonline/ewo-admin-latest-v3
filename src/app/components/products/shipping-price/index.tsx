@@ -30,12 +30,15 @@ export default function ShippingPrice({
       {/* Shipping Price Field */}
       <div className="space-y-2">
         <Label htmlFor="shipping-price" className="text-sm font-medium">
-          Shipping Price
+          Shipping Price <span className="text-muted-foreground">(Optional)</span>
         </Label>
         <div className="relative">
           <Input
             {...register('shipping.price', {
-              setValueAs: value => parseFloat(value || '0'),
+              setValueAs: value => {
+                const parsed = parseFloat(value);
+                return isNaN(parsed) || value === '' ? undefined : parsed;
+              },
             })}
             id="shipping-price"
             type="number"
@@ -61,7 +64,7 @@ export default function ShippingPrice({
       {/* Shipping Description Field */}
       <div className="space-y-2">
         <Label htmlFor="shipping-description" className="text-sm font-medium">
-          Shipping Description
+          Shipping Description <span className="text-muted-foreground">(Optional)</span>
         </Label>
         <textarea
           {...register('shipping.description')}

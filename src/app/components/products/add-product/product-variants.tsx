@@ -37,7 +37,7 @@ const ProductVariants = ({
               Product Variations
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Upload multiple images for product variants. Supports up to 10
+              Upload multiple images for product variants. Supports up to 15
               images.
             </p>
           </div>

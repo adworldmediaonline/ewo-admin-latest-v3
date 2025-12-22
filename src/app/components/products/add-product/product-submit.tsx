@@ -9,6 +9,7 @@ import ShippingPrice from '../shipping-price';
 import OfferDatePicker from './offer-date-picker';
 import ProductImgUpload from './product-img-upload';
 import ProductOptions from './product-options';
+import ProductConfigurations from './product-configurations';
 import ProductVariants from './product-variants';
 import SEOFields from './seo-fields';
 import Tags from './tags';
@@ -49,6 +50,8 @@ const ProductSubmit = () => {
     setOfferDate,
     options,
     setOptions,
+    productConfigurations,
+    setProductConfigurations,
     isSubmitted,
     additionalInformation,
     imageURLs,
@@ -353,6 +356,33 @@ const ProductSubmit = () => {
               <CardContent className="space-y-4">
                 <ProductOptions
                   setOptions={setOptions}
+                  isSubmitted={isSubmitted}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Product Configurations */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                    <Settings className="h-4 w-4 text-indigo-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">
+                      Product Configurations
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Add product configurations with multiple options (e.g.,
+                      Bore Misalignment, Thread Direction). Each option can have
+                      its own price.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ProductConfigurations
+                  setConfigurations={setProductConfigurations}
                   isSubmitted={isSubmitted}
                 />
               </CardContent>

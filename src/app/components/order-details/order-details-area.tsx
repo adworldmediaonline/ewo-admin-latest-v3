@@ -229,6 +229,48 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
     return safeRenderString(options);
   };
 
+  // Helper function to render product configurations
+  const renderProductConfigurations = (productConfigurations: any) => {
+    if (!productConfigurations || !Array.isArray(productConfigurations) || productConfigurations.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="mt-2 space-y-2">
+        {productConfigurations.map((config: any, configIndex: number) => {
+          if (!config.options || !Array.isArray(config.options)) {
+            return null;
+          }
+
+          // Find the selected option (isSelected: true)
+          const selectedOption = config.options.find((opt: any) => opt.isSelected === true);
+
+          if (!selectedOption) {
+            return null;
+          }
+
+          return (
+            <div key={config._id || configIndex} className="space-y-1">
+              <div className="text-xs font-semibold text-muted-foreground">
+                {safeRenderString(config.title)}:
+              </div>
+              <div className="flex flex-wrap gap-1">
+                <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-800">
+                  {safeRenderString(selectedOption.name)}
+                  {Number(selectedOption.price || 0) > 0 && (
+                    <span className="ml-1 text-green-600 dark:text-green-400 font-medium">
+                      (+${Number(selectedOption.price || 0).toFixed(2)})
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -350,12 +392,12 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
               </div>
               <div
                 className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${statusColor === 'delivered'
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    : statusColor === 'cancelled'
-                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                      : statusColor === 'processing'
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                        : 'bg-muted text-muted-foreground'
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  : statusColor === 'cancelled'
+                    ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                    : statusColor === 'processing'
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                      : 'bg-muted text-muted-foreground'
                   }`}
               >
                 {statusColor === 'delivered' && (
@@ -630,6 +672,11 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                                     </div>
                                   </div>
                                 )}
+                                {item.productConfigurations && (
+                                  <div className="mt-2">
+                                    {renderProductConfigurations(item.productConfigurations)}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -714,8 +761,8 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                   </h3>
                   <span
                     className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${order.isGuestOrder
-                        ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                        : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                      : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                       }`}
                   >
                     {order.isGuestOrder
@@ -739,8 +786,8 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       <button
                         onClick={handleCopyEmail}
                         className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded transition-colors duration-200 ${copiedEmail
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                           }`}
                         title="Copy email address"
                         type="button"
@@ -777,8 +824,8 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       <button
                         onClick={handleCopyPhone}
                         className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded transition-colors duration-200 ${copiedPhone
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                           }`}
                         title="Copy phone number"
                         type="button"
@@ -815,8 +862,8 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       <button
                         onClick={handleCopyAddress}
                         className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded transition-colors duration-200 ${copiedAddress
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                           }`}
                         title="Copy shipping address"
                         type="button"
@@ -920,9 +967,9 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       <div className="flex-shrink-0">
                         <div
                           className={`flex items-center justify-center w-12 h-12 rounded-full ${order.status === 'shipped' ||
-                              order.status === 'delivered'
-                              ? 'bg-blue-100 dark:bg-blue-900'
-                              : 'bg-muted'
+                            order.status === 'delivered'
+                            ? 'bg-blue-100 dark:bg-blue-900'
+                            : 'bg-muted'
                             }`}
                         >
                           {order.status === 'shipped' ||
@@ -938,9 +985,9 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                           <div>
                             <h4
                               className={`text-sm font-semibold ${order.status === 'shipped' ||
-                                  order.status === 'delivered'
-                                  ? 'text-foreground'
-                                  : 'text-muted-foreground'
+                                order.status === 'delivered'
+                                ? 'text-foreground'
+                                : 'text-muted-foreground'
                                 }`}
                             >
                               Order Shipped
@@ -977,8 +1024,8 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                       <div className="flex-shrink-0">
                         <div
                           className={`flex items-center justify-center w-12 h-12 rounded-full ${order.status === 'delivered'
-                              ? 'bg-green-100 dark:bg-green-900'
-                              : 'bg-muted'
+                            ? 'bg-green-100 dark:bg-green-900'
+                            : 'bg-muted'
                             }`}
                         >
                           {order.status === 'delivered' ? (
@@ -993,8 +1040,8 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                           <div>
                             <h4
                               className={`text-sm font-semibold ${order.status === 'delivered'
-                                  ? 'text-foreground'
-                                  : 'text-muted-foreground'
+                                ? 'text-foreground'
+                                : 'text-muted-foreground'
                                 }`}
                             >
                               Order Delivered
