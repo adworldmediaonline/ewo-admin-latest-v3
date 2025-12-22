@@ -25,7 +25,7 @@ type IPropType = {
   isSubmitted: boolean;
 };
 
-const MAX_IMAGES = 10;
+const MAX_IMAGES = 15;
 
 // Types for enhanced functionality
 interface UploadItem {
