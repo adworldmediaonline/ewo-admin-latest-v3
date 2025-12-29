@@ -44,11 +44,12 @@ const data = {
       url: '/dashboard/admin/users',
       icon: IconUsers,
     },
-    {
-      title: 'Reviews',
-      url: '/dashboard/admin/reviews',
-      icon: IconStar,
-    }
+    // uncomment this when reviews are implemented
+    // {
+    //   title: 'Reviews',
+    //   url: '/dashboard/admin/reviews',
+    //   icon: IconStar,
+    // }
 
   ],
   // navClouds: [

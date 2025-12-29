@@ -81,19 +81,21 @@ export default function SignInPage() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>
+          {/* uncomment when needed */}
+          {/* <CardDescription>
             Login with your Apple or Google account
-          </CardDescription>
+          </CardDescription> */}
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <SocialAccount />
-              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+              {/* uncomment when needed */}
+              {/* <SocialAccount /> */}
+              {/* <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-card text-muted-foreground relative z-10 px-2">
                   Or continue with
                 </span>
-              </div>
+              </div> */}
               {error && (
                 <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
                   {error}
@@ -168,14 +170,15 @@ export default function SignInPage() {
                 )}
               />
 
-              <div className="flex items-center justify-end">
+              {/* uncomment when needed */}
+              {/* <div className="flex items-center justify-end">
                 <Link
                   href="/forget-password"
                   className="text-sm text-primary hover:text-primary/80 underline underline-offset-4 transition-colors"
                 >
                   Forgot password?
                 </Link>
-              </div>
+              </div> */}
 
               <Button
                 type="submit"
@@ -198,7 +201,8 @@ export default function SignInPage() {
             </form>
           </Form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
+          {/* uncomment when needed */}
+          {/* <div className="mt-6 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Link
               href="/sign-up"
@@ -206,7 +210,7 @@ export default function SignInPage() {
             >
               Create one here
             </Link>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>
