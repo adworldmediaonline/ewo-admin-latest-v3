@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useShipOrderMutation } from '@/redux/order/orderApi';
 import { Order } from '@/types/order-amount-type';
+import { Plus, Trash2 } from 'lucide-react';
 
 interface ShippingModalProps {
   isOpen: boolean;
@@ -10,30 +11,27 @@ interface ShippingModalProps {
   onShip: (id: string, data: any) => Promise<any>;
 }
 
+interface CarrierTrackingPair {
+  carrier: string;
+  trackingNumber: string;
+}
+
 const ShippingModal: React.FC<ShippingModalProps> = ({
   isOpen,
   onClose,
   order,
   onShip,
 }) => {
-  const [formData, setFormData] = useState({
-    trackingNumber: '',
-    carrier: 'UPS',
-    estimatedDelivery: '',
-  });
+  const [carriers, setCarriers] = useState<CarrierTrackingPair[]>([
+    { carrier: 'UPS', trackingNumber: '' },
+  ]);
+  const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const carriers = [
-    'UPS',
-    'FedEx',
-    'USPS',
-    'DHL',
-    'Amazon Logistics',
-    'Standard Shipping',
-    'Express Shipping',
-  ];
+  // Only UPS and USPS are allowed
+  const allowedCarriers = ['UPS', 'USPS'];
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -65,24 +63,88 @@ const ShippingModal: React.FC<ShippingModalProps> = ({
     };
   }, [isOpen, isLoading, onClose]);
 
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setCarriers([{ carrier: 'UPS', trackingNumber: '' }]);
+      setEstimatedDelivery('');
+      setError('');
+      setSuccess('');
+    }
+  }, [isOpen]);
+
+  const handleAddCarrier = () => {
+    setCarriers([...carriers, { carrier: 'UPS', trackingNumber: '' }]);
+  };
+
+  const handleRemoveCarrier = (index: number) => {
+    if (carriers.length > 1) {
+      setCarriers(carriers.filter((_, i) => i !== index));
+    } else {
+      setError('At least one carrier is required');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const handleCarrierChange = (index: number, field: 'carrier' | 'trackingNumber', value: string) => {
+    const updated = [...carriers];
+    updated[index] = { ...updated[index], [field]: value };
+    setCarriers(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
     setIsLoading(true);
 
-    if (!formData.carrier) {
-      setError('Carrier is required');
+    // Validate at least one carrier is selected
+    if (carriers.length === 0) {
+      setError('At least one carrier is required');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate all carriers have a carrier name
+    const invalidCarriers = carriers.filter(c => !c.carrier);
+    if (invalidCarriers.length > 0) {
+      setError('All carriers must have a carrier name selected');
       setIsLoading(false);
       return;
     }
 
     try {
-      await onShip(order._id, {
-        trackingNumber: formData.trackingNumber || undefined,
-        carrier: formData.carrier,
-        estimatedDelivery: formData.estimatedDelivery || undefined,
-      });
+      // Prepare shipping data with multiple carriers
+      // Filter out empty tracking numbers but keep the carrier
+      const shippingData = {
+        carriers: carriers
+          .filter(c => c.carrier && c.carrier.trim() !== '') // Only include carriers with valid carrier name
+          .map(c => ({
+            carrier: c.carrier.trim(),
+            trackingNumber: c.trackingNumber && c.trackingNumber.trim() !== ''
+              ? c.trackingNumber.trim()
+              : undefined,
+          })),
+        estimatedDelivery: estimatedDelivery && estimatedDelivery.trim() !== ''
+          ? estimatedDelivery.trim()
+          : undefined,
+      };
+
+      // Debug: Log what we're sending
+      console.log('📤 Frontend sending shipping data:', JSON.stringify(shippingData, null, 2));
+      console.log('📦 Number of carriers:', shippingData.carriers.length);
+      console.log('📦 Carriers details:', shippingData.carriers.map(c => ({
+        carrier: c.carrier,
+        hasTracking: !!c.trackingNumber,
+      })));
+
+      if (shippingData.carriers.length === 0) {
+        setError('At least one valid carrier is required');
+        setIsLoading(false);
+        return;
+      }
+
+      await onShip(order._id, shippingData);
 
       setSuccess(
         'Order shipped successfully! Customer has been notified via email.'
@@ -90,11 +152,8 @@ const ShippingModal: React.FC<ShippingModalProps> = ({
 
       setTimeout(() => {
         onClose();
-        setFormData({
-          trackingNumber: '',
-          carrier: 'UPS',
-          estimatedDelivery: '',
-        });
+        setCarriers([{ carrier: 'UPS', trackingNumber: '' }]);
+        setEstimatedDelivery('');
         setSuccess('');
       }, 2000);
     } catch (err: any) {
@@ -102,15 +161,6 @@ const ShippingModal: React.FC<ShippingModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -126,7 +176,7 @@ const ShippingModal: React.FC<ShippingModalProps> = ({
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] overflow-y-auto"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-auto my-8 transform transition-all duration-200 scale-100">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-auto my-8 transform transition-all duration-200 scale-100">
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
           <div>
@@ -219,72 +269,122 @@ const ShippingModal: React.FC<ShippingModalProps> = ({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Carrier Selection */}
+            {/* Multiple Carriers Section */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Shipping Carrier <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  name="carrier"
-                  value={formData.carrier}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white"
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Shipping Carriers <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddCarrier}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                 >
-                  {carriers.map(carrier => (
-                    <option key={carrier} value={carrier}>
-                      {carrier}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                  <svg
-                    className="w-5 h-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
+                  <Plus className="w-4 h-4" />
+                  Add Carrier
+                </button>
               </div>
-            </div>
 
-            {/* Tracking Number */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Tracking Number
-              </label>
-              <input
-                type="text"
-                name="trackingNumber"
-                value={formData.trackingNumber}
-                onChange={handleChange}
-                placeholder="Enter tracking number (optional)"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-              <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Can be added later if not available yet
-              </p>
+              <div className="space-y-4">
+                {carriers.map((carrierPair, index) => (
+                  <div
+                    key={index}
+                    className="p-4 border border-gray-200 rounded-lg bg-gray-50"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-700">
+                        Carrier {index + 1}
+                      </span>
+                      {carriers.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCarrier(index)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          aria-label={`Remove carrier ${index + 1}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Carrier Selection */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                          Carrier <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={carrierPair.carrier}
+                            onChange={e =>
+                              handleCarrierChange(index, 'carrier', e.target.value)
+                            }
+                            required
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white text-sm"
+                          >
+                            {allowedCarriers.map(carrier => (
+                              <option key={carrier} value={carrier}>
+                                {carrier}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                            <svg
+                              className="w-5 h-5 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tracking Number */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                          Tracking Number
+                        </label>
+                        <input
+                          type="text"
+                          value={carrierPair.trackingNumber}
+                          onChange={e =>
+                            handleCarrierChange(
+                              index,
+                              'trackingNumber',
+                              e.target.value
+                            )
+                          }
+                          placeholder="Enter tracking number (optional)"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                        />
+                        <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          Can be added later if not available yet
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Estimated Delivery */}
@@ -294,9 +394,8 @@ const ShippingModal: React.FC<ShippingModalProps> = ({
               </label>
               <input
                 type="date"
-                name="estimatedDelivery"
-                value={formData.estimatedDelivery}
-                onChange={handleChange}
+                value={estimatedDelivery}
+                onChange={e => setEstimatedDelivery(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
@@ -331,7 +430,7 @@ const ShippingModal: React.FC<ShippingModalProps> = ({
                     </li>
                     <li className="flex items-center gap-2">
                       <div className="w-1 h-1 bg-green-500 rounded-full"></div>
-                      Shipping address and tracking information
+                      All shipping carriers and tracking information
                     </li>
                     <li className="flex items-center gap-2">
                       <div className="w-1 h-1 bg-green-500 rounded-full"></div>
@@ -339,7 +438,7 @@ const ShippingModal: React.FC<ShippingModalProps> = ({
                     </li>
                     <li className="flex items-center gap-2">
                       <div className="w-1 h-1 bg-green-500 rounded-full"></div>
-                      Direct tracking link (if tracking number provided)
+                      Direct tracking links (if tracking numbers provided)
                     </li>
                   </ul>
                 </div>

@@ -46,6 +46,13 @@ export interface Order {
   status: string;
   shippingNotificationSent?: boolean;
   shippingDetails?: {
+    // New format: multiple carriers
+    carriers?: Array<{
+      carrier: string;
+      trackingNumber?: string;
+      trackingUrl?: string;
+    }>;
+    // Legacy format: single carrier (for backward compatibility)
     trackingNumber?: string;
     carrier?: string;
     trackingUrl?: string;

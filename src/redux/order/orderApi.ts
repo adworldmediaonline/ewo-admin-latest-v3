@@ -74,8 +74,14 @@ export const authApi = apiSlice.injectEndpoints({
       {
         id: string;
         shippingData: {
+          // New format: multiple carriers
+          carriers?: Array<{
+            carrier: string;
+            trackingNumber?: string;
+          }>;
+          // Legacy format: single carrier (for backward compatibility)
           trackingNumber?: string;
-          carrier: string;
+          carrier?: string;
           estimatedDelivery?: string;
         };
       }
