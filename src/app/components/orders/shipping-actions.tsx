@@ -39,7 +39,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
     try {
       await onDeliver(order._id);
       setSuccess(
-        'Order marked as delivered successfully! Customer has been notified via email.'
+        'Order marked as delivered successfully!'
       );
 
       setTimeout(() => {
