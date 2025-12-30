@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation';
 import OfferDatePicker from '../add-product/offer-date-picker';
 import ProductImgUpload from '../add-product/product-img-upload';
 import ProductOptions from '../add-product/product-options';
+import ProductConfigurations from '../add-product/product-configurations';
 import ProductVariants from '../add-product/product-variants';
 import SEOFields from '../add-product/seo-fields';
 import Tags from '../add-product/tags';
@@ -90,6 +91,8 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     setOfferDate,
     options,
     setOptions,
+    productConfigurations,
+    setProductConfigurations,
     isSubmitted,
     setIsSubmitted,
     handleEditProduct,
@@ -476,6 +479,34 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                   <ProductOptions
                     setOptions={setOptions}
                     default_value={product.options}
+                    isSubmitted={isSubmitted}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Product Configurations */}
+              <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                      <Settings className="h-4 w-4 text-indigo-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold">
+                        Product Configurations
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Add product configurations with multiple options (e.g.,
+                        Bore Misalignment, Thread Direction). Each option can
+                        have its own price.
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ProductConfigurations
+                    setConfigurations={setProductConfigurations}
+                    default_value={product.productConfigurations}
                     isSubmitted={isSubmitted}
                   />
                 </CardContent>

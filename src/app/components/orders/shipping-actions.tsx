@@ -39,7 +39,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
     try {
       await onDeliver(order._id);
       setSuccess(
-        'Order marked as delivered successfully! Customer has been notified via email.'
+        'Order marked as delivered successfully!'
       );
 
       setTimeout(() => {
@@ -130,14 +130,14 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
                 <span className="text-gray-600">Customer:</span>
                 <span className="font-medium">{order.name}</span>
               </div>
-              {order.shippingDetails?.trackingNumber && (
+              {/* {order.shippingDetails?.trackingNumber && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tracking:</span>
                   <span className="font-mono text-xs">
                     {order.shippingDetails.trackingNumber}
                   </span>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
 
@@ -155,7 +155,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
           )}
 
           {/* Confirmation Message */}
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg break-words">
+          {/* <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg break-words">
             <div className="flex items-start gap-3">
               <svg
                 className="w-5 h-5 text-yellow-600 mt-0.5"
@@ -180,7 +180,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Action Buttons */}
           <div className="flex gap-3">

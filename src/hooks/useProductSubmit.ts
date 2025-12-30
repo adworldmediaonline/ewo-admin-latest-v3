@@ -36,6 +36,16 @@ const useProductSubmit = () => {
   const [options, setOptions] = useState<{ title: string; price: number }[]>(
     []
   );
+  const [productConfigurations, setProductConfigurations] = useState<
+    {
+      title: string;
+      options: {
+        name: string;
+        price: number | string;
+        isSelected: boolean;
+      }[];
+    }[]
+  >([]);
   const [offerDate, setOfferDate] = useState<{
     startDate: null;
     endDate: null;
@@ -90,6 +100,7 @@ const useProductSubmit = () => {
     setDescription('');
     setVideoId('');
     setOptions([]);
+    setProductConfigurations([]);
     setOfferDate({
       startDate: null,
       endDate: null,
@@ -112,14 +123,18 @@ const useProductSubmit = () => {
       children: children,
       price: data.price,
       discount: data.discount,
-      shipping: {
-        price: data.shipping?.price || 0,
-        description: data.shipping?.description || '',
-      },
+      shipping: data.shipping?.price || data.shipping?.description
+        ? {
+            price: data.shipping?.price ? Number(data.shipping.price) : undefined,
+            description: data.shipping?.description || undefined,
+          }
+        : undefined,
       quantity: data.quantity,
       category: category,
       status: status,
       options: options.filter(option => option.title.trim() !== ''),
+      productConfigurations:
+        productConfigurations.length > 0 ? productConfigurations : undefined,
       offerDate: {
         startDate: offerDate.startDate,
         endDate: offerDate.endDate,
@@ -194,14 +209,18 @@ const useProductSubmit = () => {
         children: children || '',
         price: data.price,
         discount: data.discount,
-        shipping: {
-          price: data.shipping?.price || 0,
-          description: data.shipping?.description || '',
-        },
+        shipping: data.shipping?.price || data.shipping?.description
+          ? {
+              price: data.shipping?.price ? Number(data.shipping.price) : undefined,
+              description: data.shipping?.description || undefined,
+            }
+          : undefined,
         quantity: data.quantity,
         category: category,
         status: status,
         options: options.filter(option => option.title.trim() !== ''),
+        productConfigurations:
+          productConfigurations.length > 0 ? productConfigurations : undefined,
         offerDate: {
           startDate: offerDate.startDate,
           endDate: offerDate.endDate,
@@ -286,6 +305,8 @@ const useProductSubmit = () => {
     setOfferDate,
     options,
     setOptions,
+    productConfigurations,
+    setProductConfigurations,
     isSubmitted,
     setIsSubmitted,
     handleEditProduct,

@@ -10,7 +10,9 @@ import {
 import Link from 'next/link';
 import EditCategory from '@/app/components/category/edit-category';
 
-const EditCategoryPage = ({ params }: { params: { id: string } }) => {
+const EditCategoryPage = async ({ params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+
   return (
     <Wrapper>
       <Card>
@@ -32,7 +34,7 @@ const EditCategoryPage = ({ params }: { params: { id: string } }) => {
         </CardHeader>
 
         <CardContent>
-          <EditCategory id={params.id} />
+          <EditCategory id={id} />
         </CardContent>
       </Card>
     </Wrapper>

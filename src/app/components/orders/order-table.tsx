@@ -89,16 +89,12 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             bg: 'bg-purple-100 dark:bg-purple-950/20',
             text: 'text-purple-800 dark:text-purple-200',
             icon: <Truck className="w-3 h-3 mr-1" />,
-            carrier: order.shippingDetails?.carrier,
-            trackingNumber: order.shippingDetails?.trackingNumber,
           };
         case 'delivered':
           return {
             bg: 'bg-green-100 dark:bg-green-950/20',
             text: 'text-green-800 dark:text-green-200',
             icon: <CheckCircle className="w-3 h-3 mr-1" />,
-            carrier: order.shippingDetails?.carrier,
-            trackingNumber: order.shippingDetails?.trackingNumber,
           };
         case 'cancel':
         case 'cancelled':
@@ -116,7 +112,18 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       }
     };
 
-    const { bg, text, icon, carrier, trackingNumber } = getStatusStyles(status);
+    const { bg, text, icon } = getStatusStyles(status);
+
+    // Support both new (multiple carriers) and legacy (single carrier) formats
+    const shippingCarriers = order.shippingDetails?.carriers && Array.isArray(order.shippingDetails.carriers) && order.shippingDetails.carriers.length > 0
+      ? order.shippingDetails.carriers
+      : order.shippingDetails?.carrier
+        ? [{
+          carrier: order.shippingDetails.carrier,
+          trackingNumber: order.shippingDetails.trackingNumber,
+          trackingUrl: order.shippingDetails.trackingUrl,
+        }]
+        : [];
 
     return (
       <div className="flex flex-col gap-1 min-w-0">
@@ -131,26 +138,30 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             {status.charAt(0).toUpperCase() + status.slice(1)}
           </span>
         </span>
-        {(carrier || trackingNumber) && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            {carrier && (
-              <span
-                className="text-xs text-gray-600 font-mono bg-gray-50 dark:bg-gray-900/30 px-1.5 py-0.5 rounded"
-                aria-label={`Carrier: ${carrier}`}
-                tabIndex={0}
-              >
-                {carrier}
-              </span>
-            )}
-            {trackingNumber && (
-              <span
-                className="text-xs text-gray-600 font-mono bg-gray-50 dark:bg-gray-900/30 px-1.5 py-0.5 rounded"
-                aria-label={`Tracking number: ${trackingNumber}`}
-                tabIndex={0}
-              >
-                {trackingNumber}
-              </span>
-            )}
+        {shippingCarriers.length > 0 && (
+          <div className="flex flex-col gap-1 mt-1">
+            {shippingCarriers.map((carrierItem: any, index: number) => (
+              <div key={index} className="flex flex-wrap gap-1">
+                {carrierItem.carrier && (
+                  <span
+                    className="text-xs text-gray-600 bg-gray-50 dark:bg-gray-900/30 px-1.5 py-0.5 rounded"
+                    aria-label={`Carrier ${index + 1}: ${carrierItem.carrier}`}
+                    tabIndex={0}
+                  >
+                    {carrierItem.carrier}
+                  </span>
+                )}
+                {carrierItem.trackingNumber && (
+                  <span
+                    className="text-xs text-gray-600 font-mono bg-gray-50 dark:bg-gray-900/30 px-1.5 py-0.5 rounded"
+                    aria-label={`Tracking number ${index + 1}: ${carrierItem.trackingNumber}`}
+                    tabIndex={0}
+                  >
+                    {carrierItem.trackingNumber}
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -160,7 +171,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   // Customer info component
   const CustomerInfo = ({ order }: { order: any }) => (
     <div className="flex items-center space-x-3">
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         {order.user?.imageURL ? (
           <Image
             className="w-10 h-10 rounded-full object-cover border border-border"
@@ -336,11 +347,25 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         'Payment Method',
         'Date',
         'Shipping Status',
-        'Tracking Number',
-        'Carrier',
+        'Carriers & Tracking Numbers',
       ].join(','),
-      ...filteredOrders.map(order =>
-        [
+      ...filteredOrders.map(order => {
+        // Support both new (multiple carriers) and legacy (single carrier) formats
+        const shippingCarriers = order.shippingDetails?.carriers && Array.isArray(order.shippingDetails.carriers) && order.shippingDetails.carriers.length > 0
+          ? order.shippingDetails.carriers
+          : order.shippingDetails?.carrier
+            ? [{
+              carrier: order.shippingDetails.carrier,
+              trackingNumber: order.shippingDetails.trackingNumber,
+              trackingUrl: order.shippingDetails.trackingUrl,
+            }]
+            : [];
+
+        const carriersInfo = shippingCarriers.length > 0
+          ? shippingCarriers.map((c: any) => `${c.carrier || ''}: ${c.trackingNumber || 'N/A'}`).join('; ')
+          : '';
+
+        return [
           order.orderId || '',
           order.invoice,
           order.name,
@@ -350,10 +375,9 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           order.paymentMethod,
           dayjs(order.createdAt).format('YYYY-MM-DD HH:mm'),
           order.status === 'shipped' ? 'Shipped' : 'Not Shipped',
-          order.shippingDetails?.trackingNumber || '',
-          order.shippingDetails?.carrier || '',
-        ].join(',')
-      ),
+          carriersInfo,
+        ].join(',');
+      }),
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -402,9 +426,8 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             {table.getRowModel().rows.map((row, idx) => (
               <tr
                 key={row.id}
-                className={`hover:bg-muted/50 transition-colors duration-150 ${
-                  idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'
-                }`}
+                className={`hover:bg-muted/50 transition-colors duration-150 ${idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                  }`}
               >
                 {row.getVisibleCells().map(cell => (
                   <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
@@ -484,7 +507,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                     to{' '}
                     {Math.min(
                       (table.getState().pagination.pageIndex + 1) *
-                        table.getState().pagination.pageSize,
+                      table.getState().pagination.pageSize,
                       filteredOrders.length
                     )}{' '}
                     of {filteredOrders.length} orders
@@ -556,11 +579,10 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                         return (
                           <button
                             key={pageIndex}
-                            className={`px-3 py-1 text-sm rounded-lg transition-colors duration-200 ${
-                              pageIndex === currentPage
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-background'
-                            }`}
+                            className={`px-3 py-1 text-sm rounded-lg transition-colors duration-200 ${pageIndex === currentPage
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-background'
+                              }`}
                             onClick={() => table.setPageIndex(pageIndex)}
                           >
                             {pageIndex + 1}
