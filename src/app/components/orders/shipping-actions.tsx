@@ -155,7 +155,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
           )}
 
           {/* Confirmation Message */}
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg break-words">
+          {/* <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg break-words">
             <div className="flex items-start gap-3">
               <svg
                 className="w-5 h-5 text-yellow-600 mt-0.5"
@@ -180,7 +180,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Action Buttons */}
           <div className="flex gap-3">
