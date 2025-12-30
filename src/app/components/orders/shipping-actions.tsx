@@ -130,14 +130,14 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
                 <span className="text-gray-600">Customer:</span>
                 <span className="font-medium">{order.name}</span>
               </div>
-              {order.shippingDetails?.trackingNumber && (
+              {/* {order.shippingDetails?.trackingNumber && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tracking:</span>
                   <span className="font-mono text-xs">
                     {order.shippingDetails.trackingNumber}
                   </span>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
 
