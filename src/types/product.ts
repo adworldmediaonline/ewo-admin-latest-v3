@@ -56,6 +56,14 @@ export interface IProduct {
     title: string;
     price: number;
   }>;
+  productConfigurations?: Array<{
+    title: string;
+    options: Array<{
+      name: string;
+      price: number | string;
+      isSelected: boolean;
+    }>;
+  }>;
   tags: string[];
   offerDate?: {
     startDate: string | null;

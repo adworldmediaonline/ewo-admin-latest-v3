@@ -27,7 +27,18 @@ interface ConfigurationData {
 }
 
 type IPropType = {
-  setConfigurations: React.Dispatch<SetStateAction<ConfigurationData[]>>;
+  setConfigurations: React.Dispatch<
+    SetStateAction<
+      {
+        title: string;
+        options: {
+          name: string;
+          price: number | string;
+          isSelected: boolean;
+        }[];
+      }[]
+    >
+  >;
   default_value?: ConfigurationData[];
   isSubmitted?: boolean;
 };

@@ -41,7 +41,7 @@ const useProductSubmit = () => {
       title: string;
       options: {
         name: string;
-        price: number;
+        price: number | string;
         isSelected: boolean;
       }[];
     }[]
