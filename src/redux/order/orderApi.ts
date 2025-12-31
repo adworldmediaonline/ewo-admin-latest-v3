@@ -202,6 +202,20 @@ export const authApi = apiSlice.injectEndpoints({
       query: id => `/api/order/payment-details/${id}`,
       keepUnusedDataFor: 300,
     }),
+    // create order (admin)
+    createOrder: builder.mutation<
+      { success: boolean; message: string; order: Order },
+      any
+    >({
+      query(data) {
+        return {
+          url: `/api/order/saveOrder`,
+          method: 'POST',
+          body: data,
+        };
+      },
+      invalidatesTags: ['AllOrders', 'DashboardRecentOrders', 'OrderBreakdown', 'DashboardAmount'],
+    }),
   }),
 });
 
@@ -221,4 +235,5 @@ export const {
   useProcessRefundMutation,
   useCancelOrderMutation,
   useGetPaymentDetailsQuery,
+  useCreateOrderMutation,
 } = authApi;
