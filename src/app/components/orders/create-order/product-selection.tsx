@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useGetAllProductsQuery } from '@/redux/product/productApi';
 import { IProduct } from '@/types/product';
 import { Minus, Plus, Search, Trash2 } from 'lucide-react';
@@ -24,6 +24,7 @@ interface CartItem extends IProduct {
   selectedConfigurations?: any;
   basePrice?: number;
   productConfigurations?: any;
+  customPrice?: number;
 }
 
 interface ProductSelectionProps {
@@ -34,8 +35,10 @@ interface ProductSelectionProps {
     finalPriceDiscount?: number;
     basePrice?: number;
     productConfigurations?: any;
+    customPrice?: number;
   }) => void;
   onUpdateQuantity: (productId: string, quantity: number) => void;
+  onUpdatePrice?: (productId: string, price: number) => void;
   onRemoveProduct: (productId: string) => void;
 }
 
@@ -43,12 +46,14 @@ export default function ProductSelection({
   cartItems,
   onAddProduct,
   onUpdateQuantity,
+  onUpdatePrice,
   onRemoveProduct,
 }: ProductSelectionProps) {
   const { data: products, isLoading } = useGetAllProductsQuery();
   const [searchValue, setSearchValue] = useState('');
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
+  const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
 
   const filteredProducts = useMemo(() => {
     if (!products?.data) return [];
@@ -79,11 +84,24 @@ export default function ProductSelection({
   };
 
   const handleAddToCart = (product: IProduct) => {
+    const customPrice = customPrices[product._id];
+    const priceToUse = customPrice ? parseFloat(customPrice) : undefined;
+
     if (hasOptionsOrConfigurations(product)) {
       setSelectedProduct(product);
       setConfigDialogOpen(true);
     } else {
-      onAddProduct(product);
+      onAddProduct({
+        ...product,
+        customPrice: priceToUse,
+        finalPriceDiscount: priceToUse || product.finalPriceDiscount || product.price,
+      });
+      // Clear custom price after adding
+      setCustomPrices(prev => {
+        const newPrices = { ...prev };
+        delete newPrices[product._id];
+        return newPrices;
+      });
     }
   };
 
@@ -94,7 +112,22 @@ export default function ProductSelection({
     basePrice?: number;
     productConfigurations?: any;
   }) => {
-    onAddProduct(configuredProduct);
+    const customPrice = customPrices[configuredProduct._id];
+    const priceToUse = customPrice ? parseFloat(customPrice) : undefined;
+
+    onAddProduct({
+      ...configuredProduct,
+      customPrice: priceToUse,
+      finalPriceDiscount: priceToUse || configuredProduct.finalPriceDiscount || configuredProduct.price,
+    });
+
+    // Clear custom price after adding
+    setCustomPrices(prev => {
+      const newPrices = { ...prev };
+      delete newPrices[configuredProduct._id];
+      return newPrices;
+    });
+
     setConfigDialogOpen(false);
     setSelectedProduct(null);
   };
@@ -130,27 +163,25 @@ export default function ProductSelection({
           Loading products...
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden flex flex-col">
-          <div className="border-b">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">Image</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">Stock</TableHead>
-                  <TableHead className="text-right w-32">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-            </Table>
-          </div>
+        <div className="border rounded-lg overflow-hidden">
           <ScrollArea className="h-[400px] w-full">
-            <Table>
-              <TableBody>
+            <div className="min-w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16">Image</TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right w-32">Custom Price</TableHead>
+                    <TableHead className="text-right">Stock</TableHead>
+                    <TableHead className="text-right w-32">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {filteredProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No products found
                     </TableCell>
                   </TableRow>
@@ -191,6 +222,42 @@ export default function ProductSelection({
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           ${Number(product.finalPriceDiscount || product.price || 0).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          {inCart && cartItem?.customPrice !== undefined ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={cartItem.customPrice}
+                                onChange={e => {
+                                  const newPrice = parseFloat(e.target.value) || 0;
+                                  if (onUpdatePrice) {
+                                    onUpdatePrice(product._id, newPrice);
+                                  }
+                                }}
+                                className="h-8 w-20 text-sm"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          ) : (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={customPrices[product._id] || ''}
+                              onChange={e => {
+                                setCustomPrices(prev => ({
+                                  ...prev,
+                                  [product._id]: e.target.value,
+                                }));
+                              }}
+                              className="h-8 w-20 text-sm"
+                              placeholder="Custom"
+                              disabled={inCart}
+                            />
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <span
@@ -251,8 +318,11 @@ export default function ProductSelection({
                     );
                   })
                 )}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+            </div>
+            <ScrollBar orientation="horizontal" />
+            <ScrollBar orientation="vertical" />
           </ScrollArea>
         </div>
       )}

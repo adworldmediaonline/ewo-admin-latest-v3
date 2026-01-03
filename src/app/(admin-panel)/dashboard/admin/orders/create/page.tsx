@@ -20,6 +20,7 @@ interface CartItem extends IProduct {
   selectedConfigurations?: any;
   basePrice?: number;
   productConfigurations?: any;
+  customPrice?: number;
 }
 
 interface CustomerFormData {
@@ -64,7 +65,11 @@ export default function CreateOrderPage() {
 
   // Calculate subtotal
   const subtotal = cartItems.reduce((sum, item) => {
-    const price = Number(item.finalPriceDiscount || item.price || 0);
+    const price = Number(
+      item.customPrice !== undefined
+        ? item.customPrice
+        : (item.finalPriceDiscount || item.price || 0)
+    );
     return sum + price * item.orderQuantity;
   }, 0);
 
@@ -117,6 +122,7 @@ export default function CreateOrderPage() {
     finalPriceDiscount?: number;
     basePrice?: number;
     productConfigurations?: any;
+    customPrice?: number;
   }) => {
     const existingItem = cartItems.find(item => item._id === product._id);
 
@@ -130,13 +136,18 @@ export default function CreateOrderPage() {
       handleUpdateQuantity(product._id, existingItem.orderQuantity + 1);
     } else {
       // Add as new item (different configuration) or new product
+      const priceToUse = product.customPrice !== undefined
+        ? product.customPrice
+        : (product.finalPriceDiscount || product.price);
+
       setCartItems([
         ...cartItems,
         {
           ...product,
           orderQuantity: 1,
-          finalPriceDiscount: product.finalPriceDiscount || product.price,
+          finalPriceDiscount: priceToUse,
           basePrice: product.basePrice || product.price,
+          customPrice: product.customPrice,
         },
       ]);
     }
@@ -146,6 +157,20 @@ export default function CreateOrderPage() {
     setCartItems(
       cartItems.map(item =>
         item._id === productId ? { ...item, orderQuantity: quantity } : item
+      )
+    );
+  };
+
+  const handleUpdatePrice = (productId: string, price: number) => {
+    setCartItems(
+      cartItems.map(item =>
+        item._id === productId
+          ? {
+            ...item,
+            customPrice: price,
+            finalPriceDiscount: price,
+          }
+          : item
       )
     );
   };
@@ -172,22 +197,28 @@ export default function CreateOrderPage() {
 
 
     // Prepare cart items in the format expected by backend
-    const cart = cartItems.map(item => ({
-      _id: item._id,
-      title: item.title,
-      sku: item.sku,
-      img: item.imageURLs?.[0] || '',
-      price: Number(item.finalPriceDiscount || item.price || 0),
-      finalPriceDiscount: Number(item.finalPriceDiscount || item.price || 0),
-      orderQuantity: item.orderQuantity,
-      quantity: item.quantity || 0,
-      selectedOption: item.selectedOption || null,
-      selectedConfigurations: item.selectedConfigurations || undefined,
-      productConfigurations: item.productConfigurations || undefined,
-      basePrice: Number(item.finalPriceDiscount || item.price || 0),
-      updatedPrice: Number(item.updatedPrice || item.price || 0),
-      shipping: item.shipping || {},
-    }));
+    const cart = cartItems.map(item => {
+      const priceToUse = item.customPrice !== undefined
+        ? item.customPrice
+        : (item.finalPriceDiscount || item.price || 0);
+
+      return {
+        _id: item._id,
+        title: item.title,
+        sku: item.sku,
+        img: item.imageURLs?.[0] || '',
+        price: Number(priceToUse),
+        finalPriceDiscount: Number(priceToUse),
+        orderQuantity: item.orderQuantity,
+        quantity: item.quantity || 0,
+        selectedOption: item.selectedOption || null,
+        selectedConfigurations: item.selectedConfigurations || undefined,
+        productConfigurations: item.productConfigurations || undefined,
+        basePrice: Number(item.basePrice || item.price || 0),
+        updatedPrice: Number(priceToUse),
+        shipping: item.shipping || {},
+      };
+    });
 
     // Prepare base order data
     const orderData = {
@@ -279,8 +310,8 @@ export default function CreateOrderPage() {
         });
 
         if (pmError) {
-          setCardError(pmError.message);
-          toast.error(`Card error: ${pmError.message}`);
+          setCardError(pmError.message || 'Card error occurred');
+          toast.error(`Card error: ${pmError.message || 'Unknown error'}`);
           setProcessingPayment(false);
           return;
         }
@@ -354,8 +385,8 @@ export default function CreateOrderPage() {
               errorMessage = 'An error occurred while processing your card. Please try again.';
             }
           }
-          setCardError(errorMessage);
-          toast.error(`Payment failed: ${errorMessage}`);
+          setCardError(errorMessage || 'Payment failed');
+          toast.error(`Payment failed: ${errorMessage || 'Unknown error'}`);
           setProcessingPayment(false);
           return;
         }
@@ -469,6 +500,7 @@ export default function CreateOrderPage() {
                   cartItems={cartItems}
                   onAddProduct={handleAddProduct}
                   onUpdateQuantity={handleUpdateQuantity}
+                  onUpdatePrice={handleUpdatePrice}
                   onRemoveProduct={handleRemoveProduct}
                 />
                 {cartItems.length > 0 && (
@@ -625,6 +657,7 @@ export default function CreateOrderPage() {
               appliedCoupons={appliedCoupons}
               onAddCoupon={handleAddCoupon}
               onRemoveCoupon={handleRemoveCoupon}
+              onUpdatePrice={handleUpdatePrice}
               onSubmit={handleCreateOrder}
               isSubmitting={isCreating || processingPayment}
               cardError={cardError}

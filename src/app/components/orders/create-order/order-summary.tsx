@@ -17,6 +17,7 @@ interface CartItem extends IProduct {
   selectedOption?: any;
   selectedConfigurations?: any;
   basePrice?: number;
+  customPrice?: number;
 }
 
 interface AppliedCoupon {
@@ -35,6 +36,7 @@ interface OrderSummaryProps {
   appliedCoupons: AppliedCoupon[];
   onAddCoupon: (coupon: AppliedCoupon) => void;
   onRemoveCoupon: (couponCode: string) => void;
+  onUpdatePrice?: (productId: string, price: number) => void;
   onSubmit: () => void;
   isSubmitting: boolean;
   cardError?: string;
@@ -48,6 +50,7 @@ export default function OrderSummary({
   appliedCoupons,
   onAddCoupon,
   onRemoveCoupon,
+  onUpdatePrice,
   onSubmit,
   isSubmitting,
   cardError,
@@ -231,7 +234,11 @@ export default function OrderSummary({
               </p>
             ) : (
               cartItems.map(item => {
-                const itemPrice = Number(item.finalPriceDiscount || item.price || 0);
+                const itemPrice = Number(
+                  item.customPrice !== undefined
+                    ? item.customPrice
+                    : (item.finalPriceDiscount || item.price || 0)
+                );
                 const itemTotal = itemPrice * item.orderQuantity;
 
                 return (
@@ -256,9 +263,28 @@ export default function OrderSummary({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{item.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Qty: {item.orderQuantity} × ${itemPrice.toFixed(2)}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          Qty: {item.orderQuantity} ×
+                        </span>
+                        {onUpdatePrice ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={itemPrice}
+                            onChange={e => {
+                              const newPrice = parseFloat(e.target.value) || 0;
+                              onUpdatePrice(item._id, newPrice);
+                            }}
+                            className="h-6 w-20 text-xs"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            ${itemPrice.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-sm font-medium shrink-0">
                       ${itemTotal.toFixed(2)}
