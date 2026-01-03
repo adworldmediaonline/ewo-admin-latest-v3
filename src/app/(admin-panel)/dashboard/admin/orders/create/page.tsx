@@ -249,7 +249,7 @@ export default function CreateOrderPage() {
 
         if (result.success) {
           toast.success('Free order created successfully!');
-          router.push(`/dashboard/admin/orders/${result.order._id}`);
+          router.push(`/dashboard/admin/orders`);
         } else {
           toast.error(result.message || 'Failed to create order');
         }
@@ -314,7 +314,7 @@ export default function CreateOrderPage() {
 
           if (result.success) {
             toast.success('Free order created successfully!');
-            router.push(`/dashboard/admin/orders/${result.order._id}`);
+            router.push(`/dashboard/admin/orders`);
           } else {
             toast.error(result.message || 'Failed to create order');
           }
@@ -371,7 +371,7 @@ export default function CreateOrderPage() {
 
           if (result.success) {
             toast.success('Order created and payment processed successfully!');
-            router.push(`/dashboard/admin/orders/${result.order._id}`);
+            router.push(`/dashboard/admin/orders`);
           } else {
             toast.error(result.message || 'Failed to create order');
           }
@@ -409,16 +409,14 @@ export default function CreateOrderPage() {
       {/* Step Indicator */}
       <div className="flex items-center gap-4">
         <div
-          className={`flex items-center gap-2 ${
-            step === 'products' ? 'text-primary font-semibold' : 'text-muted-foreground'
-          }`}
+          className={`flex items-center gap-2 ${step === 'products' ? 'text-primary font-semibold' : 'text-muted-foreground'
+            }`}
         >
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step === 'products'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground'
-            }`}
+            className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'products'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground'
+              }`}
           >
             1
           </div>
@@ -426,18 +424,16 @@ export default function CreateOrderPage() {
         </div>
         <div className="h-px flex-1 bg-border" />
         <div
-          className={`flex items-center gap-2 ${
-            step === 'customer' ? 'text-primary font-semibold' : 'text-muted-foreground'
-          }`}
+          className={`flex items-center gap-2 ${step === 'customer' ? 'text-primary font-semibold' : 'text-muted-foreground'
+            }`}
         >
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step === 'customer'
-                ? 'bg-primary text-primary-foreground'
-                : step === 'summary'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-muted text-muted-foreground'
-            }`}
+            className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'customer'
+              ? 'bg-primary text-primary-foreground'
+              : step === 'summary'
+                ? 'bg-green-500 text-white'
+                : 'bg-muted text-muted-foreground'
+              }`}
           >
             2
           </div>
@@ -445,16 +441,14 @@ export default function CreateOrderPage() {
         </div>
         <div className="h-px flex-1 bg-border" />
         <div
-          className={`flex items-center gap-2 ${
-            step === 'summary' ? 'text-primary font-semibold' : 'text-muted-foreground'
-          }`}
+          className={`flex items-center gap-2 ${step === 'summary' ? 'text-primary font-semibold' : 'text-muted-foreground'
+            }`}
         >
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step === 'summary'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground'
-            }`}
+            className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'summary'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground'
+              }`}
           >
             3
           </div>
