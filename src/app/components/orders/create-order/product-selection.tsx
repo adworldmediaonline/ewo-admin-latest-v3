@@ -15,16 +15,25 @@ import { IProduct } from '@/types/product';
 import { Minus, Plus, Search, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
+import ProductConfigDialog from './product-config-dialog';
 
 interface CartItem extends IProduct {
   orderQuantity: number;
   selectedOption?: any;
   selectedConfigurations?: any;
+  basePrice?: number;
+  productConfigurations?: any;
 }
 
 interface ProductSelectionProps {
   cartItems: CartItem[];
-  onAddProduct: (product: IProduct) => void;
+  onAddProduct: (product: IProduct & {
+    selectedOption?: any;
+    selectedConfigurations?: any;
+    finalPriceDiscount?: number;
+    basePrice?: number;
+    productConfigurations?: any;
+  }) => void;
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemoveProduct: (productId: string) => void;
 }
@@ -37,6 +46,8 @@ export default function ProductSelection({
 }: ProductSelectionProps) {
   const { data: products, isLoading } = useGetAllProductsQuery();
   const [searchValue, setSearchValue] = useState('');
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
 
   const filteredProducts = useMemo(() => {
     if (!products?.data) return [];
@@ -55,8 +66,36 @@ export default function ProductSelection({
     return filtered;
   }, [products?.data, searchValue]);
 
+  const hasOptionsOrConfigurations = (product: IProduct) => {
+    const hasOptions = product.options && product.options.length > 0;
+    const hasConfigurations =
+      product.productConfigurations &&
+      product.productConfigurations.length > 0 &&
+      product.productConfigurations.some(
+        config => config.options && config.options.length > 0
+      );
+    return hasOptions || hasConfigurations;
+  };
+
   const handleAddToCart = (product: IProduct) => {
-    onAddProduct(product);
+    if (hasOptionsOrConfigurations(product)) {
+      setSelectedProduct(product);
+      setConfigDialogOpen(true);
+    } else {
+      onAddProduct(product);
+    }
+  };
+
+  const handleConfigConfirm = (configuredProduct: IProduct & {
+    selectedOption?: any;
+    selectedConfigurations?: any;
+    finalPriceDiscount?: number;
+    basePrice?: number;
+    productConfigurations?: any;
+  }) => {
+    onAddProduct(configuredProduct);
+    setConfigDialogOpen(false);
+    setSelectedProduct(null);
   };
 
   const handleQuantityChange = (productId: string, change: number) => {
@@ -198,7 +237,7 @@ export default function ProductSelection({
                             onClick={() => handleAddToCart(product)}
                             disabled={(product.quantity || 0) === 0}
                           >
-                            Add
+                            {hasOptionsOrConfigurations(product) ? 'Configure' : 'Add'}
                           </Button>
                         )}
                       </TableCell>
@@ -209,6 +248,16 @@ export default function ProductSelection({
             </TableBody>
           </Table>
         </div>
+      )}
+
+      {/* Product Configuration Dialog */}
+      {selectedProduct && (
+        <ProductConfigDialog
+          product={selectedProduct}
+          open={configDialogOpen}
+          onOpenChange={setConfigDialogOpen}
+          onConfirm={handleConfigConfirm}
+        />
       )}
     </div>
   );

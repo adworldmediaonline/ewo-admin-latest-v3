@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCreateOrderMutation } from '@/redux/order/orderApi';
+import { useCreateOrderMutation, useCreatePaymentIntentMutation } from '@/redux/order/orderApi';
 import { IProduct } from '@/types/product';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -11,11 +11,15 @@ import { toast } from 'sonner';
 import ProductSelection from '@/app/components/orders/create-order/product-selection';
 import CustomerForm from '@/app/components/orders/create-order/customer-form';
 import OrderSummary from '@/app/components/orders/create-order/order-summary';
+import { useAutoCoupon } from '@/app/components/orders/create-order/use-auto-coupon';
+import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 
 interface CartItem extends IProduct {
   orderQuantity: number;
   selectedOption?: any;
   selectedConfigurations?: any;
+  basePrice?: number;
+  productConfigurations?: any;
 }
 
 interface CustomerFormData {
@@ -30,17 +34,33 @@ interface CustomerFormData {
   zipCode: string;
 }
 
+interface AppliedCoupon {
+  _id?: string;
+  couponCode: string;
+  discount: number;
+  discountType?: 'percentage' | 'fixed_amount';
+  discountPercentage?: number;
+  title?: string;
+}
+
 type Step = 'products' | 'customer' | 'summary';
 
 export default function CreateOrderPage() {
   const router = useRouter();
   const [createOrder, { isLoading: isCreating }] = useCreateOrderMutation();
+  const [createPaymentIntent] = useCreatePaymentIntentMutation();
+  const stripe = useStripe();
+  const elements = useElements();
 
   const [step, setStep] = useState<Step>('products');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [customerData, setCustomerData] = useState<CustomerFormData | null>(null);
   const [shippingCost, setShippingCost] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('COD');
+  // Default payment method is "Card" to match frontend
+  const paymentMethod = 'Card';
+  const [appliedCoupons, setAppliedCoupons] = useState<AppliedCoupon[]>([]);
+  const [cardError, setCardError] = useState('');
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   // Calculate subtotal
   const subtotal = cartItems.reduce((sum, item) => {
@@ -48,23 +68,75 @@ export default function CreateOrderPage() {
     return sum + price * item.orderQuantity;
   }, 0);
 
+  // Calculate coupon discount
+  const couponDiscount = appliedCoupons.reduce((sum, coupon) => {
+    return sum + (coupon.discount || 0);
+  }, 0);
+
   // Check free shipping eligibility
   const isFreeShippingEligible = subtotal >= 500;
   const finalShippingCost = isFreeShippingEligible ? 0 : shippingCost;
 
-  // Calculate total amount
-  const totalAmount = Math.max(0, subtotal + finalShippingCost);
+  // Auto-apply coupons when cart changes
+  const handleAddCoupon = (coupon: AppliedCoupon) => {
+    // Check if coupon is already applied to avoid duplicates
+    const isAlreadyApplied = appliedCoupons.some(
+      c => c.couponCode.toLowerCase() === coupon.couponCode.toLowerCase()
+    );
+    if (!isAlreadyApplied) {
+      setAppliedCoupons(prev => [...prev, coupon]);
+    }
+  };
 
-  const handleAddProduct = (product: IProduct) => {
+  const handleRemoveCoupon = (couponCode: string) => {
+    setAppliedCoupons(prev => prev.filter(c => c.couponCode !== couponCode));
+  };
+
+  const handleUpdateCoupons = (coupons: AppliedCoupon[]) => {
+    setAppliedCoupons(coupons);
+  };
+
+  // Enable auto-coupon when cart has items (works on all steps, but mainly for summary)
+  // This ensures coupons are applied as soon as products are added and revalidated when cart changes
+  useAutoCoupon({
+    cartItems,
+    appliedCoupons,
+    shippingCost: finalShippingCost,
+    onAddCoupon: handleAddCoupon,
+    onUpdateCoupons: handleUpdateCoupons,
+    onRemoveCoupon: handleRemoveCoupon,
+    enabled: cartItems.length > 0,
+  });
+
+  // Calculate total amount (after coupons)
+  const totalAmount = Math.max(0, subtotal - couponDiscount + finalShippingCost);
+
+  const handleAddProduct = (product: IProduct & {
+    selectedOption?: any;
+    selectedConfigurations?: any;
+    finalPriceDiscount?: number;
+    basePrice?: number;
+    productConfigurations?: any;
+  }) => {
     const existingItem = cartItems.find(item => item._id === product._id);
-    if (existingItem) {
+
+    // Check if product has same options/configurations
+    const hasSameConfig = existingItem && (
+      JSON.stringify(existingItem.selectedOption) === JSON.stringify(product.selectedOption) &&
+      JSON.stringify(existingItem.selectedConfigurations) === JSON.stringify(product.selectedConfigurations)
+    );
+
+    if (existingItem && hasSameConfig) {
       handleUpdateQuantity(product._id, existingItem.orderQuantity + 1);
     } else {
+      // Add as new item (different configuration) or new product
       setCartItems([
         ...cartItems,
         {
           ...product,
           orderQuantity: 1,
+          finalPriceDiscount: product.finalPriceDiscount || product.price,
+          basePrice: product.basePrice || product.price,
         },
       ]);
     }
@@ -98,91 +170,225 @@ export default function CreateOrderPage() {
       return;
     }
 
-    if (!paymentMethod) {
-      toast.error('Please select a payment method');
-      return;
-    }
+
+    // Prepare cart items in the format expected by backend
+    const cart = cartItems.map(item => ({
+      _id: item._id,
+      title: item.title,
+      sku: item.sku,
+      img: item.imageURLs?.[0] || '',
+      price: Number(item.finalPriceDiscount || item.price || 0),
+      finalPriceDiscount: Number(item.finalPriceDiscount || item.price || 0),
+      orderQuantity: item.orderQuantity,
+      quantity: item.quantity || 0,
+      selectedOption: item.selectedOption || null,
+      selectedConfigurations: item.selectedConfigurations || undefined,
+      productConfigurations: item.productConfigurations || undefined,
+      basePrice: Number(item.finalPriceDiscount || item.price || 0),
+      updatedPrice: Number(item.updatedPrice || item.price || 0),
+      shipping: item.shipping || {},
+    }));
+
+    // Prepare base order data
+    const orderData = {
+      // Customer information
+      name: `${customerData.firstName} ${customerData.lastName}`.trim(),
+      firstName: customerData.firstName,
+      lastName: customerData.lastName,
+      email: customerData.email,
+      contact: customerData.contactNo,
+      address: customerData.address,
+      city: customerData.city,
+      state: customerData.state,
+      country: customerData.country,
+      zipCode: customerData.zipCode,
+
+      // Order items
+      cart: cart,
+
+      // Pricing
+      subTotal: subtotal,
+      shippingCost: finalShippingCost,
+      discount: couponDiscount,
+      totalAmount: totalAmount,
+
+      // Payment
+      paymentMethod: paymentMethod,
+      shippingOption: 'calculated',
+
+      // Guest order (admin created orders don't have user)
+      isGuestOrder: true,
+
+      // Applied coupons
+      appliedCoupons: appliedCoupons.map(coupon => ({
+        _id: coupon._id,
+        couponCode: coupon.couponCode,
+        discount: coupon.discount,
+        discountType: coupon.discountType,
+        discountPercentage: coupon.discountPercentage,
+        title: coupon.title || coupon.couponCode,
+      })),
+    };
 
     try {
-      // Prepare cart items in the format expected by backend
-      const cart = cartItems.map(item => ({
-        _id: item._id,
-        title: item.title,
-        sku: item.sku,
-        img: item.imageURLs?.[0] || '',
-        price: Number(item.finalPriceDiscount || item.price || 0),
-        finalPriceDiscount: Number(item.finalPriceDiscount || item.price || 0),
-        orderQuantity: item.orderQuantity,
-        quantity: item.quantity || 0,
-        selectedOption: item.selectedOption || null,
-        selectedConfigurations: item.selectedConfigurations || undefined,
-        productConfigurations: item.productConfigurations || undefined,
-        basePrice: Number(item.finalPriceDiscount || item.price || 0),
-        updatedPrice: Number(item.updatedPrice || item.price || 0),
-        shipping: item.shipping || {},
-      }));
-
-      // Prepare order data matching backend structure
-      const orderData = {
-        // Customer information
-        name: `${customerData.firstName} ${customerData.lastName}`.trim(),
-        firstName: customerData.firstName,
-        lastName: customerData.lastName,
-        email: customerData.email,
-        contact: customerData.contactNo,
-        address: customerData.address,
-        city: customerData.city,
-        state: customerData.state,
-        country: customerData.country,
-        zipCode: customerData.zipCode,
-
-        // Order items
-        cart: cart,
-
-        // Pricing
-        subTotal: subtotal,
-        shippingCost: finalShippingCost,
-        discount: 0, // Admin can add discounts manually if needed
-        totalAmount: totalAmount,
-
-        // Payment
-        paymentMethod: paymentMethod,
-        shippingOption: 'calculated',
-
-        // Guest order (admin created orders don't have user)
-        isGuestOrder: true,
-
-        // Payment info for admin orders (for Card payments, provide paymentInfo to avoid Stripe lookup)
-        // Backend will use this paymentInfo if Stripe lookup fails
-        ...(paymentMethod === 'Card' && {
+      // Handle Free Order (100% discount) - if total is 0, treat as free order
+      if (totalAmount === 0) {
+        const result = await createOrder({
+          ...orderData,
+          paymentMethod: 'Free Order (100% Discount)',
+          isPaid: true,
+          paidAt: new Date(),
           paymentInfo: {
-            id: 'admin-card-order-' + Date.now(),
+            id: `free_order_${Date.now()}`,
             status: 'succeeded',
-            amount: totalAmount * 100,
+            amount_received: 0,
             currency: 'usd',
-            client_secret: null,
-            legacyData: {
-              adminCreated: true,
-              reason: 'Admin created order - marked as paid',
-            },
+            payment_method_types: ['coupon'],
           },
-        }),
+        }).unwrap();
 
-        // Applied coupons (empty for admin orders, can be added later)
-        appliedCoupons: [],
-      };
+        if (result.success) {
+          toast.success('Free order created successfully!');
+          router.push(`/dashboard/admin/orders/${result.order._id}`);
+        } else {
+          toast.error(result.message || 'Failed to create order');
+        }
+        return;
+      }
 
-      const result = await createOrder(orderData).unwrap();
+      // Handle Card Payment with Stripe (default payment method)
+      if (!stripe || !elements) {
+        toast.error('Stripe is not initialized. Please refresh the page.');
+        return;
+      }
 
-      if (result.success) {
-        toast.success('Order created successfully!');
-        router.push(`/dashboard/admin/orders/${result.order._id}`);
-      } else {
-        toast.error(result.message || 'Failed to create order');
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) {
+        toast.error('Please enter your card information');
+        return;
+      }
+
+      setProcessingPayment(true);
+      setCardError('');
+
+      try {
+        // Step 1: Create payment method
+        const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
+          type: 'card',
+          card: cardElement,
+        });
+
+        if (pmError) {
+          setCardError(pmError.message);
+          toast.error(`Card error: ${pmError.message}`);
+          setProcessingPayment(false);
+          return;
+        }
+
+        // Step 2: Create payment intent
+        const paymentIntentResult = await createPaymentIntent({
+          price: Math.max(0, Math.round(totalAmount * 100)), // Convert to cents
+          email: customerData.email,
+          cart: cart,
+          orderData: {
+            ...orderData,
+            totalAmount: totalAmount,
+          },
+        }).unwrap();
+
+        // Handle free orders (100% discount coupons)
+        if (paymentIntentResult.isFreeOrder) {
+          const result = await createOrder({
+            ...orderData,
+            paymentMethod: 'Free Order (100% Discount)',
+            isPaid: true,
+            paidAt: new Date(),
+            paymentInfo: {
+              id: `free_order_${Date.now()}`,
+              status: 'succeeded',
+              amount_received: 0,
+              currency: 'usd',
+              payment_method_types: ['coupon'],
+            },
+          }).unwrap();
+
+          if (result.success) {
+            toast.success('Free order created successfully!');
+            router.push(`/dashboard/admin/orders/${result.order._id}`);
+          } else {
+            toast.error(result.message || 'Failed to create order');
+          }
+          setProcessingPayment(false);
+          return;
+        }
+
+        const clientSecret = paymentIntentResult.clientSecret;
+        if (!clientSecret) {
+          throw new Error('Failed to get client secret from payment intent');
+        }
+
+        // Step 3: Confirm payment
+        const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(
+          clientSecret,
+          {
+            payment_method: {
+              card: cardElement,
+              billing_details: {
+                name: orderData.name,
+                email: orderData.email,
+              },
+            },
+          }
+        );
+
+        if (confirmError) {
+          let errorMessage = confirmError.message;
+          if (confirmError.type === 'card_error') {
+            if (confirmError.code === 'card_declined') {
+              errorMessage = 'Your card was declined. Please use a different card.';
+            } else if (confirmError.code === 'expired_card') {
+              errorMessage = 'Your card has expired. Please use a different card.';
+            } else if (confirmError.code === 'incorrect_cvc') {
+              errorMessage = 'The security code (CVC) is incorrect. Please check and try again.';
+            } else if (confirmError.code === 'processing_error') {
+              errorMessage = 'An error occurred while processing your card. Please try again.';
+            }
+          }
+          setCardError(errorMessage);
+          toast.error(`Payment failed: ${errorMessage}`);
+          setProcessingPayment(false);
+          return;
+        }
+
+        // Step 4: Payment succeeded - create order
+        if (paymentIntent.status === 'succeeded') {
+          const result = await createOrder({
+            ...orderData,
+            paymentInfo: paymentIntent,
+            isPaid: true,
+            paidAt: new Date(),
+          }).unwrap();
+
+          if (result.success) {
+            toast.success('Order created and payment processed successfully!');
+            router.push(`/dashboard/admin/orders/${result.order._id}`);
+          } else {
+            toast.error(result.message || 'Failed to create order');
+          }
+        } else {
+          toast.error(`Payment not completed. Status: ${paymentIntent.status}`);
+        }
+
+        setProcessingPayment(false);
+      } catch (error: any) {
+        console.error('Payment processing error:', error);
+        toast.error(error?.data?.message || 'Error processing payment. Please try again.');
+        setProcessingPayment(false);
       }
     } catch (error: any) {
       console.error('Error creating order:', error);
       toast.error(error?.data?.message || 'Failed to create order. Please try again.');
+      setProcessingPayment(false);
     }
   };
 
@@ -422,10 +628,13 @@ export default function CreateOrderPage() {
               cartItems={cartItems}
               shippingCost={finalShippingCost}
               onShippingCostChange={setShippingCost}
-              paymentMethod={paymentMethod}
-              onPaymentMethodChange={setPaymentMethod}
+              appliedCoupons={appliedCoupons}
+              onAddCoupon={handleAddCoupon}
+              onRemoveCoupon={handleRemoveCoupon}
               onSubmit={handleCreateOrder}
-              isSubmitting={isCreating}
+              isSubmitting={isCreating || processingPayment}
+              cardError={cardError}
+              onCardErrorChange={setCardError}
             />
           ) : (
             <Card>

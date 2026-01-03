@@ -37,6 +37,7 @@ export default function CustomerForm({ onSubmit, defaultValues }: CustomerFormPr
     handleSubmit,
     control,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<CustomerFormData>({
     defaultValues: defaultValues || {
@@ -45,35 +46,83 @@ export default function CustomerForm({ onSubmit, defaultValues }: CustomerFormPr
   });
 
   const countries = Country.getAllCountries();
-  const defaultCountry = countries.find(country => country.isoCode === 'US');
+  const defaultCountryCode = defaultValues?.country || 'US';
+  const defaultCountry = countries.find(country => country.isoCode === defaultCountryCode);
 
+  // Initialize country from defaultValues
   const [selectedCountry, setSelectedCountry] = useState(
-    defaultCountry || null
+    defaultCountry || countries.find(country => country.isoCode === 'US') || null
   );
   const [selectedState, setSelectedState] = useState<{ isoCode: string; name: string } | null>(null);
   const [states, setStates] = useState<Array<{ isoCode: string; name: string }>>([]);
   const [showManualStateInput, setShowManualStateInput] = useState(false);
 
-  // Load states when country changes
+  // Initialize states for the selected country
   useEffect(() => {
     if (selectedCountry) {
       const countryStates = State.getStatesOfCountry(selectedCountry.isoCode);
       setStates(countryStates);
-      if (!showManualStateInput) {
-        setValue('state', '');
-        setSelectedState(null);
+    }
+  }, [selectedCountry]);
+
+  // Reset form when defaultValues change (e.g., when navigating back)
+  useEffect(() => {
+    if (defaultValues) {
+      reset(defaultValues);
+
+      // Update country selection
+      const country = countries.find(c => c.isoCode === defaultValues.country);
+      if (country) {
+        setSelectedCountry(country);
       }
     }
-  }, [selectedCountry, setValue, showManualStateInput]);
+  }, [defaultValues, reset]);
 
+  // Initialize state selection from defaultValues after states are loaded
+  useEffect(() => {
+    if (defaultValues?.state && states.length > 0 && selectedCountry) {
+      const stateValue = defaultValues.state;
+      const defaultState = states.find(
+        s => s.isoCode === stateValue || s.name === stateValue
+      );
+
+      if (defaultState) {
+        // State found in list
+        setSelectedState(defaultState);
+        setValue('state', defaultState.isoCode);
+        setShowManualStateInput(false);
+      } else {
+        // State not in list - treat as manual entry
+        setShowManualStateInput(true);
+        setValue('state', stateValue);
+        setSelectedState(null);
+      }
+    } else if (defaultValues && !defaultValues.state) {
+      // No state value in defaultValues - reset state selection
+      setSelectedState(null);
+      setShowManualStateInput(false);
+    }
+  }, [defaultValues?.state, states, selectedCountry, setValue]);
+
+  // Load states when country changes (user-initiated change)
   const handleCountryChange = (countryCode: string) => {
     const country = countries.find(c => c.isoCode === countryCode);
     setSelectedCountry(country || null);
     setValue('country', countryCode);
-    setValue('state', '');
-    setSelectedState(null);
-    setShowManualStateInput(false);
+
+    if (country) {
+      const countryStates = State.getStatesOfCountry(country.isoCode);
+      setStates(countryStates);
+
+      // Reset state when country changes (unless it's the same country)
+      if (selectedCountry?.isoCode !== countryCode) {
+        setValue('state', '');
+        setSelectedState(null);
+        setShowManualStateInput(false);
+      }
+    }
   };
+
 
   const handleStateChange = (stateCode: string) => {
     if (stateCode === '__manual__') {
@@ -190,7 +239,7 @@ export default function CustomerForm({ onSubmit, defaultValues }: CustomerFormPr
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
+        <div className="min-w-0">
           <Label htmlFor="state">
             State <span className="text-destructive">*</span>
           </Label>
@@ -231,7 +280,9 @@ export default function CustomerForm({ onSubmit, defaultValues }: CustomerFormPr
                   }}
                   disabled={!selectedCountry}
                 >
-                  <SelectTrigger className={errors.state ? 'border-destructive' : ''}>
+                  <SelectTrigger
+                    className={`${errors.state ? 'border-destructive' : ''} w-full min-w-0`}
+                  >
                     <SelectValue
                       placeholder={selectedCountry ? 'Select State' : 'Select country first'}
                     />
@@ -255,7 +306,7 @@ export default function CustomerForm({ onSubmit, defaultValues }: CustomerFormPr
           )}
         </div>
 
-        <div>
+        <div className="min-w-0">
           <Label htmlFor="city">
             City <span className="text-destructive">*</span>
           </Label>
@@ -263,6 +314,7 @@ export default function CustomerForm({ onSubmit, defaultValues }: CustomerFormPr
             id="city"
             {...register('city', { required: 'City is required' })}
             placeholder="City"
+            className="min-w-0"
           />
           {errors.city && (
             <p className="text-sm text-destructive mt-1">{errors.city.message}</p>
