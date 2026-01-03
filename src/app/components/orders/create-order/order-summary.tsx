@@ -224,6 +224,69 @@ export default function OrderSummary({
         <CardTitle>Order Summary</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Applied Coupons - Always Visible at Top */}
+        {appliedCoupons.length > 0 && (
+          <div className="space-y-3 border-b pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">Applied Coupons</h3>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Auto-applied
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {appliedCoupons.map((coupon, index) => {
+                const discountPercent = coupon.discountType === 'percentage' && coupon.discountPercentage
+                  ? coupon.discountPercentage
+                  : coupon.discount && subtotal > 0
+                    ? ((coupon.discount / subtotal) * 100).toFixed(1)
+                    : null;
+
+                return (
+                  <div
+                    key={coupon.couponCode || index}
+                    className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-emerald-600 rounded-lg p-3 shadow-sm"
+                  >
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
+                          <Tag className="w-3 h-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-white uppercase tracking-wider">
+                            {coupon.couponCode}
+                          </p>
+                          {discountPercent && (
+                            <p className="text-xs text-white/90 font-medium">
+                              {discountPercent}% OFF
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white">
+                          -${Number(coupon.discount || 0).toFixed(2)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onRemoveCoupon(coupon.couponCode)}
+                          className="text-white hover:text-white/80 transition-colors"
+                          aria-label={`Remove coupon ${coupon.couponCode}`}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Cart Items */}
         <div className="space-y-3">
           <h3 className="font-semibold text-sm">Items ({cartItems.length})</h3>
@@ -296,70 +359,12 @@ export default function OrderSummary({
           </div>
         </div>
 
-        {/* Coupon Section */}
+        {/* Coupon Input Section */}
         <div className="space-y-3 border-t pt-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Tag className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-semibold text-sm">Coupons</h3>
-            </div>
-            {appliedCoupons.length > 0 && (
-              <span className="text-xs text-muted-foreground">
-                Auto-applied
-              </span>
-            )}
+          <div className="flex items-center gap-2">
+            <Tag className="w-4 h-4 text-muted-foreground" />
+            <h3 className="font-semibold text-sm">Add Coupon</h3>
           </div>
-
-          {/* Applied Coupons */}
-          {appliedCoupons.length > 0 && (
-            <div className="space-y-2">
-              {appliedCoupons.map((coupon, index) => {
-                const discountPercent = coupon.discountType === 'percentage' && coupon.discountPercentage
-                  ? coupon.discountPercentage
-                  : coupon.discount && subtotal > 0
-                    ? ((coupon.discount / subtotal) * 100).toFixed(1)
-                    : null;
-
-                return (
-                  <div
-                    key={coupon.couponCode || index}
-                    className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-emerald-600 rounded-lg p-3 shadow-sm"
-                  >
-                    <div className="relative flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
-                          <Tag className="w-3 h-3 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-white uppercase tracking-wider">
-                            {coupon.couponCode}
-                          </p>
-                          {discountPercent && (
-                            <p className="text-xs text-white/90 font-medium">
-                              {discountPercent}% OFF
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white">
-                          -${Number(coupon.discount || 0).toFixed(2)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onRemoveCoupon(coupon.couponCode)}
-                          className="text-white hover:text-white/80 transition-colors"
-                          aria-label={`Remove coupon ${coupon.couponCode}`}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
 
           {/* Coupon Input */}
           <form onSubmit={handleCouponSubmit} className="flex gap-2">

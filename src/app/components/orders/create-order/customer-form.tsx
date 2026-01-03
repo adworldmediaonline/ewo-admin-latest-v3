@@ -13,6 +13,7 @@ import {
 import { Country, State } from 'country-state-city';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { Tag, X } from 'lucide-react';
 
 interface CustomerFormData {
   firstName: string;
@@ -26,12 +27,30 @@ interface CustomerFormData {
   zipCode: string;
 }
 
+interface AppliedCoupon {
+  _id?: string;
+  couponCode: string;
+  discount: number;
+  discountType?: 'percentage' | 'fixed_amount';
+  discountPercentage?: number;
+  title?: string;
+}
+
 interface CustomerFormProps {
   onSubmit: (data: CustomerFormData) => void;
   defaultValues?: Partial<CustomerFormData>;
+  appliedCoupons?: AppliedCoupon[];
+  subtotal?: number;
+  onRemoveCoupon?: (couponCode: string) => void;
 }
 
-export default function CustomerForm({ onSubmit, defaultValues }: CustomerFormProps) {
+export default function CustomerForm({
+  onSubmit,
+  defaultValues,
+  appliedCoupons = [],
+  subtotal = 0,
+  onRemoveCoupon,
+}: CustomerFormProps) {
   const {
     register,
     handleSubmit,
@@ -349,6 +368,71 @@ export default function CustomerForm({ onSubmit, defaultValues }: CustomerFormPr
           <p className="text-sm text-destructive mt-1">{errors.address.message}</p>
         )}
       </div>
+
+      {/* Applied Coupons Display */}
+      {appliedCoupons.length > 0 && (
+        <div className="space-y-3 border rounded-lg p-4 bg-muted/20 mt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Tag className="w-4 h-4 text-muted-foreground" />
+              <h3 className="font-semibold text-sm">Applied Coupons</h3>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              Auto-applied
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {appliedCoupons.map((coupon, index) => {
+              const discountPercent = coupon.discountType === 'percentage' && coupon.discountPercentage
+                ? coupon.discountPercentage
+                : coupon.discount && subtotal > 0
+                  ? ((coupon.discount / subtotal) * 100).toFixed(1)
+                  : null;
+
+              return (
+                <div
+                  key={coupon.couponCode || index}
+                  className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-emerald-600 rounded-lg p-3 shadow-sm"
+                >
+                  <div className="relative flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
+                        <Tag className="w-3 h-3 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white uppercase tracking-wider">
+                          {coupon.couponCode}
+                        </p>
+                        {discountPercent && (
+                          <p className="text-xs text-white/90 font-medium">
+                            {discountPercent}% OFF
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white">
+                        -${Number(coupon.discount || 0).toFixed(2)}
+                      </span>
+                      {onRemoveCoupon && (
+                        <button
+                          type="button"
+                          onClick={() => onRemoveCoupon(coupon.couponCode)}
+                          className="text-white hover:text-white/80 transition-colors"
+                          aria-label={`Remove coupon ${coupon.couponCode}`}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="pt-4">
         <Button type="submit" className="w-full">
