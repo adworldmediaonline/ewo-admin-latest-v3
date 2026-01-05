@@ -534,7 +534,7 @@ export default function CreateOrderPage() {
                   onUpdateQuantity={handleUpdateQuantity}
                   onUpdatePrice={handleUpdatePrice}
                   onRemoveProduct={handleRemoveProduct}
-                  appliedCoupons={appliedCoupons}
+                  // appliedCoupons={appliedCoupons}
                   subtotal={subtotal}
                   onRemoveCoupon={handleRemoveCoupon}
                 />
