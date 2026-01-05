@@ -28,6 +28,7 @@ import {
   Download,
   Eye,
   Package,
+  Plus,
   RefreshCw,
   Search,
   Truck,
@@ -461,6 +462,13 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Link
+                href="/dashboard/admin/orders/create"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Order
+              </Link>
               <button
                 onClick={() => refetch()}
                 disabled={isFetching}
