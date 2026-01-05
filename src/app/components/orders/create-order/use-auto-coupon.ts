@@ -44,13 +44,18 @@ interface UseAutoCouponParams {
 const DEBOUNCE_DELAY = 600; // Slightly longer for smoother UX
 
 /**
- * Fetch active coupons from backend
+ * Fetch active coupons from backend via Next.js API route (avoids CORS)
  */
 const fetchActiveCoupons = async (): Promise<CouponData[]> => {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/coupon/active`
-    );
+    // Use Next.js API route to proxy the request and avoid CORS issues
+    const response = await fetch('/api/coupon/active', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
 
     if (!response.ok) {
       return [];
@@ -160,40 +165,40 @@ const validateCoupon = async (
 
     const requestBody = isMultiple
       ? {
-          couponCodes: [couponCode],
-          cartItems: cartItems.map(item => ({
-            _id: item._id,
-            title: item.title,
-            sku: item.sku,
-            price: item.price,
-            finalPriceDiscount: item.finalPriceDiscount || item.price,
-            orderQuantity: item.orderQuantity,
-            selectedOption: item.selectedOption,
-            selectedConfigurations: item.selectedConfigurations,
-            productConfigurations: item.productConfigurations,
-          })),
-          cartTotal,
-          cartSubtotal,
-          shippingCost,
-          excludeAppliedCoupons: appliedCoupons.map(c => c.couponCode),
-        }
+        couponCodes: [couponCode],
+        cartItems: cartItems.map(item => ({
+          _id: item._id,
+          title: item.title,
+          sku: item.sku,
+          price: item.price,
+          finalPriceDiscount: item.finalPriceDiscount || item.price,
+          orderQuantity: item.orderQuantity,
+          selectedOption: item.selectedOption,
+          selectedConfigurations: item.selectedConfigurations,
+          productConfigurations: item.productConfigurations,
+        })),
+        cartTotal,
+        cartSubtotal,
+        shippingCost,
+        excludeAppliedCoupons: appliedCoupons.map(c => c.couponCode),
+      }
       : {
-          couponCode,
-          cartItems: cartItems.map(item => ({
-            _id: item._id,
-            title: item.title,
-            sku: item.sku,
-            price: item.price,
-            finalPriceDiscount: item.finalPriceDiscount || item.price,
-            orderQuantity: item.orderQuantity,
-            selectedOption: item.selectedOption,
-            selectedConfigurations: item.selectedConfigurations,
-            productConfigurations: item.productConfigurations,
-          })),
-          cartTotal,
-          cartSubtotal,
-          shippingCost,
-        };
+        couponCode,
+        cartItems: cartItems.map(item => ({
+          _id: item._id,
+          title: item.title,
+          sku: item.sku,
+          price: item.price,
+          finalPriceDiscount: item.finalPriceDiscount || item.price,
+          orderQuantity: item.orderQuantity,
+          selectedOption: item.selectedOption,
+          selectedConfigurations: item.selectedConfigurations,
+          productConfigurations: item.productConfigurations,
+        })),
+        cartTotal,
+        cartSubtotal,
+        shippingCost,
+      };
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}${endpoint}`,
