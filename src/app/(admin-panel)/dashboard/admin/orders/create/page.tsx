@@ -6,7 +6,7 @@ import { useCreateOrderMutation, useCreatePaymentIntentMutation } from '@/redux/
 import { IProduct } from '@/types/product';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import ProductSelection from '@/app/components/orders/create-order/product-selection';
 import CustomerForm from '@/app/components/orders/create-order/customer-form';
@@ -101,6 +101,13 @@ export default function CreateOrderPage() {
   const handleUpdateCoupons = (coupons: AppliedCoupon[]) => {
     setAppliedCoupons(coupons);
   };
+
+  // Clear coupons when cart becomes empty
+  useEffect(() => {
+    if (cartItems.length === 0 && appliedCoupons.length > 0) {
+      setAppliedCoupons([]);
+    }
+  }, [cartItems.length, appliedCoupons.length]);
 
   // Enable auto-coupon when cart has items (works on all steps, but mainly for summary)
   // This ensures coupons are applied as soon as products are added and revalidated when cart changes
