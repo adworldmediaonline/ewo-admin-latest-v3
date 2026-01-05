@@ -301,7 +301,7 @@ export default function ProductSelection({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleQuantityChange(product._id, -1)}
-                                disabled={cartItem?.orderQuantity <= 1}
+                                disabled={(cartItem?.orderQuantity || 0) <= 1}
                               >
                                 <Minus className="w-4 h-4" />
                               </Button>
@@ -314,7 +314,7 @@ export default function ProductSelection({
                                 onClick={() => handleQuantityChange(product._id, 1)}
                                 disabled={
                                   cartItem
-                                    ? cartItem.orderQuantity >= (product.quantity || 0)
+                                    ? (cartItem.orderQuantity || 0) >= (product.quantity || 0)
                                     : false
                                 }
                               >
