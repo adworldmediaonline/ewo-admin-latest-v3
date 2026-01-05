@@ -100,6 +100,7 @@ export default function CreateOrderPage() {
   // Edge cases handled:
   // - If discount > subtotal, subtotalAfterDiscount becomes 0 (Math.max ensures non-negative)
   // - If subtotalAfterDiscount exactly equals 500, free shipping does NOT apply (> 500, not >= 500)
+  //
   const isFreeShippingEligible = subtotalAfterDiscount > 500;
 
   // Final shipping cost (0 if eligible, otherwise use calculated/manual shipping)
