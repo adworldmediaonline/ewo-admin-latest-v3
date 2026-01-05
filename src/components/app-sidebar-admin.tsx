@@ -44,6 +44,11 @@ const data = {
       url: '/dashboard/admin/users',
       icon: IconUsers,
     },
+    {
+      title: "Create Order",
+      url: '/dashboard/admin/orders/create',
+      icon: IconShoppingCart,
+    }
     // uncomment this when reviews are implemented
     // {
     //   title: 'Reviews',
