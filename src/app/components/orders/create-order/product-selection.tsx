@@ -87,15 +87,22 @@ export default function ProductSelection({
     return filtered;
   }, [products?.data, searchValue]);
 
-  const hasOptionsOrConfigurations = (product: IProduct) => {
-    const hasOptions = product.options && product.options.length > 0;
-    const hasConfigurations =
+  const hasOptions = (product: IProduct) => {
+    return product.options && product.options.length > 0;
+  };
+
+  const hasConfigurations = (product: IProduct) => {
+    return (
       product.productConfigurations &&
       product.productConfigurations.length > 0 &&
       product.productConfigurations.some(
         config => config.options && config.options.length > 0
-      );
-    return hasOptions || hasConfigurations;
+      )
+    );
+  };
+
+  const hasOptionsOrConfigurations = (product: IProduct) => {
+    return hasOptions(product) || hasConfigurations(product);
   };
 
   const handleAddToCart = (product: IProduct) => {
@@ -239,7 +246,9 @@ export default function ProductSelection({
                           ${Number(product.finalPriceDiscount || product.price || 0).toFixed(2)}
                         </TableCell>
                         <TableCell>
-                          {inCart && cartItem?.customPrice !== undefined ? (
+                          {hasConfigurations(product) ? (
+                            <span className="text-xs text-muted-foreground">N/A</span>
+                          ) : inCart && cartItem?.customPrice !== undefined ? (
                             <div className="flex items-center gap-1">
                               <Input
                                 type="number"
@@ -325,7 +334,11 @@ export default function ProductSelection({
                               onClick={() => handleAddToCart(product)}
                               disabled={(product.quantity || 0) === 0}
                             >
-                              {hasOptionsOrConfigurations(product) ? 'Configure' : 'Add'}
+                              {hasConfigurations(product)
+                                ? 'Configure'
+                                : hasOptions(product)
+                                  ? 'Options'
+                                  : 'Add'}
                             </Button>
                           )}
                         </TableCell>

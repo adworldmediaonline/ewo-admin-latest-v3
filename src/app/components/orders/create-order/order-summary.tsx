@@ -297,6 +297,12 @@ export default function OrderSummary({
               </p>
             ) : (
               cartItems.map(item => {
+                const hasConfigurations =
+                  item.productConfigurations &&
+                  item.productConfigurations.length > 0 &&
+                  item.productConfigurations.some(
+                    (config: any) => config.options && config.options.length > 0
+                  );
                 const itemPrice = Number(
                   item.customPrice !== undefined
                     ? item.customPrice
@@ -330,7 +336,7 @@ export default function OrderSummary({
                         <span className="text-xs text-muted-foreground">
                           Qty: {item.orderQuantity} ×
                         </span>
-                        {onUpdatePrice ? (
+                        {onUpdatePrice && !hasConfigurations ? (
                           <Input
                             type="number"
                             step="0.01"
