@@ -65,8 +65,20 @@ export default function OrderSummary({
   // Calculate subtotal
   const subtotal = useMemo(() => {
     return cartItems.reduce((sum, item) => {
-      const price = Number(item.finalPriceDiscount || item.price || 0);
+      const price = Number(
+        item.customPrice !== undefined
+          ? item.customPrice
+          : (item.finalPriceDiscount || item.price || 0)
+      );
       return sum + price * item.orderQuantity;
+    }, 0);
+  }, [cartItems]);
+
+  // Calculate shipping cost from individual product shipping prices
+  const calculatedShippingCost = useMemo(() => {
+    return cartItems.reduce((sum, item) => {
+      const productShippingPrice = item.shipping?.price || 0;
+      return sum + productShippingPrice * item.orderQuantity;
     }, 0);
   }, [cartItems]);
 
@@ -77,14 +89,37 @@ export default function OrderSummary({
     }, 0);
   }, [appliedCoupons]);
 
-  // Calculate final total
-  const totalAmount = useMemo(() => {
-    const afterCoupon = Math.max(0, subtotal - couponDiscount);
-    return Math.max(0, afterCoupon + shippingCost);
-  }, [subtotal, couponDiscount, shippingCost]);
+  // Calculate base shipping cost (before free shipping check)
+  const baseShippingCost = useMemo(() => {
+    return shippingCost > 0 ? shippingCost : calculatedShippingCost;
+  }, [shippingCost, calculatedShippingCost]);
+
+  // Calculate subtotal after discount (discounts apply only to product subtotal)
+  const subtotalAfterDiscount = useMemo(() => {
+    return Math.max(0, subtotal - couponDiscount);
+  }, [subtotal, couponDiscount]);
 
   // Check free shipping eligibility
-  const isFreeShippingEligible = subtotal >= 500;
+  // Free shipping applies ONLY when (Subtotal - Discount) > 500
+  // Note: Shipping charges are NOT included in the eligibility check
+  // Edge cases handled:
+  // - If discount > subtotal, subtotalAfterDiscount becomes 0 (Math.max ensures non-negative)
+  // - If subtotalAfterDiscount exactly equals 500, free shipping does NOT apply (> 500, not >= 500)
+  const isFreeShippingEligible = useMemo(() => {
+    return subtotalAfterDiscount > 500;
+  }, [subtotalAfterDiscount]);
+
+  // Final shipping cost (0 if eligible, otherwise use calculated/manual shipping)
+  const finalShippingCost = useMemo(() => {
+    return isFreeShippingEligible ? 0 : baseShippingCost;
+  }, [isFreeShippingEligible, baseShippingCost]);
+
+  // Calculate final total
+  // Discounts are applied to subtotal first, then shipping is added
+  const totalAmount = useMemo(() => {
+    const subtotalAfterDiscount = Math.max(0, subtotal - couponDiscount);
+    return subtotalAfterDiscount + finalShippingCost;
+  }, [subtotal, couponDiscount, finalShippingCost]);
 
   // Handle coupon submission
   const handleCouponSubmit = async (e: React.FormEvent) => {
@@ -106,7 +141,7 @@ export default function OrderSummary({
     try {
       const totals = {
         subtotal,
-        shipping: isFreeShippingEligible ? 0 : shippingCost,
+        shipping: isFreeShippingEligible ? 0 : (shippingCost > 0 ? shippingCost : calculatedShippingCost),
       };
 
       // Prepare cart items for validation
@@ -124,20 +159,20 @@ export default function OrderSummary({
 
       const requestBody = appliedCoupons.length === 0
         ? {
-            couponCode: code,
-            cartItems: cartItemsForValidation,
-            cartTotal: totals.subtotal + totals.shipping,
-            cartSubtotal: totals.subtotal,
-            shippingCost: totals.shipping,
-          }
+          couponCode: code,
+          cartItems: cartItemsForValidation,
+          cartTotal: totals.subtotal + totals.shipping,
+          cartSubtotal: totals.subtotal,
+          shippingCost: totals.shipping,
+        }
         : {
-            couponCodes: [code],
-            cartItems: cartItemsForValidation,
-            cartTotal: totals.subtotal + totals.shipping - couponDiscount,
-            cartSubtotal: totals.subtotal - couponDiscount,
-            shippingCost: totals.shipping,
-            excludeAppliedCoupons: appliedCoupons.map(c => c.couponCode),
-          };
+          couponCodes: [code],
+          cartItems: cartItemsForValidation,
+          cartTotal: totals.subtotal + totals.shipping - couponDiscount,
+          cartSubtotal: totals.subtotal - couponDiscount,
+          shippingCost: totals.shipping,
+          excludeAppliedCoupons: appliedCoupons.map(c => c.couponCode),
+        };
 
       const endpoint = appliedCoupons.length === 0
         ? '/api/coupon/validate'
@@ -332,25 +367,37 @@ export default function OrderSummary({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{item.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          Qty: {item.orderQuantity} ×
-                        </span>
-                        {onUpdatePrice && !hasConfigurations ? (
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={itemPrice}
-                            onChange={e => {
-                              const newPrice = parseFloat(e.target.value) || 0;
-                              onUpdatePrice(item._id, newPrice);
-                            }}
-                            className="h-6 w-20 text-xs"
-                          />
-                        ) : (
+                      <div className="flex flex-col gap-1 mt-1">
+                        <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">
-                            ${itemPrice.toFixed(2)}
+                            Qty: {item.orderQuantity} ×
+                          </span>
+                          {onUpdatePrice && !hasConfigurations ? (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={itemPrice}
+                              onChange={e => {
+                                const newPrice = parseFloat(e.target.value) || 0;
+                                onUpdatePrice(item._id, newPrice);
+                              }}
+                              className="h-6 w-20 text-xs"
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              ${itemPrice.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                        {item.shipping?.price !== undefined && item.shipping.price > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            Shipping: ${(item.shipping.price * item.orderQuantity).toFixed(2)}
+                            {item.orderQuantity > 1 && (
+                              <span className="ml-1">
+                                (${item.shipping.price.toFixed(2)} × {item.orderQuantity})
+                              </span>
+                            )}
                           </span>
                         )}
                       </div>
@@ -414,26 +461,40 @@ export default function OrderSummary({
           )}
 
           <div className="flex justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Shipping</span>
-              {isFreeShippingEligible && (
-                <span className="text-xs text-green-600">(Free on orders $500+)</span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Shipping</span>
+                {isFreeShippingEligible && (
+                  <span className="text-xs text-green-600">(Free on orders $500+)</span>
+                )}
+              </div>
+              {!isFreeShippingEligible && calculatedShippingCost > 0 && shippingCost === 0 && (
+                <span className="text-xs text-muted-foreground">
+                  Calculated from product shipping prices
+                </span>
               )}
             </div>
             <div className="flex items-center gap-2">
               {isFreeShippingEligible ? (
                 <span className="font-bold text-green-600">FREE</span>
               ) : (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={shippingCost}
-                    onChange={e => onShippingCostChange(Number(e.target.value) || 0)}
-                    className="w-20 px-2 py-1 border rounded text-sm"
-                  />
-                  <span className="text-xs text-muted-foreground">USD</span>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={shippingCost || calculatedShippingCost}
+                      onChange={e => onShippingCostChange(Number(e.target.value) || 0)}
+                      className="w-20 px-2 py-1 border rounded text-sm"
+                    />
+                    <span className="text-xs text-muted-foreground">USD</span>
+                  </div>
+                  {calculatedShippingCost > 0 && shippingCost === 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      Auto: ${calculatedShippingCost.toFixed(2)}
+                    </span>
+                  )}
                 </div>
               )}
             </div>

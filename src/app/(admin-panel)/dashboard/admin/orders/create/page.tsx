@@ -74,14 +74,36 @@ export default function CreateOrderPage() {
     return sum + price * item.orderQuantity;
   }, 0);
 
+  // Calculate shipping cost from individual product shipping prices
+  const calculatedShippingCost = cartItems.reduce((sum, item) => {
+    const productShippingPrice = item.shipping?.price || 0;
+    return sum + productShippingPrice * item.orderQuantity;
+  }, 0);
+
+  // Use calculated shipping or manual override (if manually set)
+  const productBasedShippingCost = calculatedShippingCost;
+
   // Calculate coupon discount
   const couponDiscount = appliedCoupons.reduce((sum, coupon) => {
     return sum + (coupon.discount || 0);
   }, 0);
 
+  // Calculate shipping cost (before free shipping check)
+  const baseShippingCost = shippingCost > 0 ? shippingCost : productBasedShippingCost;
+
+  // Calculate subtotal after discount (discounts apply only to product subtotal)
+  const subtotalAfterDiscount = Math.max(0, subtotal - couponDiscount);
+
   // Check free shipping eligibility
-  const isFreeShippingEligible = subtotal >= 500;
-  const finalShippingCost = isFreeShippingEligible ? 0 : shippingCost;
+  // Free shipping applies ONLY when (Subtotal - Discount) > 500
+  // Note: Shipping charges are NOT included in the eligibility check
+  // Edge cases handled:
+  // - If discount > subtotal, subtotalAfterDiscount becomes 0 (Math.max ensures non-negative)
+  // - If subtotalAfterDiscount exactly equals 500, free shipping does NOT apply (> 500, not >= 500)
+  const isFreeShippingEligible = subtotalAfterDiscount > 500;
+
+  // Final shipping cost (0 if eligible, otherwise use calculated/manual shipping)
+  const finalShippingCost = isFreeShippingEligible ? 0 : baseShippingCost;
 
   // Auto-apply coupons when cart changes
   const handleAddCoupon = (coupon: AppliedCoupon) => {
@@ -122,7 +144,8 @@ export default function CreateOrderPage() {
   });
 
   // Calculate total amount (after coupons)
-  const totalAmount = Math.max(0, subtotal - couponDiscount + finalShippingCost);
+  // Discounts are applied to subtotal first, then shipping is added
+  const totalAmount = subtotalAfterDiscount + finalShippingCost;
 
   const handleAddProduct = (product: IProduct & {
     selectedOption?: any;
@@ -666,7 +689,7 @@ export default function CreateOrderPage() {
           {step === 'summary' && customerData ? (
             <OrderSummary
               cartItems={cartItems}
-              shippingCost={finalShippingCost}
+              shippingCost={shippingCost}
               onShippingCostChange={setShippingCost}
               appliedCoupons={appliedCoupons}
               onAddCoupon={handleAddCoupon}
@@ -766,12 +789,19 @@ export default function CreateOrderPage() {
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Shipping</span>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground">Shipping</span>
+                      {!isFreeShippingEligible && productBasedShippingCost > 0 && shippingCost === 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          Calculated from products
+                        </span>
+                      )}
+                    </div>
                     <span className="font-medium">
                       {isFreeShippingEligible ? (
                         <span className="text-green-600">FREE</span>
                       ) : (
-                        `$${shippingCost.toFixed(2)}`
+                        `$${(shippingCost > 0 ? shippingCost : productBasedShippingCost).toFixed(2)}`
                       )}
                     </span>
                   </div>
