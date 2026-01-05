@@ -13,7 +13,7 @@ import {
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useGetAllProductsQuery } from '@/redux/product/productApi';
 import { IProduct } from '@/types/product';
-import { Minus, Plus, Search, Trash2, Tag, X } from 'lucide-react';
+import { Minus, Plus, Search, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import ProductConfigDialog from './product-config-dialog';
@@ -25,15 +25,6 @@ interface CartItem extends IProduct {
   basePrice?: number;
   productConfigurations?: any;
   customPrice?: number;
-}
-
-interface AppliedCoupon {
-  _id?: string;
-  couponCode: string;
-  discount: number;
-  discountType?: 'percentage' | 'fixed_amount';
-  discountPercentage?: number;
-  title?: string;
 }
 
 interface ProductSelectionProps {
@@ -49,9 +40,6 @@ interface ProductSelectionProps {
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onUpdatePrice?: (productId: string, price: number) => void;
   onRemoveProduct: (productId: string) => void;
-  appliedCoupons?: AppliedCoupon[];
-  subtotal?: number;
-  onRemoveCoupon?: (couponCode: string) => void;
 }
 
 export default function ProductSelection({
@@ -60,9 +48,6 @@ export default function ProductSelection({
   onUpdateQuantity,
   onUpdatePrice,
   onRemoveProduct,
-  appliedCoupons = [],
-  subtotal = 0,
-  onRemoveCoupon,
 }: ProductSelectionProps) {
   const { data: products, isLoading } = useGetAllProductsQuery();
   const [searchValue, setSearchValue] = useState('');
@@ -352,71 +337,6 @@ export default function ProductSelection({
             <ScrollBar orientation="horizontal" />
             <ScrollBar orientation="vertical" />
           </ScrollArea>
-        </div>
-      )}
-
-      {/* Applied Coupons Display */}
-      {appliedCoupons.length > 0 && (
-        <div className="space-y-3 border rounded-lg p-4 bg-muted/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Tag className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-semibold text-sm">Applied Coupons</h3>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Auto-applied
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            {appliedCoupons.map((coupon, index) => {
-              const discountPercent = coupon.discountType === 'percentage' && coupon.discountPercentage
-                ? coupon.discountPercentage
-                : coupon.discount && subtotal > 0
-                  ? ((coupon.discount / subtotal) * 100).toFixed(1)
-                  : null;
-
-              return (
-                <div
-                  key={coupon.couponCode || index}
-                  className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-emerald-600 rounded-lg p-3 shadow-sm"
-                >
-                  <div className="relative flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
-                        <Tag className="w-3 h-3 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-white uppercase tracking-wider">
-                          {coupon.couponCode}
-                        </p>
-                        {discountPercent && (
-                          <p className="text-xs text-white/90 font-medium">
-                            {discountPercent}% OFF
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white">
-                        -${Number(coupon.discount || 0).toFixed(2)}
-                      </span>
-                      {onRemoveCoupon && (
-                        <button
-                          type="button"
-                          onClick={() => onRemoveCoupon(coupon.couponCode)}
-                          className="text-white hover:text-white/80 transition-colors"
-                          aria-label={`Remove coupon ${coupon.couponCode}`}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 

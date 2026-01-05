@@ -11,9 +11,7 @@ import { toast } from 'sonner';
 import ProductSelection from '@/app/components/orders/create-order/product-selection';
 import CustomerForm from '@/app/components/orders/create-order/customer-form';
 import OrderSummary from '@/app/components/orders/create-order/order-summary';
-import { useAutoCoupon } from '@/app/components/orders/create-order/use-auto-coupon';
 import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
-import { Tag, X } from 'lucide-react';
 
 interface CartItem extends IProduct {
   orderQuantity: number;
@@ -36,15 +34,6 @@ interface CustomerFormData {
   zipCode: string;
 }
 
-interface AppliedCoupon {
-  _id?: string;
-  couponCode: string;
-  discount: number;
-  discountType?: 'percentage' | 'fixed_amount';
-  discountPercentage?: number;
-  title?: string;
-}
-
 type Step = 'products' | 'customer' | 'summary';
 
 export default function CreateOrderPage() {
@@ -60,7 +49,6 @@ export default function CreateOrderPage() {
   const [shippingCost, setShippingCost] = useState(0);
   // Default payment method is "Card" to match frontend
   const paymentMethod = 'Card';
-  const [appliedCoupons, setAppliedCoupons] = useState<AppliedCoupon[]>([]);
   const [cardError, setCardError] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
 
@@ -83,70 +71,25 @@ export default function CreateOrderPage() {
   // Use calculated shipping or manual override (if manually set)
   const productBasedShippingCost = calculatedShippingCost;
 
-  // Calculate coupon discount
-  const couponDiscount = appliedCoupons.reduce((sum, coupon) => {
-    return sum + (coupon.discount || 0);
-  }, 0);
-
   // Calculate shipping cost (before free shipping check)
   const baseShippingCost = shippingCost > 0 ? shippingCost : productBasedShippingCost;
 
-  // Calculate subtotal after discount (discounts apply only to product subtotal)
-  const subtotalAfterDiscount = Math.max(0, subtotal - couponDiscount);
-
   // Check free shipping eligibility
-  // Free shipping applies ONLY when (Subtotal - Discount) > 500
-  // Note: Shipping charges are NOT included in the eligibility check
-  // Edge cases handled:
-  // - If discount > subtotal, subtotalAfterDiscount becomes 0 (Math.max ensures non-negative)
-  // - If subtotalAfterDiscount exactly equals 500, free shipping does NOT apply (> 500, not >= 500)
-  //
-  const isFreeShippingEligible = subtotalAfterDiscount > 500;
+  // Free shipping applies when Subtotal >= 500 (matches frontend logic)
+  const isFreeShippingEligible = subtotal >= 500;
 
   // Final shipping cost (0 if eligible, otherwise use calculated/manual shipping)
   const finalShippingCost = isFreeShippingEligible ? 0 : baseShippingCost;
 
-  // Auto-apply coupons when cart changes
-  const handleAddCoupon = (coupon: AppliedCoupon) => {
-    // Check if coupon is already applied to avoid duplicates
-    const isAlreadyApplied = appliedCoupons.some(
-      c => c.couponCode.toLowerCase() === coupon.couponCode.toLowerCase()
-    );
-    if (!isAlreadyApplied) {
-      setAppliedCoupons(prev => [...prev, coupon]);
-    }
-  };
-
-  const handleRemoveCoupon = (couponCode: string) => {
-    setAppliedCoupons(prev => prev.filter(c => c.couponCode !== couponCode));
-  };
-
-  const handleUpdateCoupons = (coupons: AppliedCoupon[]) => {
-    setAppliedCoupons(coupons);
-  };
-
-  // Clear coupons when cart becomes empty
+  // Auto-update shipping cost to 0 when free shipping becomes eligible
   useEffect(() => {
-    if (cartItems.length === 0 && appliedCoupons.length > 0) {
-      setAppliedCoupons([]);
+    if (isFreeShippingEligible && shippingCost > 0) {
+      setShippingCost(0);
     }
-  }, [cartItems.length, appliedCoupons.length]);
+  }, [isFreeShippingEligible, shippingCost]);
 
-  // Enable auto-coupon when cart has items (works on all steps, but mainly for summary)
-  // This ensures coupons are applied as soon as products are added and revalidated when cart changes
-  useAutoCoupon({
-    cartItems,
-    appliedCoupons,
-    shippingCost: finalShippingCost,
-    onAddCoupon: handleAddCoupon,
-    onUpdateCoupons: handleUpdateCoupons,
-    onRemoveCoupon: handleRemoveCoupon,
-    enabled: cartItems.length > 0,
-  });
-
-  // Calculate total amount (after coupons)
-  // Discounts are applied to subtotal first, then shipping is added
-  const totalAmount = subtotalAfterDiscount + finalShippingCost;
+  // Calculate total amount
+  const totalAmount = subtotal + finalShippingCost;
 
   const handleAddProduct = (product: IProduct & {
     selectedOption?: any;
@@ -272,7 +215,7 @@ export default function CreateOrderPage() {
       // Pricing
       subTotal: subtotal,
       shippingCost: finalShippingCost,
-      discount: couponDiscount,
+      discount: 0,
       totalAmount: totalAmount,
 
       // Payment
@@ -281,16 +224,6 @@ export default function CreateOrderPage() {
 
       // Guest order (admin created orders don't have user)
       isGuestOrder: true,
-
-      // Applied coupons
-      appliedCoupons: appliedCoupons.map(coupon => ({
-        _id: coupon._id,
-        couponCode: coupon.couponCode,
-        discount: coupon.discount,
-        discountType: coupon.discountType,
-        discountPercentage: coupon.discountPercentage,
-        title: coupon.title || coupon.couponCode,
-      })),
     };
 
     try {
@@ -306,7 +239,7 @@ export default function CreateOrderPage() {
             status: 'succeeded',
             amount_received: 0,
             currency: 'usd',
-            payment_method_types: ['coupon'],
+            payment_method_types: ['free'],
           },
         }).unwrap();
 
@@ -359,7 +292,7 @@ export default function CreateOrderPage() {
           },
         }).unwrap();
 
-        // Handle free orders (100% discount coupons)
+        // Handle free orders (when total is 0)
         if (paymentIntentResult.isFreeOrder) {
           const result = await createOrder({
             ...orderData,
@@ -371,7 +304,7 @@ export default function CreateOrderPage() {
               status: 'succeeded',
               amount_received: 0,
               currency: 'usd',
-              payment_method_types: ['coupon'],
+              payment_method_types: ['free'],
             },
           }).unwrap();
 
@@ -534,9 +467,6 @@ export default function CreateOrderPage() {
                   onUpdateQuantity={handleUpdateQuantity}
                   onUpdatePrice={handleUpdatePrice}
                   onRemoveProduct={handleRemoveProduct}
-                  // appliedCoupons={appliedCoupons}
-                  subtotal={subtotal}
-                  onRemoveCoupon={handleRemoveCoupon}
                 />
                 {cartItems.length > 0 && (
                   <div className="mt-6 pt-6 border-t">
@@ -562,9 +492,6 @@ export default function CreateOrderPage() {
                 <CustomerForm
                   onSubmit={handleCustomerSubmit}
                   defaultValues={customerData || undefined}
-                  appliedCoupons={appliedCoupons}
-                  subtotal={subtotal}
-                  onRemoveCoupon={handleRemoveCoupon}
                 />
                 <div className="mt-4 flex gap-4">
                   <Button
@@ -692,9 +619,6 @@ export default function CreateOrderPage() {
               cartItems={cartItems}
               shippingCost={shippingCost}
               onShippingCostChange={setShippingCost}
-              appliedCoupons={appliedCoupons}
-              onAddCoupon={handleAddCoupon}
-              onRemoveCoupon={handleRemoveCoupon}
               onUpdatePrice={handleUpdatePrice}
               onSubmit={handleCreateOrder}
               isSubmitting={isCreating || processingPayment}
@@ -707,69 +631,6 @@ export default function CreateOrderPage() {
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Applied Coupons Display */}
-                {appliedCoupons.length > 0 && (
-                  <div className="space-y-3 border-b pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Tag className="w-4 h-4 text-muted-foreground" />
-                        <h3 className="font-semibold text-sm">Applied Coupons</h3>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        Auto-applied
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {appliedCoupons.map((coupon, index) => {
-                        const discountPercent = coupon.discountType === 'percentage' && coupon.discountPercentage
-                          ? coupon.discountPercentage
-                          : coupon.discount && subtotal > 0
-                            ? ((coupon.discount / subtotal) * 100).toFixed(1)
-                            : null;
-
-                        return (
-                          <div
-                            key={coupon.couponCode || index}
-                            className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-emerald-600 rounded-lg p-3 shadow-sm"
-                          >
-                            <div className="relative flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
-                                  <Tag className="w-3 h-3 text-white" />
-                                </div>
-                                <div>
-                                  <p className="text-xs font-bold text-white uppercase tracking-wider">
-                                    {coupon.couponCode}
-                                  </p>
-                                  {discountPercent && (
-                                    <p className="text-xs text-white/90 font-medium">
-                                      {discountPercent}% OFF
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-white">
-                                  -${Number(coupon.discount || 0).toFixed(2)}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveCoupon(coupon.couponCode)}
-                                  className="text-white hover:text-white/80 transition-colors"
-                                  aria-label={`Remove coupon ${coupon.couponCode}`}
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Items</span>
@@ -781,17 +642,17 @@ export default function CreateOrderPage() {
                       ${subtotal.toFixed(2)}
                     </span>
                   </div>
-                  {couponDiscount > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Coupon Discount</span>
-                      <span className="font-medium text-green-600">
-                        -${couponDiscount.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
                   <div className="flex justify-between text-sm">
                     <div className="flex flex-col gap-1">
-                      <span className="text-muted-foreground">Shipping</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Shipping</span>
+                        {isFreeShippingEligible && (
+                          <span className="text-xs text-green-600">(Free on orders $500+)</span>
+                        )}
+                        {!isFreeShippingEligible && subtotal > 0 && subtotal < 500 && (
+                          <span className="text-xs text-blue-600">(Free on $500+)</span>
+                        )}
+                      </div>
                       {!isFreeShippingEligible && productBasedShippingCost > 0 && shippingCost === 0 && (
                         <span className="text-xs text-muted-foreground">
                           Calculated from products
@@ -800,7 +661,7 @@ export default function CreateOrderPage() {
                     </div>
                     <span className="font-medium">
                       {isFreeShippingEligible ? (
-                        <span className="text-green-600">FREE</span>
+                        <span className="text-green-600 font-bold">FREE</span>
                       ) : (
                         `$${(shippingCost > 0 ? shippingCost : productBasedShippingCost).toFixed(2)}`
                       )}
