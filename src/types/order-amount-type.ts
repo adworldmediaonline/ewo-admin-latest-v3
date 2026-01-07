@@ -118,6 +118,12 @@ export interface IDashboardRecentOrders {
 export interface IGetAllOrdersRes {
   success: boolean;
   data: Order[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
 // chart data type

@@ -9,11 +9,22 @@ import {
 export const authApi = apiSlice.injectEndpoints({
   overrideExisting: true,
   endpoints: builder => ({
-    // get all categories
-    getAllCategories: builder.query<CategoryResponse, void>({
-      query: () => `/api/category/all`,
+    // get all categories - Optimized with pagination
+    getAllCategories: builder.query<
+      CategoryResponse,
+      { page?: number; limit?: number; search?: string; status?: string } | void
+    >({
+      query: (params = {}) => {
+        const { page = 1, limit = 10, search = '', status = '' } = params;
+        const queryParams = new URLSearchParams();
+        if (page) queryParams.append('page', page.toString());
+        if (limit) queryParams.append('limit', limit.toString());
+        if (search) queryParams.append('search', search);
+        if (status) queryParams.append('status', status);
+        return `/api/category/all?${queryParams.toString()}`;
+      },
       providesTags: ['AllCategory'],
-      keepUnusedDataFor: 600,
+      keepUnusedDataFor: 60, // Keep unused data for 60 seconds only
     }),
     // add category
     addCategory: builder.mutation<IAddCategoryResponse, IAddCategory>({
