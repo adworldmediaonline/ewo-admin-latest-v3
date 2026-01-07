@@ -17,7 +17,7 @@ export const authApi = apiSlice.injectEndpoints({
     getDashboardAmount: builder.query<IOrderAmounts, void>({
       query: () => `/api/user-order/dashboard-amount`,
       providesTags: ['DashboardAmount'],
-      keepUnusedDataFor: 600,
+      keepUnusedDataFor: 60, // Keep unused data for 60 seconds only
     }),
     // get order breakdown
     getOrderBreakdown: builder.query<IOrderBreakdownRes, void>({
