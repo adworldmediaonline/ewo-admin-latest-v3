@@ -347,7 +347,7 @@ export default function ProductConfigDialog({
                                 >
                                   {option.name}
                                 </span>
-                                {hasPrice && (
+                                {/* {hasPrice && (
                                   <span
                                     className={cn(
                                       'text-xs font-medium whitespace-nowrap',
@@ -358,7 +358,7 @@ export default function ProductConfigDialog({
                                   >
                                     ${Number(option.price).toFixed(2)}
                                   </span>
-                                )}
+                                )} */}
                               </div>
 
                               {/* Selection Indicator */}

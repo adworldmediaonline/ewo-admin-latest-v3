@@ -4,12 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { IProduct } from '@/types/product';
-import { useMemo, useState, useRef } from 'react';
+import { useMemo } from 'react';
 import Image from 'next/image';
-import { X, Tag, Loader2 } from 'lucide-react';
-import { useValidateCouponMutation } from '@/redux/coupon/couponApi';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 
 interface CartItem extends IProduct {
@@ -20,22 +16,10 @@ interface CartItem extends IProduct {
   customPrice?: number;
 }
 
-interface AppliedCoupon {
-  _id?: string;
-  couponCode: string;
-  discount: number;
-  discountType?: 'percentage' | 'fixed_amount';
-  discountPercentage?: number;
-  title?: string;
-}
-
 interface OrderSummaryProps {
   cartItems: CartItem[];
   shippingCost: number;
   onShippingCostChange: (cost: number) => void;
-  appliedCoupons: AppliedCoupon[];
-  onAddCoupon: (coupon: AppliedCoupon) => void;
-  onRemoveCoupon: (couponCode: string) => void;
   onUpdatePrice?: (productId: string, price: number) => void;
   onSubmit: () => void;
   isSubmitting: boolean;
@@ -47,18 +31,12 @@ export default function OrderSummary({
   cartItems,
   shippingCost,
   onShippingCostChange,
-  appliedCoupons,
-  onAddCoupon,
-  onRemoveCoupon,
   onUpdatePrice,
   onSubmit,
   isSubmitting,
   cardError,
   onCardErrorChange,
 }: OrderSummaryProps) {
-  const [couponCode, setCouponCode] = useState('');
-  const couponInputRef = useRef<HTMLInputElement>(null);
-  const [validateCoupon, { isLoading: isValidatingCoupon }] = useValidateCouponMutation();
   const stripe = useStripe();
   const elements = useElements();
 
@@ -82,176 +60,26 @@ export default function OrderSummary({
     }, 0);
   }, [cartItems]);
 
-  // Calculate coupon discount
-  const couponDiscount = useMemo(() => {
-    return appliedCoupons.reduce((sum, coupon) => {
-      return sum + (coupon.discount || 0);
-    }, 0);
-  }, [appliedCoupons]);
-
   // Calculate base shipping cost (before free shipping check)
   const baseShippingCost = useMemo(() => {
     return shippingCost > 0 ? shippingCost : calculatedShippingCost;
   }, [shippingCost, calculatedShippingCost]);
 
-  // Calculate subtotal after discount (discounts apply only to product subtotal)
-  const subtotalAfterDiscount = useMemo(() => {
-    return Math.max(0, subtotal - couponDiscount);
-  }, [subtotal, couponDiscount]);
-
   // Check free shipping eligibility
-  // Free shipping applies ONLY when (Subtotal - Discount) > 500
-  // Note: Shipping charges are NOT included in the eligibility check
-  // Edge cases handled:
-  // - If discount > subtotal, subtotalAfterDiscount becomes 0 (Math.max ensures non-negative)
-  // - If subtotalAfterDiscount exactly equals 500, free shipping does NOT apply (> 500, not >= 500)
+  // Free shipping applies when Subtotal >= 500 (matches frontend logic)
   const isFreeShippingEligible = useMemo(() => {
-    return subtotalAfterDiscount > 500;
-  }, [subtotalAfterDiscount]);
+    return subtotal >= 500;
+  }, [subtotal]);
 
   // Final shipping cost (0 if eligible, otherwise use calculated/manual shipping)
   const finalShippingCost = useMemo(() => {
     return isFreeShippingEligible ? 0 : baseShippingCost;
   }, [isFreeShippingEligible, baseShippingCost]);
 
-  // Calculate final total
-  // Discounts are applied to subtotal first, then shipping is added
+  // Calculate total amount
   const totalAmount = useMemo(() => {
-    const subtotalAfterDiscount = Math.max(0, subtotal - couponDiscount);
-    return subtotalAfterDiscount + finalShippingCost;
-  }, [subtotal, couponDiscount, finalShippingCost]);
-
-  // Handle coupon submission
-  const handleCouponSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = couponCode.trim();
-
-    if (!code) {
-      toast.error('Please enter a coupon code');
-      return;
-    }
-
-    // Check if coupon already applied
-    if (appliedCoupons.some(c => c.couponCode.toLowerCase() === code.toLowerCase())) {
-      toast.error('This coupon is already applied');
-      setCouponCode('');
-      return;
-    }
-
-    try {
-      const totals = {
-        subtotal,
-        shipping: isFreeShippingEligible ? 0 : (shippingCost > 0 ? shippingCost : calculatedShippingCost),
-      };
-
-      // Prepare cart items for validation
-      const cartItemsForValidation = cartItems.map(item => ({
-        _id: item._id,
-        title: item.title,
-        sku: item.sku,
-        price: item.price,
-        finalPriceDiscount: item.finalPriceDiscount || item.price,
-        orderQuantity: item.orderQuantity,
-        selectedOption: item.selectedOption,
-        selectedConfigurations: item.selectedConfigurations,
-        productConfigurations: item.productConfigurations,
-      }));
-
-      const requestBody = appliedCoupons.length === 0
-        ? {
-          couponCode: code,
-          cartItems: cartItemsForValidation,
-          cartTotal: totals.subtotal + totals.shipping,
-          cartSubtotal: totals.subtotal,
-          shippingCost: totals.shipping,
-        }
-        : {
-          couponCodes: [code],
-          cartItems: cartItemsForValidation,
-          cartTotal: totals.subtotal + totals.shipping - couponDiscount,
-          cartSubtotal: totals.subtotal - couponDiscount,
-          shippingCost: totals.shipping,
-          excludeAppliedCoupons: appliedCoupons.map(c => c.couponCode),
-        };
-
-      const endpoint = appliedCoupons.length === 0
-        ? '/api/coupon/validate'
-        : '/api/coupon/validate-multiple';
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}${endpoint}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        let couponData;
-
-        if (appliedCoupons.length === 0) {
-          // First coupon - use single validation endpoint response
-          couponData = data.data;
-        } else {
-          // Multiple coupons - extract from validationResults
-          const validationResult = data.data?.validationResults?.find(
-            (result: any) => result.couponCode === code.toUpperCase() && result.success
-          );
-
-          if (validationResult) {
-            couponData = {
-              couponCode: validationResult.couponCode,
-              discount: validationResult.discount,
-              discountType: validationResult.discountType,
-              discountPercentage: validationResult.discountPercentage,
-              title: validationResult.title || validationResult.couponCode,
-              couponId: validationResult.couponId || validationResult._id,
-            };
-          } else {
-            // Fallback: try to find in appliedCoupons array
-            const appliedCoupon = data.data?.appliedCoupons?.find(
-              (c: any) => c.couponCode === code.toUpperCase()
-            );
-            couponData = appliedCoupon;
-          }
-        }
-
-        if (couponData) {
-          onAddCoupon({
-            _id: couponData.couponId || couponData._id,
-            couponCode: couponData.couponCode || code.toUpperCase(),
-            discount: couponData.discount || 0,
-            discountType: couponData.discountType,
-            discountPercentage: couponData.discountPercentage,
-            title: couponData.title || couponData.couponCode || code,
-          });
-          toast.success(`Coupon "${code}" applied successfully! You saved $${(couponData.discount || 0).toFixed(2)}`);
-          setCouponCode('');
-          if (couponInputRef.current) {
-            couponInputRef.current.value = '';
-          }
-        } else {
-          toast.error('Invalid coupon response');
-        }
-      } else {
-        // Handle validation errors for multiple coupons
-        if (appliedCoupons.length > 0 && data.data?.validationResults) {
-          const errorResult = data.data.validationResults.find(
-            (result: any) => result.couponCode === code.toUpperCase()
-          );
-          toast.error(errorResult?.message || data.message || 'Invalid coupon code');
-        } else {
-          toast.error(data.message || 'Invalid coupon code');
-        }
-      }
-    } catch (error: any) {
-      console.error('Coupon validation error:', error);
-      toast.error('Failed to validate coupon. Please try again.');
-    }
-  };
+    return subtotal + finalShippingCost;
+  }, [subtotal, finalShippingCost]);
 
   return (
     <Card>
@@ -259,69 +87,6 @@ export default function OrderSummary({
         <CardTitle>Order Summary</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Applied Coupons - Always Visible at Top */}
-        {appliedCoupons.length > 0 && (
-          <div className="space-y-3 border-b pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Tag className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-semibold text-sm">Applied Coupons</h3>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                Auto-applied
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              {appliedCoupons.map((coupon, index) => {
-                const discountPercent = coupon.discountType === 'percentage' && coupon.discountPercentage
-                  ? coupon.discountPercentage
-                  : coupon.discount && subtotal > 0
-                    ? ((coupon.discount / subtotal) * 100).toFixed(1)
-                    : null;
-
-                return (
-                  <div
-                    key={coupon.couponCode || index}
-                    className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-emerald-600 rounded-lg p-3 shadow-sm"
-                  >
-                    <div className="relative flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
-                          <Tag className="w-3 h-3 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-white uppercase tracking-wider">
-                            {coupon.couponCode}
-                          </p>
-                          {discountPercent && (
-                            <p className="text-xs text-white/90 font-medium">
-                              {discountPercent}% OFF
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white">
-                          -${Number(coupon.discount || 0).toFixed(2)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onRemoveCoupon(coupon.couponCode)}
-                          className="text-white hover:text-white/80 transition-colors"
-                          aria-label={`Remove coupon ${coupon.couponCode}`}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Cart Items */}
         <div className="space-y-3">
           <h3 className="font-semibold text-sm">Items ({cartItems.length})</h3>
@@ -412,53 +177,12 @@ export default function OrderSummary({
           </div>
         </div>
 
-        {/* Coupon Input Section */}
-        <div className="space-y-3 border-t pt-4">
-          <div className="flex items-center gap-2">
-            <Tag className="w-4 h-4 text-muted-foreground" />
-            <h3 className="font-semibold text-sm">Add Coupon</h3>
-          </div>
-
-          {/* Coupon Input */}
-          <form onSubmit={handleCouponSubmit} className="flex gap-2">
-            <Input
-              ref={couponInputRef}
-              placeholder="Enter coupon code"
-              value={couponCode}
-              onChange={e => setCouponCode(e.target.value)}
-              disabled={isValidatingCoupon}
-              className="flex-1"
-            />
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={!couponCode.trim() || isValidatingCoupon}
-              size="default"
-            >
-              {isValidatingCoupon ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                'Apply'
-              )}
-            </Button>
-          </form>
-        </div>
-
         {/* Pricing Breakdown */}
         <div className="space-y-2 border-t pt-4">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Subtotal</span>
             <span className="font-medium">${subtotal.toFixed(2)}</span>
           </div>
-
-          {couponDiscount > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Coupon Discount</span>
-              <span className="font-medium text-green-600">
-                -${couponDiscount.toFixed(2)}
-              </span>
-            </div>
-          )}
 
           <div className="flex justify-between text-sm">
             <div className="flex flex-col gap-1">
@@ -476,7 +200,10 @@ export default function OrderSummary({
             </div>
             <div className="flex items-center gap-2">
               {isFreeShippingEligible ? (
-                <span className="font-bold text-green-600">FREE</span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="font-bold text-green-600">FREE</span>
+                  <span className="text-xs text-green-600">(Orders $500+)</span>
+                </div>
               ) : (
                 <div className="flex flex-col items-end gap-1">
                   <div className="flex items-center gap-2">
@@ -493,6 +220,11 @@ export default function OrderSummary({
                   {calculatedShippingCost > 0 && shippingCost === 0 && (
                     <span className="text-xs text-muted-foreground">
                       Auto: ${calculatedShippingCost.toFixed(2)}
+                    </span>
+                  )}
+                  {subtotal > 0 && subtotal < 500 && (
+                    <span className="text-xs text-blue-600">
+                      Free shipping on orders $500+
                     </span>
                   )}
                 </div>
