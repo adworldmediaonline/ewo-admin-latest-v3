@@ -119,6 +119,19 @@ export interface IGetAllOrdersRes {
   success: boolean;
   data: Order[];
 }
+
+// chart data type
+export interface IChartDataItem {
+  date: string;
+  orders: number;
+  revenue: number;
+  items: number;
+}
+
+export interface IChartDataRes {
+  success: boolean;
+  data: IChartDataItem[];
+}
 // get all orders type
 export interface IUpdateStatusOrderRes {
   success: boolean;

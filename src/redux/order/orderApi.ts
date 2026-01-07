@@ -1,4 +1,5 @@
 import {
+  IChartDataRes,
   IDashboardRecentOrders,
   IGetAllOrdersRes,
   IMostSellingCategory,
@@ -48,6 +49,12 @@ export const authApi = apiSlice.injectEndpoints({
       query: () => `/api/order/orders`,
       providesTags: ['AllOrders'],
       keepUnusedDataFor: 600,
+    }),
+    // get chart data (optimized)
+    getChartData: builder.query<IChartDataRes, number | void>({
+      query: (days = 90) => `/api/user-order/chart-data?days=${days}`,
+      providesTags: ['ChartData'],
+      keepUnusedDataFor: 60, // Keep unused data for 60 seconds only
     }),
     // get recent orders
     getSingleOrder: builder.query<Order, string>({
@@ -244,6 +251,7 @@ export const {
   useGetMostSellingCategoryQuery,
   useGetRecentOrdersQuery,
   useGetAllOrdersQuery,
+  useGetChartDataQuery,
   useUpdateStatusMutation,
   useGetSingleOrderQuery,
   useShipOrderMutation,

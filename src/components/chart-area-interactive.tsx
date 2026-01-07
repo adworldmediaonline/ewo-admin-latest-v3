@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useGetAllOrdersQuery } from '@/redux/order/orderApi';
+import { useGetChartDataQuery } from '@/redux/order/orderApi';
 
 export const description = 'An interactive area chart showing order trends';
 
@@ -45,7 +45,16 @@ const chartConfig = {
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile();
   const [timeRange, setTimeRange] = React.useState('90d');
-  const { data: ordersData, isLoading, isError } = useGetAllOrdersQuery();
+
+  // Calculate days based on timeRange
+  const days = React.useMemo(() => {
+    if (timeRange === '30d') return 30;
+    if (timeRange === '7d') return 7;
+    return 90;
+  }, [timeRange]);
+
+  // Use optimized chart data query
+  const { data: chartData, isLoading, isError } = useGetChartDataQuery(days);
 
   React.useEffect(() => {
     if (isMobile) {
@@ -53,53 +62,11 @@ export function ChartAreaInteractive() {
     }
   }, [isMobile]);
 
-  // Process order data for chart
-  const processedData = React.useMemo(() => {
-    if (!ordersData?.data) return [];
-
-    // Group orders by date
-    const groupedByDate = ordersData.data.reduce((acc: any, order: any) => {
-      const date = dayjs(order.createdAt).format('YYYY-MM-DD');
-      if (!acc[date]) {
-        acc[date] = {
-          date,
-          orders: 0,
-          revenue: 0,
-          items: 0,
-        };
-      }
-      acc[date].orders += 1;
-      acc[date].revenue += order.totalAmount || 0;
-      acc[date].items +=
-        order.cart?.reduce(
-          (sum: number, item: any) => sum + (item.orderQuantity || 0),
-          0
-        ) || 0;
-      return acc;
-    }, {});
-
-    // Convert to array and sort by date
-    return Object.values(groupedByDate).sort((a: any, b: any) =>
-      dayjs(a.date).isBefore(dayjs(b.date)) ? -1 : 1
-    );
-  }, [ordersData]);
-
+  // Data is already processed by backend, just use it directly
   const filteredData = React.useMemo(() => {
-    const referenceDate = new Date();
-    let daysToSubtract = 90;
-    if (timeRange === '30d') {
-      daysToSubtract = 30;
-    } else if (timeRange === '7d') {
-      daysToSubtract = 7;
-    }
-    const startDate = new Date(referenceDate);
-    startDate.setDate(startDate.getDate() - daysToSubtract);
-
-    return processedData.filter((item: any) => {
-      const date = new Date(item.date);
-      return date >= startDate;
-    });
-  }, [processedData, timeRange]);
+    if (!chartData?.data) return [];
+    return chartData.data;
+  }, [chartData]);
 
   // Loading state
   if (isLoading) {
