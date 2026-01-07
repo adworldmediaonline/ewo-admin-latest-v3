@@ -11,6 +11,12 @@ export interface IReviewProductRes {
 export interface ProductResponse {
   success: boolean;
   data: IProduct[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
 export interface IReview {
