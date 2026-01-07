@@ -66,9 +66,10 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       search: debouncedSearch,
     },
     {
-      pollingInterval: 30000, // Auto-refresh every 30 seconds
-      refetchOnMountOrArgChange: true,
-      refetchOnFocus: true,
+      pollingInterval: 60000, // Auto-refresh every 60 seconds (reduced frequency)
+      refetchOnMountOrArgChange: false, // Don't refetch on mount if data exists
+      refetchOnFocus: false, // Don't refetch on window focus (reduces unnecessary queries)
+      refetchOnReconnect: true, // Only refetch on reconnect
     }
   );
 
