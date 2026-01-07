@@ -64,7 +64,7 @@ import {
   Search,
   Trash2,
 } from 'lucide-react';
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import dayjs from 'dayjs';
 import Swal from 'sweetalert2';
 import { notifyError, notifySuccess } from '@/utils/toast';
@@ -83,6 +83,7 @@ export default function QueryListArea() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const {
     data: contactsData,
@@ -142,22 +143,6 @@ export default function QueryListArea() {
     setShowDetails(true);
   }, []);
 
-  // Global filter function for searching
-  const globalFilterFn = useMemo(
-    () => (row: any, columnId: string, filterValue: string) => {
-      if (!filterValue) return true;
-
-      const contact = row.original;
-      const searchValue = filterValue.toLowerCase();
-
-      const nameMatch = contact.name?.toLowerCase().includes(searchValue);
-      const emailMatch = contact.email?.toLowerCase().includes(searchValue);
-      const subjectMatch = contact.subject?.toLowerCase().includes(searchValue);
-
-      return nameMatch || emailMatch || subjectMatch;
-    },
-    []
-  );
 
   // Status badge component
   const StatusBadge = ({ status }: { status: IContact['status'] }) => {
@@ -387,6 +372,14 @@ export default function QueryListArea() {
     [handleDelete, handleStatusChange, handlePriorityChange, handleViewDetails]
   );
 
+  // Debounce search to avoid too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(globalFilter.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [globalFilter]);
+
   // Apply filters to queryParams
   const statusFilter = columnFilters.find(f => f.id === 'status')?.value as string;
   const priorityFilter = columnFilters.find(f => f.id === 'priority')?.value as string;
@@ -397,10 +390,10 @@ export default function QueryListArea() {
       ...prev,
       status: statusFilter && statusFilter !== 'all' ? statusFilter : undefined,
       priority: priorityFilter && priorityFilter !== 'all' ? priorityFilter : undefined,
-      search: globalFilter || undefined,
+      search: debouncedSearch || undefined,
       page: 1, // Reset to first page when filters change
     }));
-  }, [statusFilter, priorityFilter, globalFilter]);
+  }, [statusFilter, priorityFilter, debouncedSearch]);
 
   // Initialize table (client-side sorting only, filtering is server-side)
   const table = useReactTable({
@@ -591,9 +584,9 @@ export default function QueryListArea() {
                           {header.isPlaceholder
                             ? null
                             : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
                         </TableHead>
                       );
                     })}
