@@ -20,11 +20,22 @@ interface IProductEditResponse {
 export const authApi = apiSlice.injectEndpoints({
   overrideExisting: true,
   endpoints: builder => ({
-    // getUserOrders
-    getAllProducts: builder.query<ProductResponse, void>({
-      query: () => `/api/product/all`,
+    // getUserOrders - Optimized with pagination
+    getAllProducts: builder.query<
+      ProductResponse,
+      { page?: number; limit?: number; search?: string; status?: string } | void
+    >({
+      query: (params) => {
+        const { page = 1, limit = 10, search = '', status = '' } = params || {};
+        const queryParams = new URLSearchParams();
+        if (page) queryParams.append('page', page.toString());
+        if (limit) queryParams.append('limit', limit.toString());
+        if (search) queryParams.append('search', search);
+        if (status) queryParams.append('status', status);
+        return `/api/product/all?${queryParams.toString()}`;
+      },
       providesTags: ['AllProducts'],
-      keepUnusedDataFor: 600,
+      keepUnusedDataFor: 60, // Keep unused data for 60 seconds only
     }),
     // add product
     addProduct: builder.mutation<IProductResponse, IAddProduct>({
@@ -55,10 +66,22 @@ export const authApi = apiSlice.injectEndpoints({
     getProduct: builder.query<IAddProduct, string>({
       query: id => `/api/product/single-product/${id}`,
     }),
-    // get single product
-    getReviewProducts: builder.query<IReviewProductRes, void>({
-      query: () => `/api/product/review-product`,
+    // get single product - Optimized with pagination
+    getReviewProducts: builder.query<
+      IReviewProductRes,
+      { page?: number; limit?: number; search?: string; rating?: string } | void
+    >({
+      query: (params) => {
+        const { page = 1, limit = 10, search = '', rating = '' } = params || {};
+        const queryParams = new URLSearchParams();
+        if (page) queryParams.append('page', page.toString());
+        if (limit) queryParams.append('limit', limit.toString());
+        if (search) queryParams.append('search', search);
+        if (rating) queryParams.append('rating', rating);
+        return `/api/product/review-product?${queryParams.toString()}`;
+      },
       providesTags: ['ReviewProducts'],
+      keepUnusedDataFor: 60, // Keep unused data for 60 seconds only
     }),
     // get single product
     getStockOutProducts: builder.query<IReviewProductRes, void>({

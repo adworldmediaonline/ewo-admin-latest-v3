@@ -13,9 +13,9 @@ import {
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useGetAllProductsQuery } from '@/redux/product/productApi';
 import { IProduct } from '@/types/product';
-import { Minus, Plus, Search, Trash2 } from 'lucide-react';
+import { Minus, Plus, Search, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import ProductConfigDialog from './product-config-dialog';
 
 interface CartItem extends IProduct {
@@ -49,28 +49,33 @@ export default function ProductSelection({
   onUpdatePrice,
   onRemoveProduct,
 }: ProductSelectionProps) {
-  const { data: products, isLoading } = useGetAllProductsQuery();
   const [searchValue, setSearchValue] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20); // Show 20 products per page for selection
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
   const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
 
-  const filteredProducts = useMemo(() => {
-    if (!products?.data) return [];
+  // Debounce search to avoid too many API calls
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchValue.trim());
+      setCurrentPage(1); // Reset to first page when searching
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchValue]);
 
-    let filtered = [...products.data];
+  // Fetch products with server-side pagination
+  const { data: products, isLoading } = useGetAllProductsQuery({
+    page: currentPage,
+    limit: pageSize,
+    search: debouncedSearch,
+  });
 
-    if (searchValue) {
-      const searchTerm = searchValue.toLowerCase();
-      filtered = filtered.filter(
-        p =>
-          p.title?.toLowerCase().includes(searchTerm) ||
-          p.sku?.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    return filtered;
-  }, [products?.data, searchValue]);
+  const productData = products?.data || [];
+  const totalProducts = products?.pagination?.total || 0;
+  const totalPages = products?.pagination?.pages || 0;
 
   const hasOptions = (product: IProduct) => {
     return product.options && product.options.length > 0;
@@ -159,10 +164,18 @@ export default function ProductSelection({
           <Input
             placeholder="Search products by name or SKU..."
             value={searchValue}
-            onChange={e => setSearchValue(e.target.value)}
+            onChange={e => {
+              setSearchValue(e.target.value);
+              setCurrentPage(1); // Reset to first page when searching
+            }}
             className="pl-10"
           />
         </div>
+        {totalProducts > 0 && (
+          <div className="text-sm text-muted-foreground whitespace-nowrap">
+            Showing {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, totalProducts)} of {totalProducts}
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -186,157 +199,186 @@ export default function ProductSelection({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                {filteredProducts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No products found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredProducts.map(product => {
-                    const inCart = isProductInCart(product._id);
-                    const cartItem = cartItems.find(item => item._id === product._id);
+                  {productData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        {isLoading ? 'Loading products...' : 'No products found'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    productData.map(product => {
+                      const inCart = isProductInCart(product._id);
+                      const cartItem = cartItems.find(item => item._id === product._id);
 
-                    return (
-                      <TableRow key={product._id}>
-                        <TableCell>
-                          <div className="relative w-12 h-12 rounded overflow-hidden bg-muted">
-                            {product.imageURLs?.[0] ? (
-                              <Image
-                                src={product.imageURLs[0]}
-                                alt={product.title || 'Product'}
-                                fill
-                                className="object-cover"
-                                sizes="48px"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                                No Image
+                      return (
+                        <TableRow key={product._id}>
+                          <TableCell>
+                            <div className="relative w-12 h-12 rounded overflow-hidden bg-muted">
+                              {product.imageURLs?.[0] ? (
+                                <Image
+                                  src={product.imageURLs[0]}
+                                  alt={product.title || 'Product'}
+                                  fill
+                                  className="object-cover"
+                                  sizes="48px"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                                  No Image
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{product.title}</div>
+                            {product.category?.name && (
+                              <div className="text-sm text-muted-foreground">
+                                {product.category.name}
                               </div>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{product.title}</div>
-                          {product.category?.name && (
-                            <div className="text-sm text-muted-foreground">
-                              {product.category.name}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {product.sku}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          ${Number(product.finalPriceDiscount || product.price || 0).toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          {hasConfigurations(product) ? (
-                            <span className="text-xs text-muted-foreground">N/A</span>
-                          ) : inCart && cartItem?.customPrice !== undefined ? (
-                            <div className="flex items-center gap-1">
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {product.sku}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${Number(product.finalPriceDiscount || product.price || 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            {hasConfigurations(product) ? (
+                              <span className="text-xs text-muted-foreground">N/A</span>
+                            ) : inCart && cartItem?.customPrice !== undefined ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={cartItem.customPrice}
+                                  onChange={e => {
+                                    const newPrice = parseFloat(e.target.value) || 0;
+                                    if (onUpdatePrice) {
+                                      onUpdatePrice(product._id, newPrice);
+                                    }
+                                  }}
+                                  className="h-8 w-20 text-sm"
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            ) : (
                               <Input
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                value={cartItem.customPrice}
+                                value={customPrices[product._id] || ''}
                                 onChange={e => {
-                                  const newPrice = parseFloat(e.target.value) || 0;
-                                  if (onUpdatePrice) {
-                                    onUpdatePrice(product._id, newPrice);
-                                  }
+                                  setCustomPrices(prev => ({
+                                    ...prev,
+                                    [product._id]: e.target.value,
+                                  }));
                                 }}
                                 className="h-8 w-20 text-sm"
-                                placeholder="0.00"
+                                placeholder="Custom"
+                                disabled={inCart}
                               />
-                            </div>
-                          ) : (
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={customPrices[product._id] || ''}
-                              onChange={e => {
-                                setCustomPrices(prev => ({
-                                  ...prev,
-                                  [product._id]: e.target.value,
-                                }));
-                              }}
-                              className="h-8 w-20 text-sm"
-                              placeholder="Custom"
-                              disabled={inCart}
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span
-                            className={
-                              (product.quantity || 0) > 0
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                            }
-                          >
-                            {product.quantity || 0}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {inCart ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleQuantityChange(product._id, -1)}
-                                disabled={(cartItem?.orderQuantity || 0) <= 1}
-                              >
-                                <Minus className="w-4 h-4" />
-                              </Button>
-                              <span className="w-8 text-center text-sm font-medium">
-                                {cartItem?.orderQuantity || 1}
-                              </span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleQuantityChange(product._id, 1)}
-                                disabled={
-                                  cartItem
-                                    ? (cartItem.orderQuantity || 0) >= (product.quantity || 0)
-                                    : false
-                                }
-                              >
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onRemoveProduct(product._id)}
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={() => handleAddToCart(product)}
-                              disabled={(product.quantity || 0) === 0}
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span
+                              className={
+                                (product.quantity || 0) > 0
+                                  ? 'text-green-600'
+                                  : 'text-red-600'
+                              }
                             >
-                              {hasConfigurations(product)
-                                ? 'Configure'
-                                : hasOptions(product)
-                                  ? 'Options'
-                                  : 'Add'}
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
+                              {product.quantity || 0}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {inCart ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleQuantityChange(product._id, -1)}
+                                  disabled={(cartItem?.orderQuantity || 0) <= 1}
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </Button>
+                                <span className="w-8 text-center text-sm font-medium">
+                                  {cartItem?.orderQuantity || 1}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleQuantityChange(product._id, 1)}
+                                  disabled={
+                                    cartItem
+                                      ? (cartItem.orderQuantity || 0) >= (product.quantity || 0)
+                                      : false
+                                  }
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onRemoveProduct(product._id)}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => handleAddToCart(product)}
+                                disabled={(product.quantity || 0) === 0}
+                              >
+                                {hasConfigurations(product)
+                                  ? 'Configure'
+                                  : hasOptions(product)
+                                    ? 'Options'
+                                    : 'Add'}
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             </div>
             <ScrollBar orientation="horizontal" />
             <ScrollBar orientation="vertical" />
           </ScrollArea>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/50">
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1 || isLoading}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages || isLoading}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -1,4 +1,5 @@
 import {
+  IChartDataRes,
   IDashboardRecentOrders,
   IGetAllOrdersRes,
   IMostSellingCategory,
@@ -17,7 +18,7 @@ export const authApi = apiSlice.injectEndpoints({
     getDashboardAmount: builder.query<IOrderAmounts, void>({
       query: () => `/api/user-order/dashboard-amount`,
       providesTags: ['DashboardAmount'],
-      keepUnusedDataFor: 600,
+      keepUnusedDataFor: 60, // Keep unused data for 60 seconds only
     }),
     // get order breakdown
     getOrderBreakdown: builder.query<IOrderBreakdownRes, void>({
@@ -43,11 +44,28 @@ export const authApi = apiSlice.injectEndpoints({
       providesTags: ['DashboardRecentOrders'],
       keepUnusedDataFor: 600,
     }),
-    // get recent orders
-    getAllOrders: builder.query<IGetAllOrdersRes, void>({
-      query: () => `/api/order/orders`,
+    // get recent orders - Optimized with pagination
+    getAllOrders: builder.query<
+      IGetAllOrdersRes,
+      { page?: number; limit?: number; search?: string; status?: string } | void
+    >({
+      query: (params) => {
+        const { page = 1, limit = 10, search = '', status = '' } = params || {};
+        const queryParams = new URLSearchParams();
+        if (page) queryParams.append('page', page.toString());
+        if (limit) queryParams.append('limit', limit.toString());
+        if (search) queryParams.append('search', search);
+        if (status) queryParams.append('status', status);
+        return `/api/order/orders?${queryParams.toString()}`;
+      },
       providesTags: ['AllOrders'],
-      keepUnusedDataFor: 600,
+      keepUnusedDataFor: 60, // Keep unused data for 60 seconds only
+    }),
+    // get chart data (optimized)
+    getChartData: builder.query<IChartDataRes, number | void>({
+      query: (days = 90) => `/api/user-order/chart-data?days=${days}`,
+      providesTags: ['ChartData'],
+      keepUnusedDataFor: 60, // Keep unused data for 60 seconds only
     }),
     // get recent orders
     getSingleOrder: builder.query<Order, string>({
@@ -244,6 +262,7 @@ export const {
   useGetMostSellingCategoryQuery,
   useGetRecentOrdersQuery,
   useGetAllOrdersQuery,
+  useGetChartDataQuery,
   useUpdateStatusMutation,
   useGetSingleOrderQuery,
   useShipOrderMutation,

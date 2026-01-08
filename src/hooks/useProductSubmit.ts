@@ -28,6 +28,8 @@ const useProductSubmit = () => {
   const [children, setChildren] = useState<string>('');
   const [price, setPrice] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
+  const [finalPriceDiscount, setFinalPriceDiscount] = useState<number>(0);
+  const [updatedPrice, setUpdatedPrice] = useState<number | undefined>(undefined);
   const [quantity, setQuantity] = useState<number>(0);
   const [category, setCategory] = useState<ICategory>({ name: '', id: '' });
   const [status, setStatus] = useState<status>('in-stock');
@@ -94,6 +96,8 @@ const useProductSubmit = () => {
     setChildren('');
     setPrice(0);
     setDiscount(0);
+    setFinalPriceDiscount(0);
+    setUpdatedPrice(undefined);
     setQuantity(0);
     setCategory({ name: '', id: '' });
     setStatus('in-stock');
@@ -112,6 +116,14 @@ const useProductSubmit = () => {
 
   // handle submit product
   const handleSubmitProduct = async (data: any) => {
+    // Debug: Log form data to check field values
+    console.log('Form data received:', {
+      finalPriceDiscount: data.finalPriceDiscount,
+      updatedPrice: data.updatedPrice,
+      price: data.price,
+      discount: data.discount,
+    });
+
     // product data
     const productData = {
       sku: data.SKU,
@@ -123,6 +135,12 @@ const useProductSubmit = () => {
       children: children,
       price: data.price,
       discount: data.discount,
+      finalPriceDiscount: data.finalPriceDiscount !== undefined && data.finalPriceDiscount !== null && data.finalPriceDiscount !== ''
+        ? Number(data.finalPriceDiscount)
+        : undefined,
+      updatedPrice: data.updatedPrice !== undefined && data.updatedPrice !== null && data.updatedPrice !== ''
+        ? Number(data.updatedPrice)
+        : undefined,
       shipping: data.shipping?.price || data.shipping?.description
         ? {
             price: data.shipping?.price ? Number(data.shipping.price) : undefined,
@@ -150,6 +168,12 @@ const useProductSubmit = () => {
       },
     };
 
+    // Debug: Log product data being sent
+    console.log('Product data being sent:', {
+      finalPriceDiscount: productData.finalPriceDiscount,
+      updatedPrice: productData.updatedPrice,
+    });
+
     if (!img) {
       return notifyError('Product image is required');
     }
@@ -161,6 +185,9 @@ const useProductSubmit = () => {
     }
     if (Number(data.discount) > Number(data.price)) {
       return notifyError('Product price must be greater than discount');
+    }
+    if (!data.finalPriceDiscount || Number(data.finalPriceDiscount) < 0) {
+      return notifyError('Final Price Discount is required and must be 0 or greater');
     }
     // Validate options if any are provided
     if (
@@ -209,6 +236,12 @@ const useProductSubmit = () => {
         children: children || '',
         price: data.price,
         discount: data.discount,
+        finalPriceDiscount: data.finalPriceDiscount !== undefined && data.finalPriceDiscount !== null && String(data.finalPriceDiscount).trim() !== ''
+          ? Number(data.finalPriceDiscount)
+          : undefined,
+        updatedPrice: data.updatedPrice !== undefined && data.updatedPrice !== null && String(data.updatedPrice).trim() !== ''
+          ? Number(data.updatedPrice)
+          : undefined,
         shipping: data.shipping?.price || data.shipping?.description
           ? {
               price: data.shipping?.price ? Number(data.shipping.price) : undefined,
@@ -229,16 +262,22 @@ const useProductSubmit = () => {
         videoId: data.videoId || '',
         additionalInformation: additionalInformation,
         tags: tags.map(tag => tag.text),
-        seo: {
-          metaTitle: data.metaTitle || '',
-          metaDescription: data.metaDescription || '',
-          metaKeywords: data.metaKeywords || '',
-        },
-      };
+      seo: {
+        metaTitle: data.metaTitle || '',
+        metaDescription: data.metaDescription || '',
+        metaKeywords: data.metaKeywords || '',
+      },
+    };
 
-      if (!img) {
-        return notifyError('Product image is required');
-      }
+    // Debug: Log product data being sent
+    console.log('Product data being sent:', {
+      finalPriceDiscount: productData.finalPriceDiscount,
+      updatedPrice: productData.updatedPrice,
+    });
+
+    if (!img) {
+      return notifyError('Product image is required');
+    }
       if (!category.name || !category.id) {
         return notifyError('Category name and id are required');
       }
@@ -247,6 +286,9 @@ const useProductSubmit = () => {
       }
       if (Number(data.discount) > Number(data.price)) {
         return notifyError('Product price must be greater than discount');
+      }
+      if (!data.finalPriceDiscount || Number(data.finalPriceDiscount) < 0) {
+        return notifyError('Final Price Discount is required and must be 0 or greater');
       }
       // Validate options if any are provided
       if (

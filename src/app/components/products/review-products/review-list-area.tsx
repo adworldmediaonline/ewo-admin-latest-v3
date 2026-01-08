@@ -51,7 +51,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { useDeleteReviewsMutation } from '@/redux/review/reviewApi';
 import Swal from 'sweetalert2';
@@ -106,14 +106,44 @@ const StarRating = ({
 };
 
 export default function ReviewListArea() {
-  const { data: reviewProducts, isError, isLoading } =
-    useGetReviewProductsQuery();
   const [deleteReviews] = useDeleteReviewsMutation();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // Debounce search to avoid too many API calls
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(globalFilter.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [globalFilter]);
+
+  // Reset pagination when search or filter changes
+  React.useEffect(() => {
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearch, columnFilters]);
+
+  // Get rating filter value
+  const ratingFilter = useMemo(() => {
+    const ratingColumn = columnFilters.find(filter => filter.id === 'reviews');
+    return ratingColumn?.value as string || '';
+  }, [columnFilters]);
+
+  // Fetch review products with server-side pagination
+  const { data: reviewProducts, isError, isLoading } = useGetReviewProductsQuery({
+    page: pagination.pageIndex + 1,
+    limit: pagination.pageSize,
+    search: debouncedSearch,
+    rating: ratingFilter === 'all' ? '' : ratingFilter,
+  });
 
   const handleDelete = useCallback(async (id: string, title: string) => {
     Swal.fire({
@@ -151,38 +181,9 @@ export default function ReviewListArea() {
     );
   };
 
-  // Global filter function for searching product name
-  const globalFilterFn = useMemo(
-    () => (row: any, columnId: string, filterValue: string) => {
-      if (!filterValue) return true;
-
-      const product = row.original;
-      const searchValue = filterValue.toLowerCase();
-
-      // Search in product title
-      const titleMatch = product.title?.toLowerCase().includes(searchValue);
-
-      return titleMatch;
-    },
-    []
-  );
-
-  // Custom filter function for rating
-  const filteredData = useMemo(() => {
-    let data = reviewProducts?.data || [];
-
-    // Apply rating filter
-    const ratingFilter = columnFilters.find(f => f.id === 'reviews')?.value as string;
-    if (ratingFilter && ratingFilter !== 'all') {
-      const filterRating = parseInt(ratingFilter);
-      data = data.filter(product => {
-        const averageRating = getAverageRating(product);
-        return Math.floor(averageRating) === filterRating;
-      });
-    }
-
-    return data;
-  }, [reviewProducts?.data, columnFilters]);
+  const productData = reviewProducts?.data || [];
+  const totalProducts = reviewProducts?.pagination?.total || 0;
+  const totalPages = reviewProducts?.pagination?.pages || 0;
 
   // Define columns with advanced features
   const columns: ColumnDef<IProduct>[] = useMemo(
@@ -327,26 +328,26 @@ export default function ReviewListArea() {
     [handleDelete, getAverageRating]
   );
 
-  // Initialize table with filtered data
+  // Initialize table with server-side pagination
   const table = useReactTable({
-    data: filteredData,
+    data: productData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    globalFilterFn,
-    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    // Enable server-side pagination
+    manualPagination: true,
+    pageCount: totalPages,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      globalFilter,
+      pagination,
     },
   });
 
@@ -416,7 +417,11 @@ export default function ReviewListArea() {
               <Input
                 placeholder="Search products by name..."
                 value={globalFilter ?? ''}
-                onChange={event => setGlobalFilter(event.target.value)}
+                onChange={event => {
+                  setGlobalFilter(event.target.value);
+                  // Reset to first page when searching
+                  setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                }}
                 className="pl-10"
               />
             </div>
@@ -492,9 +497,9 @@ export default function ReviewListArea() {
                           {header.isPlaceholder
                             ? null
                             : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
                         </TableHead>
                       );
                     })}
@@ -536,9 +541,7 @@ export default function ReviewListArea() {
           <div className="flex items-center justify-between space-x-2 py-4">
             <div className="flex-1 text-sm text-muted-foreground">
               {table.getFilteredSelectedRowModel().rows.length} of{' '}
-              {table.getFilteredRowModel().rows.length} product
-              {table.getFilteredRowModel().rows.length !== 1 ? 's' : ''}{' '}
-              selected.
+              {totalProducts} product{totalProducts !== 1 ? 's' : ''} selected.
             </div>
             <div className="flex items-center space-x-6 lg:space-x-8">
               <div className="flex items-center space-x-2">
@@ -565,7 +568,7 @@ export default function ReviewListArea() {
               </div>
               <div className="flex w-[100px] items-center justify-center text-sm font-medium">
                 Page {table.getState().pagination.pageIndex + 1} of{' '}
-                {table.getPageCount()}
+                {totalPages || 1} ({totalProducts} total)
               </div>
               <div className="flex items-center space-x-2">
                 <Button

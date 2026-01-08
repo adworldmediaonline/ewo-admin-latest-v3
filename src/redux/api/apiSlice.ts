@@ -40,6 +40,7 @@ export const apiSlice = createApi({
     'ActiveAnnouncements',
     'getCategory',
     'AllOrders',
+    'ChartData',
     'getBrand',
     'getBanner',
     'getAnnouncement',

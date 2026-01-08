@@ -54,6 +54,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import {
   Table,
@@ -65,6 +66,7 @@ import {
 } from '@/components/ui/table';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useGetUsersQuery } from '@/redux/user/userApi';
+import { Search } from 'lucide-react';
 
 export const userSchema = z.object({
   _id: z.string(),
@@ -107,11 +109,10 @@ const userColumns: ColumnDef<z.infer<typeof userSchema>>[] = [
       return (
         <Badge
           variant="outline"
-          className={`px-2 ${
-            status === 'active'
-              ? 'text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950/20'
-              : 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-950/20'
-          }`}
+          className={`px-2 ${status === 'active'
+            ? 'text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950/20'
+            : 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-950/20'
+            }`}
         >
           {status === 'active' ? (
             <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400 mr-1" />
@@ -147,7 +148,6 @@ function UserRow({ row }: { row: Row<z.infer<typeof userSchema>> }) {
 }
 
 export function DataTable() {
-  const { data: usersData, isLoading, isError } = useGetUsersQuery({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -159,7 +159,30 @@ export function DataTable() {
     pageSize: 10,
   });
 
+  // Search state with debounce
+  const [searchValue, setSearchValue] = React.useState('');
+  const [debouncedSearch, setDebouncedSearch] = React.useState('');
+
+  // Debounce search to avoid too many API calls
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchValue.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchValue]);
+
+  const searchTerm = debouncedSearch;
+
+  // Fetch users with server-side pagination
+  const { data: usersData, isLoading, isError } = useGetUsersQuery({
+    page: pagination.pageIndex + 1,
+    limit: pagination.pageSize,
+    search: searchTerm as string,
+  });
+
   const users = usersData?.data || [];
+  const totalUsers = usersData?.pagination?.total || 0;
+  const totalPages = usersData?.pagination?.pages || 0;
 
   const table = useReactTable({
     data: users,
@@ -176,8 +199,11 @@ export function DataTable() {
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
+    // Disable client-side filtering/pagination since we're using server-side
+    manualPagination: true,
+    manualFiltering: true,
+    pageCount: totalPages,
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
@@ -185,51 +211,69 @@ export function DataTable() {
 
   return (
     <div className="w-full flex-col justify-start gap-6">
-      <div className="flex items-center justify-between px-4 lg:px-6">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">All Users</h2>
-          <span className="text-sm text-muted-foreground">
-            View all user accounts
-          </span>
+      <div className="flex flex-col gap-4 px-4 lg:px-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">All Users</h2>
+            <span className="text-sm text-muted-foreground">
+              View all user accounts
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <IconLayoutColumns />
+                  <span className="hidden lg:inline">Customize Columns</span>
+                  <span className="lg:hidden">Columns</span>
+                  <IconChevronDown />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {table
+                  .getAllColumns()
+                  .filter(
+                    column =>
+                      typeof column.accessorFn !== 'undefined' &&
+                      column.getCanHide()
+                  )
+                  .map(column => {
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        className="capitalize"
+                        checked={column.getIsVisible()}
+                        onCheckedChange={value =>
+                          column.toggleVisibility(!!value)
+                        }
+                      >
+                        {column.id}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" size="sm">
+              <span className="hidden lg:inline">Export Data</span>
+              <span className="lg:hidden">Export</span>
+            </Button>
+          </div>
         </div>
+        {/* Search Input */}
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <IconLayoutColumns />
-                <span className="hidden lg:inline">Customize Columns</span>
-                <span className="lg:hidden">Columns</span>
-                <IconChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {table
-                .getAllColumns()
-                .filter(
-                  column =>
-                    typeof column.accessorFn !== 'undefined' &&
-                    column.getCanHide()
-                )
-                .map(column => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={value =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="outline" size="sm">
-            <span className="hidden lg:inline">Export Data</span>
-            <span className="lg:hidden">Export</span>
-          </Button>
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or email..."
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+                // Reset to first page when searching
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              }}
+              className="pl-9"
+            />
+          </div>
         </div>
       </div>
       <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
@@ -244,9 +288,9 @@ export function DataTable() {
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                       </TableHead>
                     );
                   })}
@@ -320,7 +364,7 @@ export function DataTable() {
             </div>
             <div className="flex w-fit items-center justify-center text-sm font-medium">
               Page {table.getState().pagination.pageIndex + 1} of{' '}
-              {table.getPageCount()}
+              {totalPages || 1} ({totalUsers} total)
             </div>
             <div className="ml-auto flex items-center gap-2 lg:ml-0">
               <Button
@@ -430,11 +474,10 @@ function UserDetailViewer({ user }: { user: z.infer<typeof userSchema> }) {
                 </Label>
                 <div className="flex items-center gap-2">
                   <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${
-                      (user.status || 'active') === 'active'
-                        ? 'bg-green-50 text-green-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}
+                    className={`px-2 py-1 rounded text-xs font-medium ${(user.status || 'active') === 'active'
+                      ? 'bg-green-50 text-green-700'
+                      : 'bg-gray-100 text-gray-600'
+                      }`}
                   >
                     {(user.status || 'active').charAt(0).toUpperCase() +
                       (user.status || 'active').slice(1)}

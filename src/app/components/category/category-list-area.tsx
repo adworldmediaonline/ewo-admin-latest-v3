@@ -54,13 +54,12 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { notifyError } from '@/utils/toast';
 
 export default function CategoryListArea() {
-  const { data: categories, isError, isLoading } = useGetAllCategoriesQuery();
   const [deleteCategory] = useDeleteCategoryMutation();
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -68,6 +67,38 @@ export default function CategoryListArea() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // Debounce search to avoid too many API calls
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(globalFilter.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [globalFilter]);
+
+  // Reset pagination when search changes
+  React.useEffect(() => {
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearch]);
+
+  // Get status filter value
+  const statusFilter = useMemo(() => {
+    const statusColumn = columnFilters.find(filter => filter.id === 'status');
+    return statusColumn?.value as string || '';
+  }, [columnFilters]);
+
+  // Fetch categories with server-side pagination
+  const { data: categories, isError, isLoading } = useGetAllCategoriesQuery({
+    page: pagination.pageIndex + 1,
+    limit: pagination.pageSize,
+    search: debouncedSearch,
+    status: statusFilter === 'all' ? '' : statusFilter,
+  });
 
   const handleDelete = async (id: string, name: string) => {
     Swal.fire({
@@ -98,22 +129,6 @@ export default function CategoryListArea() {
       }
     });
   };
-
-  // Global filter function for searching category name
-  const globalFilterFn = useMemo(
-    () => (row: any, columnId: string, filterValue: string) => {
-      if (!filterValue) return true;
-
-      const category = row.original;
-      const searchValue = filterValue.toLowerCase();
-
-      // Search in parent name
-      const nameMatch = category.parent?.toLowerCase().includes(searchValue);
-
-      return nameMatch;
-    },
-    []
-  );
 
   // Define columns with advanced features
   const columns: ColumnDef<ICategoryItem>[] = useMemo(
@@ -239,11 +254,10 @@ export default function CategoryListArea() {
           return (
             <Badge
               variant={status === 'active' ? 'default' : 'secondary'}
-              className={`text-xs ${
-                status === 'active'
-                  ? 'bg-green-100 text-green-800 hover:bg-green-100'
-                  : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
-              }`}
+              className={`text-xs ${status === 'active'
+                ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+                }`}
             >
               {status === 'active' ? 'Active' : 'Inactive'}
             </Badge>
@@ -296,26 +310,31 @@ export default function CategoryListArea() {
     []
   );
 
-  // Initialize table
+  const categoryData = categories?.result || [];
+  const totalCategories = categories?.pagination?.total || 0;
+  const totalPages = categories?.pagination?.pages || 0;
+
+  // Initialize table with server-side pagination
   const table = useReactTable({
-    data: categories?.result || [],
+    data: categoryData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    globalFilterFn,
-    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    // Enable server-side pagination
+    manualPagination: true,
+    pageCount: totalPages,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      globalFilter,
+      pagination,
     },
   });
 
@@ -391,7 +410,11 @@ export default function CategoryListArea() {
               <Input
                 placeholder="Search categories by name..."
                 value={globalFilter ?? ''}
-                onChange={event => setGlobalFilter(event.target.value)}
+                onChange={event => {
+                  setGlobalFilter(event.target.value);
+                  // Reset to first page when searching
+                  setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                }}
                 className="pl-10"
               />
             </div>
@@ -458,9 +481,9 @@ export default function CategoryListArea() {
                           {header.isPlaceholder
                             ? null
                             : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
                         </TableHead>
                       );
                     })}
@@ -502,7 +525,7 @@ export default function CategoryListArea() {
           <div className="flex items-center justify-between space-x-2 py-4">
             <div className="flex-1 text-sm text-muted-foreground">
               {table.getFilteredSelectedRowModel().rows.length} of{' '}
-              {table.getFilteredRowModel().rows.length} categor{table.getFilteredRowModel().rows.length === 1 ? 'y' : 'ies'} selected.
+              {totalCategories} categor{totalCategories === 1 ? 'y' : 'ies'} selected.
             </div>
             <div className="flex items-center space-x-6 lg:space-x-8">
               <div className="flex items-center space-x-2">
@@ -529,7 +552,7 @@ export default function CategoryListArea() {
               </div>
               <div className="flex w-[100px] items-center justify-center text-sm font-medium">
                 Page {table.getState().pagination.pageIndex + 1} of{' '}
-                {table.getPageCount()}
+                {totalPages || 1} ({totalCategories} total)
               </div>
               <div className="flex items-center space-x-2">
                 <Button

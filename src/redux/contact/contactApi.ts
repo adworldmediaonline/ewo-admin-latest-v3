@@ -16,7 +16,7 @@ export const contactApi = apiSlice.injectEndpoints({
     getAllContacts: builder.query<IGetAllContactsRes, IContactQueryParams>({
       query: (params = {}) => {
         const searchParams = new URLSearchParams();
-        
+
         if (params.page) searchParams.append('page', params.page.toString());
         if (params.limit) searchParams.append('limit', params.limit.toString());
         if (params.status) searchParams.append('status', params.status);
@@ -29,7 +29,7 @@ export const contactApi = apiSlice.injectEndpoints({
         return `/api/contact?${searchParams.toString()}`;
       },
       providesTags: ['AllContacts'],
-      keepUnusedDataFor: 300,
+      keepUnusedDataFor: 60, // Keep unused data for 60 seconds only
     }),
 
     // Get single contact

@@ -37,37 +37,45 @@ import {
 } from 'lucide-react';
 
 const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
-  const { data: orders, isError, isLoading, error, refetch, isFetching } = useGetAllOrdersQuery(undefined, {
-    pollingInterval: 30000, // Auto-refresh every 30 seconds
-    refetchOnMountOrArgChange: true,
-    refetchOnFocus: true,
-  });
   const [searchVal, setSearchVal] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   });
 
-  // Filtering logic
-  const filteredOrders = useMemo(() => {
-    if (!orders?.data) return [];
-    return orders.data.filter(order => {
-      const matchesSearch =
-        !searchVal ||
-        order.orderId?.toLowerCase().includes(searchVal.toLowerCase()) ||
-        order.invoice.toString().includes(searchVal) ||
-        order.name.toLowerCase().includes(searchVal.toLowerCase()) ||
-        order.email.toLowerCase().includes(searchVal.toLowerCase()) ||
-        order.contact.includes(searchVal);
-      return matchesSearch;
-    });
-  }, [orders?.data, searchVal]);
+  // Debounce search to avoid too many API calls
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchVal.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchVal]);
 
   // Reset pagination when search changes
   React.useEffect(() => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }));
-  }, [searchVal]);
+  }, [debouncedSearch]);
+
+  // Fetch orders with server-side pagination
+  const { data: orders, isError, isLoading, error, refetch, isFetching } = useGetAllOrdersQuery(
+    {
+      page: pagination.pageIndex + 1,
+      limit: pagination.pageSize,
+      search: debouncedSearch,
+    },
+    {
+      pollingInterval: 60000, // Auto-refresh every 60 seconds (reduced frequency)
+      refetchOnMountOrArgChange: false, // Don't refetch on mount if data exists
+      refetchOnFocus: false, // Don't refetch on window focus (reduces unnecessary queries)
+      refetchOnReconnect: true, // Only refetch on reconnect
+    }
+  );
+
+  const filteredOrders = orders?.data || [];
+  const totalOrders = orders?.pagination?.total || 0;
+  const totalPages = orders?.pagination?.pages || 0;
 
   // Status badge component
   const StatusBadge = ({ status, order }: { status: string; order: any }) => {
@@ -321,18 +329,19 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     [selectedRows]
   );
 
-  // TanStack Table instance with built-in pagination
+  // TanStack Table instance with server-side pagination
   const table = useReactTable({
     data: filteredOrders,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onPaginationChange: setPagination,
     state: {
       pagination,
     },
-    manualPagination: false,
+    // Enable server-side pagination
+    manualPagination: true,
+    pageCount: totalPages,
   });
 
   // Export functionality
@@ -455,7 +464,11 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                 type="text"
                 placeholder="Search by order ID, customer name, email, or phone..."
                 value={searchVal}
-                onChange={e => setSearchVal(e.target.value)}
+                onChange={e => {
+                  setSearchVal(e.target.value);
+                  // Reset to first page when searching
+                  setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                }}
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                 <Search className="w-4 h-4 text-muted-foreground" />
@@ -518,13 +531,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                       table.getState().pagination.pageSize,
                       filteredOrders.length
                     )}{' '}
-                    of {filteredOrders.length} orders
-                    {filteredOrders.length !== orders?.data?.length && (
-                      <span className="text-primary font-medium">
-                        {' '}
-                        (filtered from {orders?.data?.length} total)
-                      </span>
-                    )}
+                    of {totalOrders} orders
                   </span>
 
                   {/* Page Size Selector */}

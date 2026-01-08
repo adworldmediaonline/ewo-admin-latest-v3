@@ -12,6 +12,12 @@ export interface ICategoryItem {
 export interface CategoryResponse {
   success: boolean;
   result: ICategoryItem[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
 export interface IAddCategory {
