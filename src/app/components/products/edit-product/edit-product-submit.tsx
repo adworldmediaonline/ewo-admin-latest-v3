@@ -353,6 +353,28 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                       errors={errors}
                       step="0.01"
                     />
+                    <FormField
+                      title="finalPriceDiscount"
+                      type="number"
+                      isRequired={true}
+                      placeHolder="Final Price Discount"
+                      bottomTitle="Set the final price after discount (required)."
+                      defaultValue={product.finalPriceDiscount}
+                      register={register}
+                      errors={errors}
+                      step="0.01"
+                    />
+                    <FormField
+                      title="updatedPrice"
+                      type="number"
+                      isRequired={false}
+                      placeHolder="Updated Price (Optional)"
+                      bottomTitle="Set an updated price if needed (optional)."
+                      defaultValue={product.updatedPrice}
+                      register={register}
+                      errors={errors}
+                      step="0.01"
+                    />
                   </div>
                 </CardContent>
               </Card>
