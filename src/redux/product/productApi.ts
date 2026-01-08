@@ -25,8 +25,8 @@ export const authApi = apiSlice.injectEndpoints({
       ProductResponse,
       { page?: number; limit?: number; search?: string; status?: string } | void
     >({
-      query: (params = {}) => {
-        const { page = 1, limit = 10, search = '', status = '' } = params;
+      query: (params) => {
+        const { page = 1, limit = 10, search = '', status = '' } = params || {};
         const queryParams = new URLSearchParams();
         if (page) queryParams.append('page', page.toString());
         if (limit) queryParams.append('limit', limit.toString());
@@ -71,8 +71,8 @@ export const authApi = apiSlice.injectEndpoints({
       IReviewProductRes,
       { page?: number; limit?: number; search?: string; rating?: string } | void
     >({
-      query: (params = {}) => {
-        const { page = 1, limit = 10, search = '', rating = '' } = params;
+      query: (params) => {
+        const { page = 1, limit = 10, search = '', rating = '' } = params || {};
         const queryParams = new URLSearchParams();
         if (page) queryParams.append('page', page.toString());
         if (limit) queryParams.append('limit', limit.toString());

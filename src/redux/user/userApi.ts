@@ -22,8 +22,8 @@ export const userApi = apiSlice.injectEndpoints({
   overrideExisting: true,
   endpoints: builder => ({
     getUsers: builder.query<GetUsersResponse, GetUsersParams | void>({
-      query: (params = {}) => {
-        const { page = 1, limit = 10, search = '', role = '' } = params;
+      query: (params) => {
+        const { page = 1, limit = 10, search = '', role = '' } = params || {};
         const queryParams = new URLSearchParams();
         if (page) queryParams.append('page', page.toString());
         if (limit) queryParams.append('limit', limit.toString());

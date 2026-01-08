@@ -14,8 +14,8 @@ export const authApi = apiSlice.injectEndpoints({
       CategoryResponse,
       { page?: number; limit?: number; search?: string; status?: string } | void
     >({
-      query: (params = {}) => {
-        const { page = 1, limit = 10, search = '', status = '' } = params;
+      query: (params) => {
+        const { page = 1, limit = 10, search = '', status = '' } = params || {};
         const queryParams = new URLSearchParams();
         if (page) queryParams.append('page', page.toString());
         if (limit) queryParams.append('limit', limit.toString());
