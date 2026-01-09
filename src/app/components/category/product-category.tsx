@@ -33,7 +33,14 @@ export default function ProductCategory({
   default_value,
 }: IPropType) {
   const [open, setOpen] = React.useState<string>('');
-  const { data: categories, isError, isLoading } = useGetAllCategoriesQuery();
+  // Fetch all categories with a high limit to get all categories
+  // Using a very high limit to ensure all categories are fetched
+  const { data: categories, isError, isLoading } = useGetAllCategoriesQuery({
+    page: 1,
+    limit: 10000, // Very high limit to fetch all categories
+    search: '',
+    status: '', // Fetch all statuses (active and inactive)
+  });
   const [selectedCategory, setSelectedCategory] = useState<string[]>(
     default_value
       ? [
