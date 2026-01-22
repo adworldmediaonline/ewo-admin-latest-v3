@@ -20,8 +20,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <Provider store={store}>
         <Elements stripe={stripePromise}>
-          {children}
-          <ToastContainer />
+        {children}
+        <ToastContainer />
         </Elements>
       </Provider>
     </ThemeProvider>
