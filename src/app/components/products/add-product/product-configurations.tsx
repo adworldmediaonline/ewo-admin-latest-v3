@@ -75,25 +75,29 @@ export default function ProductConfigurations({
   isSubmitted,
 }: IPropType) {
   const [uploadImage] = useUploadImageMutation();
+  // Track raw percentage input values to preserve decimals while typing
+  const [percentageInputs, setPercentageInputs] = useState<{
+    [key: string]: string;
+  }>({});
   const [formData, setFormData] = useState<EnhancedConfigurationData[]>(
     default_value && default_value.length > 0
       ? default_value.map(item => ({
-          ...item,
-          isValid: true,
-          hasError: false,
-          titleError: '',
-          enableCustomNote: item.enableCustomNote || false,
-          customNotePlaceholder:
-            item.customNotePlaceholder ||
-            'Specify Rod Ends preference (All left, All right, mixed, or custom).',
-          options: item.options.map(opt => ({
-            ...opt,
-            price: typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0,
-            priceType: opt.priceType || 'fixed',
-            percentage: opt.percentage || 0,
-            isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
-          })),
-        }))
+        ...item,
+        isValid: true,
+        hasError: false,
+        titleError: '',
+        enableCustomNote: item.enableCustomNote || false,
+        customNotePlaceholder:
+          item.customNotePlaceholder ||
+          'Specify Rod Ends preference (All left, All right, mixed, or custom).',
+        options: item.options.map(opt => ({
+          ...opt,
+          price: typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0,
+          priceType: opt.priceType || 'fixed',
+          percentage: opt.percentage || 0,
+          isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
+        })),
+      }))
       : []
   );
   const [hasDefaultValues, setHasDefaultValues] = useState<boolean>(false);
@@ -297,19 +301,58 @@ export default function ProductConfigurations({
     e: ChangeEvent<HTMLInputElement>
   ) => {
     const { value } = e.target;
+    const inputKey = `${configIndex}-${optionIndex}`;
     const updatedFormData = [...formData];
 
-    // Allow empty string, numbers, and numbers with decimals only
-    // Also limit to 0-100 range
-    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-      const numValue = value === '' ? 0 : parseFloat(value);
-      if (numValue >= 0 && numValue <= 100) {
-        updatedFormData[configIndex].options[optionIndex] = {
-          ...updatedFormData[configIndex].options[optionIndex],
-          percentage: numValue,
-        };
-        setFormData(updatedFormData);
-        updateParentState(updatedFormData);
+    // Update the raw input value for display
+    setPercentageInputs(prev => ({
+      ...prev,
+      [inputKey]: value,
+    }));
+
+    // Allow empty string
+    if (value === '') {
+      updatedFormData[configIndex].options[optionIndex] = {
+        ...updatedFormData[configIndex].options[optionIndex],
+        percentage: 0,
+      };
+      setFormData(updatedFormData);
+      updateParentState(updatedFormData);
+      return;
+    }
+
+    // More permissive regex - allows decimals at any point
+    // Matches: "15", "15.38", "15.", ".5", "0.5", "100", "100.0", etc.
+    const decimalRegex = /^\d*\.?\d*$/;
+
+    if (decimalRegex.test(value)) {
+      // Parse the value (handles incomplete decimals like "15." as 15)
+      const numValue = parseFloat(value);
+
+      // If it's a valid number (or in the process of typing)
+      if (!isNaN(numValue) || value.endsWith('.') || value === '.') {
+        // For incomplete decimals (ending with "."), don't update the stored value yet
+        // Just keep the raw input for display
+        if (value.endsWith('.') || value === '.') {
+          // Don't update the stored percentage value, just keep the input
+          return;
+        }
+
+        // For complete values, validate range and update
+        if (numValue >= 0 && numValue <= 100) {
+          updatedFormData[configIndex].options[optionIndex] = {
+            ...updatedFormData[configIndex].options[optionIndex],
+            percentage: numValue,
+          };
+          setFormData(updatedFormData);
+          updateParentState(updatedFormData);
+          // Clear the raw input since we have a complete value stored
+          setPercentageInputs(prev => {
+            const newInputs = { ...prev };
+            delete newInputs[inputKey];
+            return newInputs;
+          });
+        }
       }
     }
   };
@@ -360,7 +403,7 @@ export default function ProductConfigurations({
       enableCustomNote: enabled,
       customNotePlaceholder: enabled
         ? updatedFormData[configIndex].customNotePlaceholder ||
-          'Specify Rod Ends preference (All left, All right, mixed, or custom).'
+        'Specify Rod Ends preference (All left, All right, mixed, or custom).'
         : undefined,
     };
     setFormData(updatedFormData);
@@ -528,7 +571,7 @@ export default function ProductConfigurations({
           enableCustomNote: config.enableCustomNote || false,
           customNotePlaceholder: config.enableCustomNote
             ? config.customNotePlaceholder ||
-              'Specify Rod Ends preference (All left, All right, mixed, or custom).'
+            'Specify Rod Ends preference (All left, All right, mixed, or custom).'
             : undefined,
         };
       });
@@ -590,8 +633,8 @@ export default function ProductConfigurations({
                 config.hasError
                   ? 'border-destructive/50 bg-destructive/5'
                   : config.isValid && config.title.trim()
-                  ? 'border-green-500/50 bg-green-50/50'
-                  : 'border-muted hover:border-primary/50'
+                    ? 'border-green-500/50 bg-green-50/50'
+                    : 'border-muted hover:border-primary/50'
               )}
             >
               {/* Configuration Header */}
@@ -647,8 +690,8 @@ export default function ProductConfigurations({
                       config.titleError
                         ? 'border-destructive focus:border-destructive focus:ring-destructive/20'
                         : config.title && !config.titleError
-                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
-                        : 'focus:border-primary focus:ring-primary/20'
+                          ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
+                          : 'focus:border-primary focus:ring-primary/20'
                     )}
                   />
                   {config.title && !config.titleError && (
@@ -682,7 +725,7 @@ export default function ProductConfigurations({
                       disabled={
                         config.options.length > 0 &&
                         config.options[config.options.length - 1].name.trim() ===
-                          ''
+                        ''
                       }
                     >
                       <Plus className="h-3 w-3" />
@@ -692,305 +735,314 @@ export default function ProductConfigurations({
 
                   <div className="space-y-3">
                     {config.options.map((option, optionIndex) => {
-                    const canRemoveOption = config.options.length > 1;
+                      const canRemoveOption = config.options.length > 1;
 
-                    return (
-                      <div
-                        key={optionIndex}
-                        className={cn(
-                          'p-4 rounded-lg border transition-all duration-200',
-                          option.isSelected
-                            ? 'border-primary bg-primary/5'
-                            : 'border-muted bg-background hover:border-primary/30'
-                        )}
-                      >
-                        <div className="flex items-start gap-3">
-                          {/* Selection Button */}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleOptionSelect(configIndex, optionIndex)
-                            }
-                            disabled={!option.name.trim()}
-                            className={cn(
-                              'mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0',
-                              option.isSelected
-                                ? 'border-primary bg-primary'
-                                : option.name.trim()
-                                ? 'border-muted-foreground/30 hover:border-primary/50 cursor-pointer'
-                                : 'border-muted-foreground/20 opacity-50 cursor-not-allowed'
-                            )}
-                            aria-label={
-                              option.name.trim()
-                                ? `Select ${option.name}`
-                                : 'Option name required to select'
-                            }
-                          >
-                            {option.isSelected && (
-                              <div className="h-2 w-2 rounded-full bg-white" />
-                            )}
-                          </button>
+                      return (
+                        <div
+                          key={optionIndex}
+                          className={cn(
+                            'p-4 rounded-lg border transition-all duration-200',
+                            option.isSelected
+                              ? 'border-primary bg-primary/5'
+                              : 'border-muted bg-background hover:border-primary/30'
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            {/* Selection Button */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleOptionSelect(configIndex, optionIndex)
+                              }
+                              disabled={!option.name.trim()}
+                              className={cn(
+                                'mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0',
+                                option.isSelected
+                                  ? 'border-primary bg-primary'
+                                  : option.name.trim()
+                                    ? 'border-muted-foreground/30 hover:border-primary/50 cursor-pointer'
+                                    : 'border-muted-foreground/20 opacity-50 cursor-not-allowed'
+                              )}
+                              aria-label={
+                                option.name.trim()
+                                  ? `Select ${option.name}`
+                                  : 'Option name required to select'
+                              }
+                            >
+                              {option.isSelected && (
+                                <div className="h-2 w-2 rounded-full bg-white" />
+                              )}
+                            </button>
 
-                          {/* Option Fields */}
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Option Name */}
-                            <div className="space-y-2">
-                              <Label
-                                htmlFor={`option-name-${configIndex}-${optionIndex}`}
-                                className="text-xs font-medium"
-                              >
-                                Option Name
-                                <span className="text-muted-foreground text-xs"> (Optional)</span>
-                              </Label>
-                              <Input
-                                id={`option-name-${configIndex}-${optionIndex}`}
-                                type="text"
-                                placeholder='e.g. 1"-3/4" STAINLESS STEEL'
-                                value={option.name}
-                                onChange={e =>
-                                  handleOptionNameChange(
-                                    configIndex,
-                                    optionIndex,
-                                    e
-                                  )
-                                }
-                                className="text-sm"
-                              />
-                            </div>
-
-                            {/* Price Type Selection */}
-                            <div className="space-y-2 md:col-span-2">
-                              <Label className="text-xs font-medium">
-                                Price Type
-                              </Label>
-                              <Select
-                                value={option.priceType || 'fixed'}
-                                onValueChange={(value: 'fixed' | 'percentage') =>
-                                  handlePriceTypeChange(configIndex, optionIndex, value)
-                                }
-                              >
-                                <SelectTrigger className="text-sm">
-                                  <SelectValue placeholder="Select price type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="fixed">Fixed Price</SelectItem>
-                                  <SelectItem value="percentage">Percentage</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Fixed Price (shown when priceType is 'fixed') */}
-                            {(option.priceType || 'fixed') === 'fixed' && (
+                            {/* Option Fields */}
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Option Name */}
                               <div className="space-y-2">
                                 <Label
-                                  htmlFor={`option-price-${configIndex}-${optionIndex}`}
-                                  className="text-xs font-medium flex items-center gap-1"
+                                  htmlFor={`option-name-${configIndex}-${optionIndex}`}
+                                  className="text-xs font-medium"
                                 >
-                                  <DollarSign className="h-3 w-3" />
-                                  Fixed Price
+                                  Option Name
+                                  <span className="text-muted-foreground text-xs"> (Optional)</span>
                                 </Label>
-                                <div className="relative">
-                                  <Input
-                                    id={`option-price-${configIndex}-${optionIndex}`}
-                                    type="text"
-                                    inputMode="decimal"
-                                    placeholder="0.00"
-                                    value={option.price}
-                                    onChange={e =>
-                                      handleOptionPriceChange(
-                                        configIndex,
-                                        optionIndex,
-                                        e
-                                      )
-                                    }
-                                    className="text-sm pl-8"
-                                  />
-                                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  Default: $0.00
-                                </p>
+                                <Input
+                                  id={`option-name-${configIndex}-${optionIndex}`}
+                                  type="text"
+                                  placeholder='e.g. 1"-3/4" STAINLESS STEEL'
+                                  value={option.name}
+                                  onChange={e =>
+                                    handleOptionNameChange(
+                                      configIndex,
+                                      optionIndex,
+                                      e
+                                    )
+                                  }
+                                  className="text-sm"
+                                />
                               </div>
-                            )}
 
-                            {/* Percentage (shown when priceType is 'percentage') */}
-                            {(option.priceType || 'fixed') === 'percentage' && (
-                              <>
+                              {/* Price Type Selection */}
+                              <div className="space-y-2 md:col-span-2">
+                                <Label className="text-xs font-medium">
+                                  Price Type
+                                </Label>
+                                <Select
+                                  value={option.priceType || 'fixed'}
+                                  onValueChange={(value: 'fixed' | 'percentage') =>
+                                    handlePriceTypeChange(configIndex, optionIndex, value)
+                                  }
+                                >
+                                  <SelectTrigger className="text-sm">
+                                    <SelectValue placeholder="Select price type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="fixed">Fixed Price</SelectItem>
+                                    <SelectItem value="percentage">Percentage</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* Fixed Price (shown when priceType is 'fixed') */}
+                              {(option.priceType || 'fixed') === 'fixed' && (
                                 <div className="space-y-2">
                                   <Label
-                                    htmlFor={`option-percentage-${configIndex}-${optionIndex}`}
-                                    className="text-xs font-medium"
+                                    htmlFor={`option-price-${configIndex}-${optionIndex}`}
+                                    className="text-xs font-medium flex items-center gap-1"
                                   >
-                                    Percentage (%)
+                                    <DollarSign className="h-3 w-3" />
+                                    Fixed Price
                                   </Label>
                                   <div className="relative">
                                     <Input
-                                      id={`option-percentage-${configIndex}-${optionIndex}`}
+                                      id={`option-price-${configIndex}-${optionIndex}`}
                                       type="text"
                                       inputMode="decimal"
-                                      placeholder="0"
-                                      value={option.percentage || ''}
+                                      placeholder="0.00"
+                                      value={option.price}
                                       onChange={e =>
-                                        handlePercentageChange(
+                                        handleOptionPriceChange(
                                           configIndex,
                                           optionIndex,
                                           e
                                         )
                                       }
-                                      className="text-sm pr-8"
-                                      max={100}
-                                      min={0}
+                                      className="text-sm pl-8"
                                     />
-                                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
-                                      %
-                                    </span>
+                                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                                   </div>
                                   <p className="text-xs text-muted-foreground">
-                                    Range: 0-100%
-                                  </p>
-                                </div>
-                                <div className="space-y-2">
-                                  <Label className="text-xs font-medium">
-                                    Price Adjustment
-                                  </Label>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      type="button"
-                                      variant={option.isPercentageIncrease !== false ? 'default' : 'outline'}
-                                      size="sm"
-                                      onClick={() =>
-                                        handlePercentageIncreaseToggle(
-                                          configIndex,
-                                          optionIndex,
-                                          true
-                                        )
-                                      }
-                                      className="flex-1"
-                                    >
-                                      Increase
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant={option.isPercentageIncrease === false ? 'default' : 'outline'}
-                                      size="sm"
-                                      onClick={() =>
-                                        handlePercentageIncreaseToggle(
-                                          configIndex,
-                                          optionIndex,
-                                          false
-                                        )
-                                      }
-                                      className="flex-1"
-                                    >
-                                      Decrease
-                                    </Button>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    {option.isPercentageIncrease !== false ? 'Price will increase' : 'Price will decrease'} by {option.percentage || 0}%
-                                  </p>
-                                </div>
-                              </>
-                            )}
-
-                            {/* Option Image Upload */}
-                            <div className="space-y-2 md:col-span-2">
-                              <Label
-                                htmlFor={`option-image-${configIndex}-${optionIndex}`}
-                                className="text-xs font-medium flex items-center gap-1"
-                              >
-                                <ImageIcon className="h-3 w-3" />
-                                Option Image (Optional)
-                              </Label>
-                              {option.image ? (
-                                <div className="relative inline-block">
-                                  <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-border">
-                                    <Image
-                                      src={option.image}
-                                      alt={option.name || 'Option image'}
-                                      fill
-                                      className="object-cover"
-                                      sizes="96px"
-                                    />
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() =>
-                                      handleOptionImageRemove(configIndex, optionIndex)
-                                    }
-                                    className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  <input
-                                    type="file"
-                                    id={`option-image-${configIndex}-${optionIndex}`}
-                                    accept="image/png,image/jpg,image/jpeg,image/webp"
-                                    onChange={(e) =>
-                                      handleOptionImageChange(configIndex, optionIndex, e)
-                                    }
-                                    className="hidden"
-                                  />
-                                  <label
-                                    htmlFor={`option-image-${configIndex}-${optionIndex}`}
-                                    className="cursor-pointer"
-                                  >
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="gap-2"
-                                      asChild
-                                    >
-                                      <span>
-                                        <Upload className="h-3 w-3" />
-                                        Upload Image
-                                      </span>
-                                    </Button>
-                                  </label>
-                                  <p className="text-xs text-muted-foreground">
-                                    Image will replace main product image when this option is selected
+                                    Default: $0.00
                                   </p>
                                 </div>
                               )}
+
+                              {/* Percentage (shown when priceType is 'percentage') */}
+                              {(option.priceType || 'fixed') === 'percentage' && (
+                                <>
+                                  <div className="space-y-2">
+                                    <Label
+                                      htmlFor={`option-percentage-${configIndex}-${optionIndex}`}
+                                      className="text-xs font-medium"
+                                    >
+                                      Percentage (%)
+                                    </Label>
+                                    <div className="relative">
+                                      <Input
+                                        id={`option-percentage-${configIndex}-${optionIndex}`}
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="0.00"
+                                        value={
+                                          (() => {
+                                            const inputKey = `${configIndex}-${optionIndex}`;
+                                            // Use raw input if available (for typing decimals), otherwise use stored value
+                                            if (percentageInputs[inputKey] !== undefined) {
+                                              return percentageInputs[inputKey];
+                                            }
+                                            return option.percentage !== undefined && option.percentage !== null
+                                              ? option.percentage.toString()
+                                              : '';
+                                          })()
+                                        }
+                                        onChange={e =>
+                                          handlePercentageChange(
+                                            configIndex,
+                                            optionIndex,
+                                            e
+                                          )
+                                        }
+                                        className="text-sm pr-8"
+                                      />
+                                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
+                                        %
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      Range: 0-100% (decimals allowed, e.g., 15.38)
+                                    </p>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label className="text-xs font-medium">
+                                      Price Adjustment
+                                    </Label>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        type="button"
+                                        variant={option.isPercentageIncrease !== false ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() =>
+                                          handlePercentageIncreaseToggle(
+                                            configIndex,
+                                            optionIndex,
+                                            true
+                                          )
+                                        }
+                                        className="flex-1"
+                                      >
+                                        Increase
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant={option.isPercentageIncrease === false ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() =>
+                                          handlePercentageIncreaseToggle(
+                                            configIndex,
+                                            optionIndex,
+                                            false
+                                          )
+                                        }
+                                        className="flex-1"
+                                      >
+                                        Decrease
+                                      </Button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      {option.isPercentageIncrease !== false ? 'Price will increase' : 'Price will decrease'} by {option.percentage || 0}%
+                                    </p>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* Option Image Upload */}
+                              <div className="space-y-2 md:col-span-2">
+                                <Label
+                                  htmlFor={`option-image-${configIndex}-${optionIndex}`}
+                                  className="text-xs font-medium flex items-center gap-1"
+                                >
+                                  <ImageIcon className="h-3 w-3" />
+                                  Option Image (Optional)
+                                </Label>
+                                {option.image ? (
+                                  <div className="relative inline-block">
+                                    <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-border">
+                                      <Image
+                                        src={option.image}
+                                        alt={option.name || 'Option image'}
+                                        fill
+                                        className="object-cover"
+                                        sizes="96px"
+                                      />
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        handleOptionImageRemove(configIndex, optionIndex)
+                                      }
+                                      className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <input
+                                      type="file"
+                                      id={`option-image-${configIndex}-${optionIndex}`}
+                                      accept="image/png,image/jpg,image/jpeg,image/webp"
+                                      onChange={(e) =>
+                                        handleOptionImageChange(configIndex, optionIndex, e)
+                                      }
+                                      className="hidden"
+                                    />
+                                    <label
+                                      htmlFor={`option-image-${configIndex}-${optionIndex}`}
+                                      className="cursor-pointer"
+                                    >
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-2"
+                                        asChild
+                                      >
+                                        <span>
+                                          <Upload className="h-3 w-3" />
+                                          Upload Image
+                                        </span>
+                                      </Button>
+                                    </label>
+                                    <p className="text-xs text-muted-foreground">
+                                      Image will replace main product image when this option is selected
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
+
+                            {/* Remove Option Button */}
+                            {canRemoveOption && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleRemoveOption(configIndex, optionIndex)
+                                }
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
 
-                          {/* Remove Option Button */}
-                          {canRemoveOption && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                handleRemoveOption(configIndex, optionIndex)
-                              }
-                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                          {/* Selected Badge */}
+                          {option.isSelected && (
+                            <div className="mt-3 pt-3 border-t border-primary/20">
+                              <Badge
+                                variant="default"
+                                className="gap-1 bg-primary/10 text-primary hover:bg-primary/20"
+                              >
+                                <CheckCircle2 className="h-3 w-3" />
+                                Preselected Option
+                              </Badge>
+                            </div>
                           )}
                         </div>
-
-                        {/* Selected Badge */}
-                        {option.isSelected && (
-                          <div className="mt-3 pt-3 border-t border-primary/20">
-                            <Badge
-                              variant="default"
-                              className="gap-1 bg-primary/10 text-primary hover:bg-primary/20"
-                            >
-                              <CheckCircle2 className="h-3 w-3" />
-                              Preselected Option
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                   </div>
                 </div>
               )}
