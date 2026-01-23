@@ -73,7 +73,11 @@ export interface IProduct {
     options: Array<{
       name: string;
       price: number | string;
+      priceType?: 'fixed' | 'percentage';
+      percentage?: number;
+      isPercentageIncrease?: boolean;
       isSelected: boolean;
+      image?: string;
     }>;
     enableCustomNote?: boolean;
     customNotePlaceholder?: string;
