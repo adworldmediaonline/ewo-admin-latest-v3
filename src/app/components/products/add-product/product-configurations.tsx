@@ -3,6 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import {
   AlertCircle,
@@ -24,6 +26,8 @@ interface ConfigurationOption {
 interface ConfigurationData {
   title: string;
   options: ConfigurationOption[];
+  enableCustomNote?: boolean;
+  customNotePlaceholder?: string;
 }
 
 type IPropType = {
@@ -62,6 +66,10 @@ export default function ProductConfigurations({
           isValid: true,
           hasError: false,
           titleError: '',
+          enableCustomNote: item.enableCustomNote || false,
+          customNotePlaceholder:
+            item.customNotePlaceholder ||
+            'Specify Rod Ends preference (All left, All right, mixed, or custom).',
           options: item.options.map(opt => ({
             ...opt,
             price: typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0,
@@ -81,7 +89,9 @@ export default function ProductConfigurations({
     return '';
   };
 
-  const validateOptionName = (name: string): string => {
+  const validateOptionName = (name: string, enableCustomNote?: boolean): string => {
+    // Option name is optional when custom note is enabled
+    if (enableCustomNote) return '';
     if (!name.trim()) return 'Option name is required';
     if (name.trim().length < 2)
       return 'Option name must be at least 2 characters';
@@ -212,6 +222,36 @@ export default function ProductConfigurations({
     updateParentState(updatedFormData);
   };
 
+  // Handle custom note enable/disable
+  const handleCustomNoteToggle = (configIndex: number, enabled: boolean) => {
+    const updatedFormData = [...formData];
+    updatedFormData[configIndex] = {
+      ...updatedFormData[configIndex],
+      enableCustomNote: enabled,
+      customNotePlaceholder: enabled
+        ? updatedFormData[configIndex].customNotePlaceholder ||
+          'Specify Rod Ends preference (All left, All right, mixed, or custom).'
+        : undefined,
+    };
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
+  // Handle custom note placeholder change
+  const handleCustomNotePlaceholderChange = (
+    configIndex: number,
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const { value } = e.target;
+    const updatedFormData = [...formData];
+    updatedFormData[configIndex] = {
+      ...updatedFormData[configIndex],
+      customNotePlaceholder: value,
+    };
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
   // Add new configuration
   const handleAddConfiguration = () => {
     const newConfiguration: EnhancedConfigurationData = {
@@ -226,6 +266,8 @@ export default function ProductConfigurations({
       isValid: true,
       hasError: false,
       titleError: '',
+      enableCustomNote: false,
+      customNotePlaceholder: 'Specify Rod Ends preference (All left, All right, mixed, or custom).',
     };
 
     setFormData([...formData, newConfiguration]);
@@ -293,38 +335,51 @@ export default function ProductConfigurations({
     const validDataForParent = data
       .filter(config => config.title.trim() !== '')
       .map(config => {
-        const validOptions = config.options.filter(opt => opt.name.trim() !== '');
+        // If custom note is enabled, options are not required
+        let processedOptions = [];
+        if (config.enableCustomNote) {
+          // When custom note is enabled, we don't need options
+          processedOptions = [];
+        } else {
+          // When custom note is disabled, filter and process options as before
+          const validOptions = config.options.filter(opt => opt.name.trim() !== '');
 
-        // Ensure only one option is selected per configuration
-        // If multiple are selected, keep only the first one
-        let hasSelected = false;
-        const processedOptions = validOptions.map(opt => {
-          if (opt.isSelected && hasSelected) {
-            // If we already have a selected option, unselect this one
+          // Ensure only one option is selected per configuration
+          // If multiple are selected, keep only the first one
+          let hasSelected = false;
+          processedOptions = validOptions.map(opt => {
+            if (opt.isSelected && hasSelected) {
+              // If we already have a selected option, unselect this one
+              return {
+                name: opt.name.trim(),
+                price: parsePrice(opt.price),
+                isSelected: false,
+              };
+            }
+            if (opt.isSelected && !hasSelected) {
+              hasSelected = true;
+              return {
+                name: opt.name.trim(),
+                price: parsePrice(opt.price),
+                isSelected: true,
+              };
+            }
             return {
               name: opt.name.trim(),
               price: parsePrice(opt.price),
               isSelected: false,
             };
-          }
-          if (opt.isSelected && !hasSelected) {
-            hasSelected = true;
-            return {
-              name: opt.name.trim(),
-              price: parsePrice(opt.price),
-              isSelected: true,
-            };
-          }
-          return {
-            name: opt.name.trim(),
-            price: parsePrice(opt.price),
-            isSelected: false,
-          };
-        });
+          });
+        }
 
         return {
           title: config.title.trim(),
           options: processedOptions,
+          enableCustomNote: config.enableCustomNote || false,
+          customNotePlaceholder: config.enableCustomNote
+            ? config.customNotePlaceholder ||
+              'Specify Rod Ends preference (All left, All right, mixed, or custom).'
+            : undefined,
         };
       });
 
@@ -461,31 +516,32 @@ export default function ProductConfigurations({
                 )}
               </div>
 
-              {/* Options Section */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">
-                    Options ({config.options.length})
-                  </Label>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleAddOption(configIndex)}
-                    className="gap-1 h-8"
-                    disabled={
-                      config.options.length > 0 &&
-                      config.options[config.options.length - 1].name.trim() ===
-                        ''
-                    }
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add Option
-                  </Button>
-                </div>
+              {/* Options Section - Only show when custom note is disabled */}
+              {!config.enableCustomNote && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">
+                      Options ({config.options.length})
+                    </Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAddOption(configIndex)}
+                      className="gap-1 h-8"
+                      disabled={
+                        config.options.length > 0 &&
+                        config.options[config.options.length - 1].name.trim() ===
+                          ''
+                      }
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Option
+                    </Button>
+                  </div>
 
-                <div className="space-y-3">
-                  {config.options.map((option, optionIndex) => {
+                  <div className="space-y-3">
+                    {config.options.map((option, optionIndex) => {
                     const canRemoveOption = config.options.length > 1;
 
                     return (
@@ -534,7 +590,7 @@ export default function ProductConfigurations({
                                 className="text-xs font-medium"
                               >
                                 Option Name
-                                <span className="text-destructive">*</span>
+                                <span className="text-muted-foreground text-xs"> (Optional)</span>
                               </Label>
                               <Input
                                 id={`option-name-${configIndex}-${optionIndex}`}
@@ -616,7 +672,51 @@ export default function ProductConfigurations({
                       </div>
                     );
                   })}
+                  </div>
                 </div>
+              )}
+
+              {/* Custom Note Section */}
+              <div className="space-y-3 mt-6 pt-6 border-t">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`enable-custom-note-${configIndex}`}
+                    checked={config.enableCustomNote || false}
+                    onCheckedChange={(checked) =>
+                      handleCustomNoteToggle(configIndex, checked as boolean)
+                    }
+                  />
+                  <Label
+                    htmlFor={`enable-custom-note-${configIndex}`}
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Enable Custom Note Field
+                  </Label>
+                </div>
+                {config.enableCustomNote && (
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor={`custom-note-placeholder-${configIndex}`}
+                      className="text-sm font-medium"
+                    >
+                      Placeholder Text
+                    </Label>
+                    <Input
+                      id={`custom-note-placeholder-${configIndex}`}
+                      type="text"
+                      placeholder="Specify Rod Ends preference (All left, All right, mixed, or custom)."
+                      value={config.customNotePlaceholder || ''}
+                      onChange={(e) =>
+                        handleCustomNotePlaceholderChange(configIndex, e)
+                      }
+                      className="text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This text will appear as a placeholder in the textarea on
+                      the frontend.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           );
