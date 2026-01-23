@@ -336,7 +336,7 @@ export default function ProductConfigurations({
       .filter(config => config.title.trim() !== '')
       .map(config => {
         // If custom note is enabled, options are not required
-        let processedOptions = [];
+        let processedOptions: Array<{ name: string; price: number; isSelected: boolean }> = [];
         if (config.enableCustomNote) {
           // When custom note is enabled, we don't need options
           processedOptions = [];
