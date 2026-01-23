@@ -521,10 +521,10 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                 <div className="flex items-center mb-2">
                   <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 mr-2" />
                   <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-                    Order Note
+                    Important Note
                   </h4>
                 </div>
-                <p className="text-yellow-700 dark:text-yellow-300 text-sm">
+                <p className="text-yellow-700 dark:text-yellow-300 text-sm whitespace-pre-wrap break-words">
                   {order.orderNote}
                 </p>
               </div>
