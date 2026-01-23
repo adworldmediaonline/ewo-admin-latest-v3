@@ -238,6 +238,29 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
     return (
       <div className="mt-2 space-y-2">
         {productConfigurations.map((config: any, configIndex: number) => {
+          // Handle custom note configurations
+          if (config.enableCustomNote) {
+            const customNoteValue = config.customNoteValue;
+            if (!customNoteValue) {
+              return null;
+            }
+
+            return (
+              <div key={config._id || configIndex} className="space-y-1">
+                <div className="text-xs font-semibold text-muted-foreground">
+                  {safeRenderString(config.title)}:
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  <div className="inline-flex items-start px-3 py-2 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded border border-purple-200 dark:border-purple-800 max-w-full">
+                    <span className="font-medium mr-1">Note:</span>
+                    <span className="break-words">{safeRenderString(customNoteValue)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // Handle regular configurations with options
           if (!config.options || !Array.isArray(config.options)) {
             return null;
           }

@@ -75,6 +75,8 @@ export interface IProduct {
       price: number | string;
       isSelected: boolean;
     }>;
+    enableCustomNote?: boolean;
+    customNotePlaceholder?: string;
   }>;
   tags: string[];
   offerDate?: {
