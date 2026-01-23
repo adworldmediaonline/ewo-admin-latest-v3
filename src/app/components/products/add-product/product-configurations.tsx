@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { useUploadImageMutation } from '@/redux/cloudinary/cloudinaryApi';
+import Image from 'next/image';
 import {
   AlertCircle,
   CheckCircle2,
@@ -14,6 +16,8 @@ import {
   Settings,
   Trash2,
   X,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { ChangeEvent, SetStateAction, useEffect, useState } from 'react';
 
@@ -21,6 +25,7 @@ interface ConfigurationOption {
   name: string;
   price: number | string;
   isSelected: boolean;
+  image?: string;
 }
 
 interface ConfigurationData {
@@ -59,6 +64,7 @@ export default function ProductConfigurations({
   default_value,
   isSubmitted,
 }: IPropType) {
+  const [uploadImage] = useUploadImageMutation();
   const [formData, setFormData] = useState<EnhancedConfigurationData[]>(
     default_value && default_value.length > 0
       ? default_value.map(item => ({
@@ -199,6 +205,61 @@ export default function ProductConfigurations({
     }
   };
 
+  // Handle option image upload
+  const handleOptionImageUpload = async (
+    configIndex: number,
+    optionIndex: number,
+    file: File
+  ) => {
+    if (!file.type.startsWith('image/')) {
+      return;
+    }
+
+    const uploadFormData = new FormData();
+    uploadFormData.append('image', file);
+
+    try {
+      const result = await uploadImage(uploadFormData).unwrap();
+
+      if (result?.data?.url) {
+        const updatedFormData = [...formData];
+        updatedFormData[configIndex].options[optionIndex] = {
+          ...updatedFormData[configIndex].options[optionIndex],
+          image: result.data.url,
+        };
+        setFormData(updatedFormData);
+        updateParentState(updatedFormData);
+      }
+    } catch (error) {
+      console.error('Image upload failed:', error);
+    }
+  };
+
+  // Handle option image change
+  const handleOptionImageChange = (
+    configIndex: number,
+    optionIndex: number,
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleOptionImageUpload(configIndex, optionIndex, e.target.files[0]);
+    }
+  };
+
+  // Handle option image remove
+  const handleOptionImageRemove = (
+    configIndex: number,
+    optionIndex: number
+  ) => {
+    const updatedFormData = [...formData];
+    updatedFormData[configIndex].options[optionIndex] = {
+      ...updatedFormData[configIndex].options[optionIndex],
+      image: '',
+    };
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
   // Handle option selection (preselected)
   const handleOptionSelect = (configIndex: number, optionIndex: number) => {
     const updatedFormData = [...formData];
@@ -261,6 +322,7 @@ export default function ProductConfigurations({
           name: '',
           price: '',
           isSelected: false, // Don't preselect empty options
+          image: '',
         },
       ],
       isValid: true,
@@ -294,6 +356,7 @@ export default function ProductConfigurations({
         name: '',
         price: '',
         isSelected: false,
+        image: '',
       };
 
       config.options.push(newOption);
@@ -336,7 +399,7 @@ export default function ProductConfigurations({
       .filter(config => config.title.trim() !== '')
       .map(config => {
         // If custom note is enabled, options are not required
-        let processedOptions: Array<{ name: string; price: number; isSelected: boolean }> = [];
+        let processedOptions: Array<{ name: string; price: number; isSelected: boolean; image?: string }> = [];
         if (config.enableCustomNote) {
           // When custom note is enabled, we don't need options
           processedOptions = [];
@@ -354,6 +417,7 @@ export default function ProductConfigurations({
                 name: opt.name.trim(),
                 price: parsePrice(opt.price),
                 isSelected: false,
+                image: opt.image || '',
               };
             }
             if (opt.isSelected && !hasSelected) {
@@ -362,12 +426,14 @@ export default function ProductConfigurations({
                 name: opt.name.trim(),
                 price: parsePrice(opt.price),
                 isSelected: true,
+                image: opt.image || '',
               };
             }
             return {
               name: opt.name.trim(),
               price: parsePrice(opt.price),
               isSelected: false,
+              image: opt.image || '',
             };
           });
         }
@@ -638,6 +704,73 @@ export default function ProductConfigurations({
                               <p className="text-xs text-muted-foreground">
                                 Default: $0.00
                               </p>
+                            </div>
+
+                            {/* Option Image Upload */}
+                            <div className="space-y-2 md:col-span-2">
+                              <Label
+                                htmlFor={`option-image-${configIndex}-${optionIndex}`}
+                                className="text-xs font-medium flex items-center gap-1"
+                              >
+                                <ImageIcon className="h-3 w-3" />
+                                Option Image (Optional)
+                              </Label>
+                              {option.image ? (
+                                <div className="relative inline-block">
+                                  <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-border">
+                                    <Image
+                                      src={option.image}
+                                      alt={option.name || 'Option image'}
+                                      fill
+                                      className="object-cover"
+                                      sizes="96px"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      handleOptionImageRemove(configIndex, optionIndex)
+                                    }
+                                    className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <input
+                                    type="file"
+                                    id={`option-image-${configIndex}-${optionIndex}`}
+                                    accept="image/png,image/jpg,image/jpeg,image/webp"
+                                    onChange={(e) =>
+                                      handleOptionImageChange(configIndex, optionIndex, e)
+                                    }
+                                    className="hidden"
+                                  />
+                                  <label
+                                    htmlFor={`option-image-${configIndex}-${optionIndex}`}
+                                    className="cursor-pointer"
+                                  >
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-2"
+                                      asChild
+                                    >
+                                      <span>
+                                        <Upload className="h-3 w-3" />
+                                        Upload Image
+                                      </span>
+                                    </Button>
+                                  </label>
+                                  <p className="text-xs text-muted-foreground">
+                                    Image will replace main product image when this option is selected
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </div>
 

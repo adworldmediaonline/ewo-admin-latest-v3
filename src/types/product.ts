@@ -74,6 +74,7 @@ export interface IProduct {
       name: string;
       price: number | string;
       isSelected: boolean;
+      image?: string;
     }>;
     enableCustomNote?: boolean;
     customNotePlaceholder?: string;
