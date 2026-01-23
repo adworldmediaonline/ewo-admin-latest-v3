@@ -272,17 +272,38 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
             return null;
           }
 
+          // Determine pricing display based on priceType
+          const priceType = selectedOption.priceType || 'fixed';
+          const hasPrice = priceType === 'fixed' ? Number(selectedOption.price || 0) > 0 : false;
+          const hasPercentage = priceType === 'percentage' && selectedOption.percentage !== undefined && selectedOption.percentage !== null && Number(selectedOption.percentage) > 0;
+
           return (
             <div key={config._id || configIndex} className="space-y-1">
               <div className="text-xs font-semibold text-muted-foreground">
                 {safeRenderString(config.title)}:
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 items-center">
+                {selectedOption.image && (
+                  <div className="flex-shrink-0 w-8 h-8 rounded border border-border overflow-hidden">
+                    <Image
+                      src={selectedOption.image}
+                      alt={safeRenderString(selectedOption.name, 'Option Image')}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 object-cover"
+                    />
+                  </div>
+                )}
                 <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-800">
                   {safeRenderString(selectedOption.name)}
-                  {Number(selectedOption.price || 0) > 0 && (
+                  {hasPrice && (
                     <span className="ml-1 text-green-600 dark:text-green-400 font-medium">
                       (+${Number(selectedOption.price || 0).toFixed(2)})
+                    </span>
+                  )}
+                  {hasPercentage && (
+                    <span className={`ml-1 font-medium ${selectedOption.isPercentageIncrease !== false ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      ({selectedOption.isPercentageIncrease !== false ? '+' : '-'}{Number(selectedOption.percentage || 0).toFixed(2)}%)
                     </span>
                   )}
                 </span>
@@ -667,22 +688,40 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center space-x-4">
                               <div className="flex-shrink-0 w-12 h-12">
-                                {item.image ? (
-                                  <Image
-                                    src={item.image}
-                                    alt={safeRenderString(
-                                      item.title,
-                                      'Product Image'
-                                    )}
-                                    width={48}
-                                    height={48}
-                                    className="w-12 h-12 rounded-lg object-cover border border-border"
-                                  />
-                                ) : (
-                                  <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                                    <Package className="w-6 h-6 text-muted-foreground" />
-                                  </div>
-                                )}
+                                {(() => {
+                                  // Prioritize option image from productConfigurations
+                                  let productImage = item.image || item.img;
+
+                                  if (item.productConfigurations && Array.isArray(item.productConfigurations)) {
+                                    // Find the first selected option with an image
+                                    for (const config of item.productConfigurations) {
+                                      if (config.options && Array.isArray(config.options)) {
+                                        const selectedOption = config.options.find((opt: any) => opt.isSelected === true);
+                                        if (selectedOption && selectedOption.image) {
+                                          productImage = selectedOption.image;
+                                          break;
+                                        }
+                                      }
+                                    }
+                                  }
+
+                                  return productImage ? (
+                                    <Image
+                                      src={productImage}
+                                      alt={safeRenderString(
+                                        item.title,
+                                        'Product Image'
+                                      )}
+                                      width={48}
+                                      height={48}
+                                      className="w-12 h-12 rounded-lg object-cover border border-border"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                                      <Package className="w-6 h-6 text-muted-foreground" />
+                                    </div>
+                                  );
+                                })()}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="text-sm font-medium text-foreground truncate">
