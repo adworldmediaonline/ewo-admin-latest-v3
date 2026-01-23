@@ -5,6 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useUploadImageMutation } from '@/redux/cloudinary/cloudinaryApi';
 import Image from 'next/image';
@@ -24,6 +31,9 @@ import { ChangeEvent, SetStateAction, useEffect, useState } from 'react';
 interface ConfigurationOption {
   name: string;
   price: number | string;
+  priceType?: 'fixed' | 'percentage';
+  percentage?: number;
+  isPercentageIncrease?: boolean;
   isSelected: boolean;
   image?: string;
 }
@@ -79,6 +89,9 @@ export default function ProductConfigurations({
           options: item.options.map(opt => ({
             ...opt,
             price: typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0,
+            priceType: opt.priceType || 'fixed',
+            percentage: opt.percentage || 0,
+            isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
           })),
         }))
       : []
@@ -260,6 +273,62 @@ export default function ProductConfigurations({
     updateParentState(updatedFormData);
   };
 
+  // Handle price type change
+  const handlePriceTypeChange = (
+    configIndex: number,
+    optionIndex: number,
+    priceType: 'fixed' | 'percentage'
+  ) => {
+    const updatedFormData = [...formData];
+    updatedFormData[configIndex].options[optionIndex] = {
+      ...updatedFormData[configIndex].options[optionIndex],
+      priceType,
+      // Reset percentage if switching to fixed
+      percentage: priceType === 'fixed' ? 0 : updatedFormData[configIndex].options[optionIndex].percentage || 0,
+    };
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
+  // Handle percentage change
+  const handlePercentageChange = (
+    configIndex: number,
+    optionIndex: number,
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const { value } = e.target;
+    const updatedFormData = [...formData];
+
+    // Allow empty string, numbers, and numbers with decimals only
+    // Also limit to 0-100 range
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+      const numValue = value === '' ? 0 : parseFloat(value);
+      if (numValue >= 0 && numValue <= 100) {
+        updatedFormData[configIndex].options[optionIndex] = {
+          ...updatedFormData[configIndex].options[optionIndex],
+          percentage: numValue,
+        };
+        setFormData(updatedFormData);
+        updateParentState(updatedFormData);
+      }
+    }
+  };
+
+  // Handle percentage increase/decrease toggle
+  const handlePercentageIncreaseToggle = (
+    configIndex: number,
+    optionIndex: number,
+    isIncrease: boolean
+  ) => {
+    const updatedFormData = [...formData];
+    updatedFormData[configIndex].options[optionIndex] = {
+      ...updatedFormData[configIndex].options[optionIndex],
+      isPercentageIncrease: isIncrease,
+    };
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
   // Handle option selection (preselected)
   const handleOptionSelect = (configIndex: number, optionIndex: number) => {
     const updatedFormData = [...formData];
@@ -321,6 +390,9 @@ export default function ProductConfigurations({
         {
           name: '',
           price: '',
+          priceType: 'fixed',
+          percentage: 0,
+          isPercentageIncrease: true,
           isSelected: false, // Don't preselect empty options
           image: '',
         },
@@ -355,6 +427,9 @@ export default function ProductConfigurations({
       const newOption: ConfigurationOption = {
         name: '',
         price: '',
+        priceType: 'fixed',
+        percentage: 0,
+        isPercentageIncrease: true,
         isSelected: false,
         image: '',
       };
@@ -416,6 +491,9 @@ export default function ProductConfigurations({
               return {
                 name: opt.name.trim(),
                 price: parsePrice(opt.price),
+                priceType: opt.priceType || 'fixed',
+                percentage: opt.percentage || 0,
+                isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
                 isSelected: false,
                 image: opt.image || '',
               };
@@ -425,6 +503,9 @@ export default function ProductConfigurations({
               return {
                 name: opt.name.trim(),
                 price: parsePrice(opt.price),
+                priceType: opt.priceType || 'fixed',
+                percentage: opt.percentage || 0,
+                isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
                 isSelected: true,
                 image: opt.image || '',
               };
@@ -432,6 +513,9 @@ export default function ProductConfigurations({
             return {
               name: opt.name.trim(),
               price: parsePrice(opt.price),
+              priceType: opt.priceType || 'fixed',
+              percentage: opt.percentage || 0,
+              isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
               isSelected: false,
               image: opt.image || '',
             };
@@ -674,37 +758,139 @@ export default function ProductConfigurations({
                               />
                             </div>
 
-                            {/* Option Price */}
-                            <div className="space-y-2">
-                              <Label
-                                htmlFor={`option-price-${configIndex}-${optionIndex}`}
-                                className="text-xs font-medium flex items-center gap-1"
-                              >
-                                <DollarSign className="h-3 w-3" />
-                                Price
+                            {/* Price Type Selection */}
+                            <div className="space-y-2 md:col-span-2">
+                              <Label className="text-xs font-medium">
+                                Price Type
                               </Label>
-                              <div className="relative">
-                                <Input
-                                  id={`option-price-${configIndex}-${optionIndex}`}
-                                  type="text"
-                                  inputMode="decimal"
-                                  placeholder="0.00"
-                                  value={option.price}
-                                  onChange={e =>
-                                    handleOptionPriceChange(
-                                      configIndex,
-                                      optionIndex,
-                                      e
-                                    )
-                                  }
-                                  className="text-sm pl-8"
-                                />
-                                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                Default: $0.00
-                              </p>
+                              <Select
+                                value={option.priceType || 'fixed'}
+                                onValueChange={(value: 'fixed' | 'percentage') =>
+                                  handlePriceTypeChange(configIndex, optionIndex, value)
+                                }
+                              >
+                                <SelectTrigger className="text-sm">
+                                  <SelectValue placeholder="Select price type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="fixed">Fixed Price</SelectItem>
+                                  <SelectItem value="percentage">Percentage</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
+
+                            {/* Fixed Price (shown when priceType is 'fixed') */}
+                            {(option.priceType || 'fixed') === 'fixed' && (
+                              <div className="space-y-2">
+                                <Label
+                                  htmlFor={`option-price-${configIndex}-${optionIndex}`}
+                                  className="text-xs font-medium flex items-center gap-1"
+                                >
+                                  <DollarSign className="h-3 w-3" />
+                                  Fixed Price
+                                </Label>
+                                <div className="relative">
+                                  <Input
+                                    id={`option-price-${configIndex}-${optionIndex}`}
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="0.00"
+                                    value={option.price}
+                                    onChange={e =>
+                                      handleOptionPriceChange(
+                                        configIndex,
+                                        optionIndex,
+                                        e
+                                      )
+                                    }
+                                    className="text-sm pl-8"
+                                  />
+                                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Default: $0.00
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Percentage (shown when priceType is 'percentage') */}
+                            {(option.priceType || 'fixed') === 'percentage' && (
+                              <>
+                                <div className="space-y-2">
+                                  <Label
+                                    htmlFor={`option-percentage-${configIndex}-${optionIndex}`}
+                                    className="text-xs font-medium"
+                                  >
+                                    Percentage (%)
+                                  </Label>
+                                  <div className="relative">
+                                    <Input
+                                      id={`option-percentage-${configIndex}-${optionIndex}`}
+                                      type="text"
+                                      inputMode="decimal"
+                                      placeholder="0"
+                                      value={option.percentage || ''}
+                                      onChange={e =>
+                                        handlePercentageChange(
+                                          configIndex,
+                                          optionIndex,
+                                          e
+                                        )
+                                      }
+                                      className="text-sm pr-8"
+                                      max={100}
+                                      min={0}
+                                    />
+                                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
+                                      %
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Range: 0-100%
+                                  </p>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-xs font-medium">
+                                    Price Adjustment
+                                  </Label>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      variant={option.isPercentageIncrease !== false ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() =>
+                                        handlePercentageIncreaseToggle(
+                                          configIndex,
+                                          optionIndex,
+                                          true
+                                        )
+                                      }
+                                      className="flex-1"
+                                    >
+                                      Increase
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={option.isPercentageIncrease === false ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() =>
+                                        handlePercentageIncreaseToggle(
+                                          configIndex,
+                                          optionIndex,
+                                          false
+                                        )
+                                      }
+                                      className="flex-1"
+                                    >
+                                      Decrease
+                                    </Button>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {option.isPercentageIncrease !== false ? 'Price will increase' : 'Price will decrease'} by {option.percentage || 0}%
+                                  </p>
+                                </div>
+                              </>
+                            )}
 
                             {/* Option Image Upload */}
                             <div className="space-y-2 md:col-span-2">
