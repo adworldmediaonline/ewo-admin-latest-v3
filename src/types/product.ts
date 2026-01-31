@@ -77,6 +77,7 @@ export interface IProduct {
     }>;
   }>;
   tags: string[];
+  badges?: string[];
   offerDate?: {
     startDate: string | null;
     endDate: string | null;

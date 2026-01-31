@@ -13,6 +13,7 @@ import ProductConfigurations from './product-configurations';
 import ProductVariants from './product-variants';
 import SEOFields from './seo-fields';
 import Tags from './tags';
+import Badges from './badges';
 import YouTubeVideoInput from './youtube-video-input';
 
 // UI Components
@@ -38,6 +39,8 @@ const ProductSubmit = () => {
     errors,
     tags,
     setTags,
+    badges,
+    setBadges,
     setAdditionalInformation,
     control,
     setCategory,
@@ -480,6 +483,13 @@ const ProductSubmit = () => {
                     Product Tags
                   </label>
                   <Tags tags={tags} setTags={setTags} />
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Product Badges
+                  </label>
+                  <Badges badges={badges} setBadges={setBadges} />
                 </div>
               </CardContent>
             </Card>
