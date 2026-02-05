@@ -396,7 +396,7 @@ export default function ProductListArea() {
 
         if (result.data?.data) {
           allProducts.push(...result.data.data);
-          
+
           // Check if there are more pages
           const totalPages = result.data.pagination?.pages || 0;
           hasMorePages = currentPage < totalPages;

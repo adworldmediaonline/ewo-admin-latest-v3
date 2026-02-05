@@ -47,15 +47,17 @@ export const authApi = apiSlice.injectEndpoints({
     // get recent orders - Optimized with pagination
     getAllOrders: builder.query<
       IGetAllOrdersRes,
-      { page?: number; limit?: number; search?: string; status?: string } | void
+      { page?: number; limit?: number; search?: string; status?: string; startDate?: string; endDate?: string } | void
     >({
       query: (params) => {
-        const { page = 1, limit = 10, search = '', status = '' } = params || {};
+        const { page = 1, limit = 10, search = '', status = '', startDate = '', endDate = '' } = params || {};
         const queryParams = new URLSearchParams();
         if (page) queryParams.append('page', page.toString());
         if (limit) queryParams.append('limit', limit.toString());
         if (search) queryParams.append('search', search);
         if (status) queryParams.append('status', status);
+        if (startDate) queryParams.append('startDate', startDate);
+        if (endDate) queryParams.append('endDate', endDate);
         return `/api/order/orders?${queryParams.toString()}`;
       },
       providesTags: ['AllOrders'],
