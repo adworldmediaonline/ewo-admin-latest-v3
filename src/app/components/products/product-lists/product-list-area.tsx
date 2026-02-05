@@ -28,7 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useGetAllProductsQuery } from '@/redux/product/productApi';
+import { useGetAllProductsQuery, authApi } from '@/redux/product/productApi';
+import { store } from '@/redux/store';
 import { IProduct } from '@/types/product';
 import { exportProductsToCSV } from '@/utils/export-products';
 import {
@@ -51,6 +52,7 @@ import {
   Eye,
   MoreHorizontal,
   Package,
+  RefreshCw,
   Search,
   Star,
   Trash2,
@@ -118,6 +120,7 @@ export default function ProductListArea() {
     pageIndex: 0,
     pageSize: 10,
   });
+  const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
 
   // Debounce search to avoid too many API calls
   React.useEffect(() => {
@@ -371,6 +374,52 @@ export default function ProductListArea() {
   const totalProducts = products?.pagination?.total || 0;
   const totalPages = products?.pagination?.pages || 0;
 
+  // Download all products functionality
+  const handleDownloadAll = async () => {
+    setIsDownloadingAll(true);
+    try {
+      const allProducts: IProduct[] = [];
+      let currentPage = 1;
+      let hasMorePages = true;
+      const pageSize = 100; // Fetch 100 products per page for efficiency
+
+      // Fetch all pages of products (without filters to get ALL products)
+      while (hasMorePages) {
+        const result = await store.dispatch(
+          authApi.endpoints.getAllProducts.initiate({
+            page: currentPage,
+            limit: pageSize,
+            search: '', // Download ALL products regardless of current filters
+            status: '', // Download ALL products regardless of current filters
+          })
+        );
+
+        if (result.data?.data) {
+          allProducts.push(...result.data.data);
+          
+          // Check if there are more pages
+          const totalPages = result.data.pagination?.pages || 0;
+          hasMorePages = currentPage < totalPages;
+          currentPage++;
+        } else {
+          hasMorePages = false;
+        }
+      }
+
+      // Export all products
+      if (allProducts.length > 0) {
+        exportProductsToCSV(allProducts);
+      } else {
+        alert('No products found to export');
+      }
+    } catch (error) {
+      console.error('Error downloading all products:', error);
+      alert('Failed to download all products. Please try again.');
+    } finally {
+      setIsDownloadingAll(false);
+    }
+  };
+
   // Initialize table with server-side pagination
   const table = useReactTable({
     data: productData,
@@ -464,6 +513,23 @@ export default function ProductListArea() {
               >
                 <Download className="mr-2 h-4 w-4" />
                 Export Data
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleDownloadAll}
+                disabled={isDownloadingAll}
+              >
+                {isDownloadingAll ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download All
+                  </>
+                )}
               </Button>
               <Button asChild>
                 <Link href="/dashboard/super-admin/product/add">
@@ -665,6 +731,30 @@ export default function ProductListArea() {
                   <span>&raquo;</span>
                 </Button>
               </div>
+            </div>
+          </div>
+
+          {/* Download All Button at Bottom */}
+          <div className="px-6 py-4 border-t border-border bg-muted/20">
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={handleDownloadAll}
+                disabled={isDownloadingAll}
+                className="inline-flex items-center px-6 py-3"
+              >
+                {isDownloadingAll ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Downloading All Products...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download All Products
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </CardContent>
