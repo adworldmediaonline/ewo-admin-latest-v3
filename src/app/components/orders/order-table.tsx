@@ -20,6 +20,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import {
+  Calendar as CalendarIcon,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
@@ -36,6 +37,16 @@ import {
   User,
   XCircle,
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { DateRange } from 'react-day-picker';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   const [searchVal, setSearchVal] = useState<string>('');
@@ -46,6 +57,8 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     pageSize: 10,
   });
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
+  const [isDownloadingByDateRange, setIsDownloadingByDateRange] = useState<boolean>(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   // Debounce search to avoid too many API calls
   React.useEffect(() => {
@@ -55,10 +68,14 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     return () => clearTimeout(timer);
   }, [searchVal]);
 
-  // Reset pagination when search changes
+  // Reset pagination when search or date range changes
   React.useEffect(() => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }));
-  }, [debouncedSearch]);
+  }, [debouncedSearch, dateRange]);
+
+  // Format date range for API
+  const startDate = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
+  const endDate = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '';
 
   // Fetch orders with server-side pagination
   const { data: orders, isError, isLoading, error, refetch, isFetching } = useGetAllOrdersQuery(
@@ -66,6 +83,8 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       page: pagination.pageIndex + 1,
       limit: pagination.pageSize,
       search: debouncedSearch,
+      startDate: startDate,
+      endDate: endDate,
     },
     {
       pollingInterval: 60000, // Auto-refresh every 60 seconds (reduced frequency)
@@ -484,7 +503,148 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     window.URL.revokeObjectURL(url);
   };
 
-  // Download all orders functionality
+  // Download orders by date range functionality
+  const handleDownloadByDateRange = async () => {
+    if (!dateRange?.from || !dateRange?.to) {
+      alert('Please select a date range first');
+      return;
+    }
+
+    setIsDownloadingByDateRange(true);
+    try {
+      const allOrders: any[] = [];
+      let currentPage = 1;
+      let hasMorePages = true;
+      const pageSize = 100; // Fetch 100 orders per page for efficiency
+
+      // Get date range values
+      const downloadStartDate = format(dateRange.from, 'yyyy-MM-dd');
+      const downloadEndDate = format(dateRange.to, 'yyyy-MM-dd');
+
+      // Fetch all pages of orders within date range
+      while (hasMorePages) {
+        const result = await store.dispatch(
+          authApi.endpoints.getAllOrders.initiate({
+            page: currentPage,
+            limit: pageSize,
+            search: '', // Ignore search filters for date range download
+            status: '', // Ignore status filters for date range download
+            startDate: downloadStartDate,
+            endDate: downloadEndDate,
+          })
+        );
+
+        if (result.data?.data) {
+          allOrders.push(...result.data.data);
+          
+          // Check if there are more pages
+          const totalPages = result.data.pagination?.pages || 0;
+          hasMorePages = currentPage < totalPages;
+          currentPage++;
+        } else {
+          hasMorePages = false;
+        }
+      }
+
+      // Generate CSV from all orders
+      const escapeCsvValue = (value: any): string => {
+        if (value === null || value === undefined) return '';
+        const stringValue = String(value);
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      };
+
+      const csvRows: string[] = [];
+      
+      // CSV Header
+      csvRows.push([
+        'Order Object ID',
+        'Order ID',
+        'Invoice',
+        'Customer',
+        'Email',
+        'Product SKU',
+        'Product Title',
+        'Quantity',
+        'Product Price',
+        'Subtotal',
+        'Shipping Cost',
+        'Tax',
+        'Discount',
+        'Total Amount',
+        'Status',
+        'Payment Method',
+        'Created At',
+      ].join(','));
+
+      // CSV Rows - Expand cart items
+      allOrders.forEach(order => {
+        if (order.cart && Array.isArray(order.cart) && order.cart.length > 0) {
+          order.cart.forEach((item: any) => {
+            csvRows.push([
+              escapeCsvValue(order._id),
+              escapeCsvValue(order.orderId),
+              escapeCsvValue(order.invoice),
+              escapeCsvValue(order.name),
+              escapeCsvValue(order.email),
+              escapeCsvValue(item.sku || ''),
+              escapeCsvValue(item.title || ''),
+              escapeCsvValue(item.orderQuantity || 1),
+              escapeCsvValue(item.finalPriceDiscount || item.price || 0),
+              escapeCsvValue(order.subTotal || 0),
+              escapeCsvValue(order.shippingCost || 0),
+              escapeCsvValue(order.tax || 0),
+              escapeCsvValue(order.discount || 0),
+              escapeCsvValue(order.totalAmount || 0),
+              escapeCsvValue(order.status),
+              escapeCsvValue(order.paymentMethod),
+              escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss')),
+            ].join(','));
+          });
+        } else {
+          // If no cart items, still add a row with order info
+          csvRows.push([
+            escapeCsvValue(order._id),
+            escapeCsvValue(order.orderId),
+            escapeCsvValue(order.invoice),
+            escapeCsvValue(order.name),
+            escapeCsvValue(order.email),
+            '',
+            '',
+            '',
+            '',
+            escapeCsvValue(order.subTotal || 0),
+            escapeCsvValue(order.shippingCost || 0),
+            escapeCsvValue(order.tax || 0),
+            escapeCsvValue(order.discount || 0),
+            escapeCsvValue(order.totalAmount || 0),
+            escapeCsvValue(order.status),
+            escapeCsvValue(order.paymentMethod),
+            escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss')),
+          ].join(','));
+        }
+      });
+
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateRangeStr = `${downloadStartDate}_to_${downloadEndDate}`;
+      a.download = `orders-${dateRangeStr}-${dayjs().format('YYYY-MM-DD')}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading orders by date range:', error);
+      alert('Failed to download orders. Please try again.');
+    } finally {
+      setIsDownloadingByDateRange(false);
+    }
+  };
+
+  // Download all orders functionality (ignores all filters including date range)
   const handleDownloadAll = async () => {
     setIsDownloadingAll(true);
     try {
@@ -493,13 +653,16 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       let hasMorePages = true;
       const pageSize = 100; // Fetch 100 orders per page for efficiency
 
-      // Fetch all pages of orders
+      // Fetch all pages of orders (no filters)
       while (hasMorePages) {
         const result = await store.dispatch(
           authApi.endpoints.getAllOrders.initiate({
             page: currentPage,
             limit: pageSize,
-            search: debouncedSearch, // Include search filter if any
+            search: '', // Download All ignores search filters
+            status: '', // Download All ignores status filters
+            startDate: '', // Download All ignores date range filters
+            endDate: '', // Download All ignores date range filters
           })
         );
 
@@ -710,23 +873,112 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search Bar, Refresh, and Export */}
         <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <input
-                className="w-full px-4 py-2 pr-10 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                type="text"
-                placeholder="Search by order ID, customer name, email, or phone..."
-                value={searchVal}
-                onChange={e => {
-                  setSearchVal(e.target.value);
-                  // Reset to first page when searching
-                  setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                }}
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <Search className="w-4 h-4 text-muted-foreground" />
+          <div className="flex flex-col gap-4">
+            {/* Top Row: Search and Date Range */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="relative flex-1 max-w-md">
+                <input
+                  className="w-full px-4 py-2 pr-10 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  type="text"
+                  placeholder="Search by order ID, customer name, email, or phone..."
+                  value={searchVal}
+                  onChange={e => {
+                    setSearchVal(e.target.value);
+                    // Reset to first page when searching
+                    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                  }}
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </div>
+
+              {/* Date Range Picker */}
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-[300px] justify-start text-left font-normal',
+                        !dateRange && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, 'LLL dd, y')} -{' '}
+                            {format(dateRange.to, 'LLL dd, y')}
+                          </>
+                        ) : (
+                          format(dateRange.from, 'LLL dd, y')
+                        )
+                      ) : (
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {/* Quick Date Filters */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const today = new Date();
+                      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                      setDateRange({
+                        from: firstDayOfMonth,
+                        to: today,
+                      });
+                      setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                    }}
+                  >
+                    This Month
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const today = new Date();
+                      const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                      const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                      setDateRange({
+                        from: firstDayOfLastMonth,
+                        to: lastDayOfLastMonth,
+                      });
+                      setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                    }}
+                  >
+                    Last Month
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDateRange(undefined);
+                      setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </div>
               </div>
             </div>
+
+            {/* Bottom Row: Action Buttons */}
             <div className="flex items-center gap-2">
               <Link
                 href="/dashboard/admin/orders/create"
@@ -752,9 +1004,28 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                 Export CSV
               </button>
               <button
+                onClick={handleDownloadByDateRange}
+                disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
+              >
+                {isDownloadingByDateRange ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <CalendarIcon className="w-4 h-4 mr-2" />
+                    Download by Date Range
+                  </>
+                )}
+              </button>
+              <button
                 onClick={handleDownloadAll}
                 disabled={isDownloadingAll}
                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Download all orders (ignores all filters)"
               >
                 {isDownloadingAll ? (
                   <>
@@ -917,13 +1188,32 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             </div>
           )}
 
-          {/* Download All Button at Bottom */}
+          {/* Download Buttons at Bottom */}
           <div className="px-6 py-4 border-t border-border bg-muted/20">
-            <div className="flex justify-center">
+            <div className="flex justify-center gap-2 flex-wrap">
+              <button
+                onClick={handleDownloadByDateRange}
+                disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
+                className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
+              >
+                {isDownloadingByDateRange ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <CalendarIcon className="w-4 h-4 mr-2" />
+                    Download by Date Range
+                  </>
+                )}
+              </button>
               <button
                 onClick={handleDownloadAll}
                 disabled={isDownloadingAll}
                 className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Download all orders (ignores all filters)"
               >
                 {isDownloadingAll ? (
                   <>
