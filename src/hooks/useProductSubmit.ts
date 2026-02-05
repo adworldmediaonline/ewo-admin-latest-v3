@@ -62,6 +62,7 @@ const useProductSubmit = () => {
     }[]
   >([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [badges, setBadges] = useState<string[]>([]);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
 
   const router = useRouter();
@@ -111,6 +112,7 @@ const useProductSubmit = () => {
     });
     setAdditionalInformation([]);
     setTags([]);
+    setBadges([]);
     reset();
   };
 
@@ -161,6 +163,7 @@ const useProductSubmit = () => {
       videoId: data.videoId || '',
       additionalInformation: additionalInformation,
       tags: tags.map(tag => tag.text),
+      badges: badges.length > 0 ? badges : undefined,
       seo: {
         metaTitle: data.metaTitle || '',
         metaDescription: data.metaDescription || '',
@@ -262,6 +265,7 @@ const useProductSubmit = () => {
         videoId: data.videoId || '',
         additionalInformation: additionalInformation,
         tags: tags.map(tag => tag.text),
+        badges: badges.length > 0 ? badges : undefined,
       seo: {
         metaTitle: data.metaTitle || '',
         metaDescription: data.metaDescription || '',
@@ -334,6 +338,8 @@ const useProductSubmit = () => {
     errors,
     tags,
     setTags,
+    badges,
+    setBadges,
     setAdditionalInformation,
     control,
     setCategory,

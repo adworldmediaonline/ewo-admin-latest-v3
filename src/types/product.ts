@@ -83,6 +83,7 @@ export interface IProduct {
     customNotePlaceholder?: string;
   }>;
   tags: string[];
+  badges?: string[];
   offerDate?: {
     startDate: string | null;
     endDate: string | null;

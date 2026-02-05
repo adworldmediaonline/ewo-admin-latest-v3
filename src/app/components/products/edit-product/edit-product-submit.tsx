@@ -28,6 +28,7 @@ import ProductConfigurations from '../add-product/product-configurations';
 import ProductVariants from '../add-product/product-variants';
 import SEOFields from '../add-product/seo-fields';
 import Tags from '../add-product/tags';
+import Badges from '../add-product/badges';
 import YouTubeVideoInput from '../add-product/youtube-video-input';
 import FormField from '../form-field';
 import ShippingPrice from '../shipping-price';
@@ -78,6 +79,8 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     errors,
     tags,
     setTags,
+    badges,
+    setBadges,
     setAdditionalInformation,
     control,
     setCategory,
@@ -627,6 +630,17 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                       tags={tags}
                       setTags={setTags}
                       default_value={defaultTags}
+                    />
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Product Badges
+                    </label>
+                    <Badges
+                      badges={badges}
+                      setBadges={setBadges}
+                      default_value={product.badges}
                     />
                   </div>
                 </CardContent>
