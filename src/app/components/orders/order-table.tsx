@@ -8,7 +8,8 @@ import React, { useMemo, useState } from 'react';
 import ErrorMsg from '../common/error-msg';
 import ShippingActions from './shipping-actions';
 // import OrderStatusChange from './status-change';
-import { useGetAllOrdersQuery } from '@/redux/order/orderApi';
+import { useGetAllOrdersQuery, authApi } from '@/redux/order/orderApi';
+import { store } from '@/redux/store';
 import {
   ColumnDef,
   PaginationState,
@@ -44,6 +45,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     pageIndex: 0,
     pageSize: 10,
   });
+  const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
 
   // Debounce search to avoid too many API calls
   React.useEffect(() => {
@@ -346,21 +348,210 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
 
   // Export functionality
   const handleExport = () => {
-    const csvContent = [
-      [
+    // Helper function to escape CSV values
+    const escapeCsvValue = (value: any): string => {
+      if (value === null || value === undefined) return '';
+      const stringValue = String(value);
+      // If value contains comma, quote, or newline, wrap in quotes and escape quotes
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    const csvRows: string[] = [];
+    
+    // CSV Header
+    csvRows.push([
+      'Order Object ID',
+      'Order ID',
+      'Invoice',
+      'Customer',
+      'Email',
+      'Product SKU',
+      'Product Title',
+      'Quantity',
+      'Product Price',
+      'Subtotal',
+      'Shipping Cost',
+      'Tax',
+      'Discount',
+      'Total',
+      'Status',
+      'Payment Method',
+      'Date',
+      'Shipping Status',
+      'Carriers & Tracking Numbers',
+    ].join(','));
+
+    // Process each order and create rows for each cart item
+    filteredOrders.forEach(order => {
+      // Support both new (multiple carriers) and legacy (single carrier) formats
+      const shippingCarriers = order.shippingDetails?.carriers && Array.isArray(order.shippingDetails.carriers) && order.shippingDetails.carriers.length > 0
+        ? order.shippingDetails.carriers
+        : order.shippingDetails?.carrier
+          ? [{
+            carrier: order.shippingDetails.carrier,
+            trackingNumber: order.shippingDetails.trackingNumber,
+            trackingUrl: order.shippingDetails.trackingUrl,
+          }]
+          : [];
+
+      const carriersInfo = shippingCarriers.length > 0
+        ? shippingCarriers.map((c: any) => `${c.carrier || ''}: ${c.trackingNumber || 'N/A'}`).join('; ')
+        : '';
+
+      // Common order fields
+      const orderId = escapeCsvValue(order._id);
+      const orderNumber = escapeCsvValue(order.orderId || '');
+      const invoice = escapeCsvValue(order.invoice);
+      const customer = escapeCsvValue(order.name);
+      const email = escapeCsvValue(order.email);
+      const total = escapeCsvValue(order.totalAmount);
+      const status = escapeCsvValue(order.status);
+      const paymentMethod = escapeCsvValue(order.paymentMethod);
+      const date = escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm'));
+      const shippingStatus = escapeCsvValue(order.status === 'shipped' ? 'Shipped' : 'Not Shipped');
+      const carriers = escapeCsvValue(carriersInfo);
+      const subtotal = escapeCsvValue(order.subTotal || 0);
+      const shippingCost = escapeCsvValue(order.shippingCost || 0);
+      const tax = escapeCsvValue(order.tax || 0);
+      const discount = escapeCsvValue(order.discount || 0);
+
+      // If order has cart items, create a row for each product
+      if (order.cart && Array.isArray(order.cart) && order.cart.length > 0) {
+        order.cart.forEach((cartItem: any) => {
+          const sku = escapeCsvValue(cartItem.sku || cartItem.SKU || '');
+          const productTitle = escapeCsvValue(cartItem.title || cartItem.name || '');
+          const quantity = escapeCsvValue(cartItem.orderQuantity || cartItem.quantity || 1);
+          const productPrice = escapeCsvValue(cartItem.price || cartItem.finalPriceDiscount || 0);
+          
+          csvRows.push([
+            orderId,
+            orderNumber,
+            invoice,
+            customer,
+            email,
+            sku,
+            productTitle,
+            quantity,
+            productPrice,
+            subtotal,
+            shippingCost,
+            tax,
+            discount,
+            total,
+            status,
+            paymentMethod,
+            date,
+            shippingStatus,
+            carriers,
+          ].join(','));
+        });
+      } else {
+        // If no cart items, still create one row with order info
+        csvRows.push([
+          orderId,
+          orderNumber,
+          invoice,
+          customer,
+          email,
+          '', // SKU
+          '', // Product Title
+          '', // Quantity
+          '', // Product Price
+          subtotal,
+          shippingCost,
+          tax,
+          discount,
+          total,
+          status,
+          paymentMethod,
+          date,
+          shippingStatus,
+          carriers,
+        ].join(','));
+      }
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders-${dayjs().format('YYYY-MM-DD')}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Download all orders functionality
+  const handleDownloadAll = async () => {
+    setIsDownloadingAll(true);
+    try {
+      const allOrders: any[] = [];
+      let currentPage = 1;
+      let hasMorePages = true;
+      const pageSize = 100; // Fetch 100 orders per page for efficiency
+
+      // Fetch all pages of orders
+      while (hasMorePages) {
+        const result = await store.dispatch(
+          authApi.endpoints.getAllOrders.initiate({
+            page: currentPage,
+            limit: pageSize,
+            search: debouncedSearch, // Include search filter if any
+          })
+        );
+
+        if (result.data?.data) {
+          allOrders.push(...result.data.data);
+          
+          // Check if there are more pages
+          const totalPages = result.data.pagination?.pages || 0;
+          hasMorePages = currentPage < totalPages;
+          currentPage++;
+        } else {
+          hasMorePages = false;
+        }
+      }
+
+      // Generate CSV from all orders
+      const escapeCsvValue = (value: any): string => {
+        if (value === null || value === undefined) return '';
+        const stringValue = String(value);
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      };
+
+      const csvRows: string[] = [];
+      
+      // CSV Header
+      csvRows.push([
+        'Order Object ID',
         'Order ID',
         'Invoice',
         'Customer',
         'Email',
+        'Product SKU',
+        'Product Title',
+        'Quantity',
+        'Product Price',
+        'Subtotal',
+        'Shipping Cost',
+        'Tax',
+        'Discount',
         'Total',
         'Status',
         'Payment Method',
         'Date',
         'Shipping Status',
         'Carriers & Tracking Numbers',
-      ].join(','),
-      ...filteredOrders.map(order => {
-        // Support both new (multiple carriers) and legacy (single carrier) formats
+      ].join(','));
+
+      // Process each order and create rows for each cart item
+      allOrders.forEach(order => {
         const shippingCarriers = order.shippingDetails?.carriers && Array.isArray(order.shippingDetails.carriers) && order.shippingDetails.carriers.length > 0
           ? order.shippingDetails.carriers
           : order.shippingDetails?.carrier
@@ -375,28 +566,90 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           ? shippingCarriers.map((c: any) => `${c.carrier || ''}: ${c.trackingNumber || 'N/A'}`).join('; ')
           : '';
 
-        return [
-          order.orderId || '',
-          order.invoice,
-          order.name,
-          order.email,
-          order.totalAmount,
-          order.status,
-          order.paymentMethod,
-          dayjs(order.createdAt).format('YYYY-MM-DD HH:mm'),
-          order.status === 'shipped' ? 'Shipped' : 'Not Shipped',
-          carriersInfo,
-        ].join(',');
-      }),
-    ].join('\n');
+        const orderId = escapeCsvValue(order._id);
+        const orderNumber = escapeCsvValue(order.orderId || '');
+        const invoice = escapeCsvValue(order.invoice);
+        const customer = escapeCsvValue(order.name);
+        const email = escapeCsvValue(order.email);
+        const total = escapeCsvValue(order.totalAmount);
+        const status = escapeCsvValue(order.status);
+        const paymentMethod = escapeCsvValue(order.paymentMethod);
+        const date = escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm'));
+        const shippingStatus = escapeCsvValue(order.status === 'shipped' ? 'Shipped' : 'Not Shipped');
+        const carriers = escapeCsvValue(carriersInfo);
+        const subtotal = escapeCsvValue(order.subTotal || 0);
+        const shippingCost = escapeCsvValue(order.shippingCost || 0);
+        const tax = escapeCsvValue(order.tax || 0);
+        const discount = escapeCsvValue(order.discount || 0);
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `orders-${dayjs().format('YYYY-MM-DD')}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+        if (order.cart && Array.isArray(order.cart) && order.cart.length > 0) {
+          order.cart.forEach((cartItem: any) => {
+            const sku = escapeCsvValue(cartItem.sku || cartItem.SKU || '');
+            const productTitle = escapeCsvValue(cartItem.title || cartItem.name || '');
+            const quantity = escapeCsvValue(cartItem.orderQuantity || cartItem.quantity || 1);
+            const productPrice = escapeCsvValue(cartItem.price || cartItem.finalPriceDiscount || 0);
+            
+            csvRows.push([
+              orderId,
+              orderNumber,
+              invoice,
+              customer,
+              email,
+              sku,
+              productTitle,
+              quantity,
+              productPrice,
+              subtotal,
+              shippingCost,
+              tax,
+              discount,
+              total,
+              status,
+              paymentMethod,
+              date,
+              shippingStatus,
+              carriers,
+            ].join(','));
+          });
+        } else {
+          csvRows.push([
+            orderId,
+            orderNumber,
+            invoice,
+            customer,
+            email,
+            '',
+            '',
+            '',
+            '',
+            subtotal,
+            shippingCost,
+            tax,
+            discount,
+            total,
+            status,
+            paymentMethod,
+            date,
+            shippingStatus,
+            carriers,
+          ].join(','));
+        }
+      });
+
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `all-orders-${dayjs().format('YYYY-MM-DD')}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading all orders:', error);
+      alert('Failed to download all orders. Please try again.');
+    } finally {
+      setIsDownloadingAll(false);
+    }
   };
 
   let content = null;
@@ -497,6 +750,23 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
               >
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
+              </button>
+              <button
+                onClick={handleDownloadAll}
+                disabled={isDownloadingAll}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDownloadingAll ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download All
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -646,6 +916,29 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
               </div>
             </div>
           )}
+
+          {/* Download All Button at Bottom */}
+          <div className="px-6 py-4 border-t border-border bg-muted/20">
+            <div className="flex justify-center">
+              <button
+                onClick={handleDownloadAll}
+                disabled={isDownloadingAll}
+                className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDownloadingAll ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Downloading All Orders...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download All Orders
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
