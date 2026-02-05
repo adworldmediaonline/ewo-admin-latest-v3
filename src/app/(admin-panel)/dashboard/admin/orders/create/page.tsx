@@ -47,6 +47,7 @@ export default function CreateOrderPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [customerData, setCustomerData] = useState<CustomerFormData | null>(null);
   const [shippingCost, setShippingCost] = useState(0);
+  const [tax, setTax] = useState(0);
   // Default payment method is "Card" to match frontend
   const paymentMethod = 'Card';
   const [cardError, setCardError] = useState('');
@@ -89,7 +90,7 @@ export default function CreateOrderPage() {
   }, [isFreeShippingEligible, shippingCost]);
 
   // Calculate total amount
-  const totalAmount = subtotal + finalShippingCost;
+  const totalAmount = subtotal + finalShippingCost + tax;
 
   const handleAddProduct = (product: IProduct & {
     selectedOption?: any;
@@ -215,6 +216,7 @@ export default function CreateOrderPage() {
       // Pricing
       subTotal: subtotal,
       shippingCost: finalShippingCost,
+      tax: tax,
       discount: 0,
       totalAmount: totalAmount,
 
@@ -619,6 +621,8 @@ export default function CreateOrderPage() {
               cartItems={cartItems}
               shippingCost={shippingCost}
               onShippingCostChange={setShippingCost}
+              tax={tax}
+              onTaxChange={setTax}
               onUpdatePrice={handleUpdatePrice}
               onSubmit={handleCreateOrder}
               isSubmitting={isCreating || processingPayment}
