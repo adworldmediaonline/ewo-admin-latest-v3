@@ -73,9 +73,9 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }));
   }, [debouncedSearch, dateRange]);
 
-  // Format date range for API
-  const startDate = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
-  const endDate = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '';
+  // Format date range for API (only if super-admin)
+  const startDate = role === 'super-admin' && dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
+  const endDate = role === 'super-admin' && dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '';
 
   // Fetch orders with server-side pagination
   const { data: orders, isError, isLoading, error, refetch, isFetching } = useGetAllOrdersQuery(
@@ -893,89 +893,92 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                 </div>
               </div>
 
-              {/* Date Range Picker */}
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
+
+              {/* Date Range Picker - Super Admin Only */}
+              {role === 'super-admin' && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-[300px] justify-start text-left font-normal',
+                          !dateRange && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, 'LLL dd, y')} -{' '}
+                              {format(dateRange.to, 'LLL dd, y')}
+                            </>
+                          ) : (
+                            format(dateRange.from, 'LLL dd, y')
+                          )
+                        ) : (
+                          <span>Pick a date range</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* Quick Date Filters */}
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      className={cn(
-                        'w-[300px] justify-start text-left font-normal',
-                        !dateRange && 'text-muted-foreground'
-                      )}
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                        setDateRange({
+                          from: firstDayOfMonth,
+                          to: today,
+                        });
+                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                      }}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange?.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, 'LLL dd, y')} -{' '}
-                            {format(dateRange.to, 'LLL dd, y')}
-                          </>
-                        ) : (
-                          format(dateRange.from, 'LLL dd, y')
-                        )
-                      ) : (
-                        <span>Pick a date range</span>
-                      )}
+                      This Month
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={dateRange?.from}
-                      selected={dateRange}
-                      onSelect={setDateRange}
-                      numberOfMonths={2}
-                    />
-                  </PopoverContent>
-                </Popover>
-
-                {/* Quick Date Filters */}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const today = new Date();
-                      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                      setDateRange({
-                        from: firstDayOfMonth,
-                        to: today,
-                      });
-                      setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                    }}
-                  >
-                    This Month
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const today = new Date();
-                      const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                      const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-                      setDateRange({
-                        from: firstDayOfLastMonth,
-                        to: lastDayOfLastMonth,
-                      });
-                      setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                    }}
-                  >
-                    Last Month
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setDateRange(undefined);
-                      setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                    }}
-                  >
-                    Clear
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                        const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                        setDateRange({
+                          from: firstDayOfLastMonth,
+                          to: lastDayOfLastMonth,
+                        });
+                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                      }}
+                    >
+                      Last Month
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDateRange(undefined);
+                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Bottom Row: Action Buttons */}
@@ -1003,42 +1006,46 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
               </button>
-              <button
-                onClick={handleDownloadByDateRange}
-                disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
-              >
-                {isDownloadingByDateRange ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <CalendarIcon className="w-4 h-4 mr-2" />
-                    Download by Date Range
-                  </>
-                )}
-              </button>
-              <button
-                onClick={handleDownloadAll}
-                disabled={isDownloadingAll}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Download all orders (ignores all filters)"
-              >
-                {isDownloadingAll ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" />
-                    Download All
-                  </>
-                )}
-              </button>
+              {role === 'super-admin' && (
+                <>
+                  <button
+                    onClick={handleDownloadByDateRange}
+                    disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
+                  >
+                    {isDownloadingByDateRange ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <CalendarIcon className="w-4 h-4 mr-2" />
+                        Download by Date Range
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleDownloadAll}
+                    disabled={isDownloadingAll}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Download all orders (ignores all filters)"
+                  >
+                    {isDownloadingAll ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download All
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -1188,47 +1195,49 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             </div>
           )}
 
-          {/* Download Buttons at Bottom */}
-          <div className="px-6 py-4 border-t border-border bg-muted/20">
-            <div className="flex justify-center gap-2 flex-wrap">
-              <button
-                onClick={handleDownloadByDateRange}
-                disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
-                className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
-              >
-                {isDownloadingByDateRange ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <CalendarIcon className="w-4 h-4 mr-2" />
-                    Download by Date Range
-                  </>
-                )}
-              </button>
-              <button
-                onClick={handleDownloadAll}
-                disabled={isDownloadingAll}
-                className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Download all orders (ignores all filters)"
-              >
-                {isDownloadingAll ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Downloading All Orders...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" />
-                    Download All Orders
-                  </>
-                )}
-              </button>
+          {/* Download Buttons at Bottom - Super Admin Only */}
+          {role === 'super-admin' && (
+            <div className="px-6 py-4 border-t border-border bg-muted/20">
+              <div className="flex justify-center gap-2 flex-wrap">
+                <button
+                  onClick={handleDownloadByDateRange}
+                  disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
+                  className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
+                >
+                  {isDownloadingByDateRange ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <CalendarIcon className="w-4 h-4 mr-2" />
+                      Download by Date Range
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleDownloadAll}
+                  disabled={isDownloadingAll}
+                  className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Download all orders (ignores all filters)"
+                >
+                  {isDownloadingAll ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Downloading All Orders...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download All Orders
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
