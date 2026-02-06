@@ -11,6 +11,7 @@ import {
   IconDiscount,
   IconPhoto,
   IconSpeakerphone,
+  IconMail,
 } from '@tabler/icons-react';
 import * as React from 'react';
 
@@ -77,6 +78,11 @@ const data = {
       title: 'Coupons',
       url: '/dashboard/super-admin/coupon',
       icon: IconDiscount,
+    },
+    {
+      title: 'Promotional Emails',
+      url: '/dashboard/super-admin/promotional-emails',
+      icon: IconMail,
     },
 
   ],
