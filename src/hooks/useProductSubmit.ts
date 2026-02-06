@@ -34,6 +34,7 @@ const useProductSubmit = () => {
   const [category, setCategory] = useState<ICategory>({ name: '', id: '' });
   const [status, setStatus] = useState<status>('in-stock');
   const [description, setDescription] = useState<string>('');
+  const [faqs, setFaqs] = useState<string>('');
   const [videoId, setVideoId] = useState<string>('');
   const [options, setOptions] = useState<{ title: string; price: number }[]>(
     []
@@ -103,6 +104,7 @@ const useProductSubmit = () => {
     setCategory({ name: '', id: '' });
     setStatus('in-stock');
     setDescription('');
+    setFaqs('');
     setVideoId('');
     setOptions([]);
     setProductConfigurations([]);
@@ -160,6 +162,7 @@ const useProductSubmit = () => {
         endDate: offerDate.endDate,
       },
       description: data.description,
+      faqs: data.faqs || '',
       videoId: data.videoId || '',
       additionalInformation: additionalInformation,
       tags: tags.map(tag => tag.text),
@@ -262,6 +265,7 @@ const useProductSubmit = () => {
           endDate: offerDate.endDate,
         },
         description: data.description,
+        faqs: data.faqs || '',
         videoId: data.videoId || '',
         additionalInformation: additionalInformation,
         tags: tags.map(tag => tag.text),
@@ -361,6 +365,8 @@ const useProductSubmit = () => {
     additionalInformation,
     isLoading,
     editLoading,
+    faqs,
+    setFaqs,
   };
 };
 

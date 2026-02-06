@@ -296,6 +296,53 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                 </CardContent>
               </Card>
 
+              {/* FAQs Section */}
+              <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold">
+                        Frequently Asked Questions (FAQs)
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Add FAQs for your product (Optional)
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        FAQs Content
+                      </label>
+                      <span className="text-xs text-muted-foreground">
+                        Optional
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Controller
+                        name="faqs"
+                        control={control}
+                        defaultValue={product.faqs || ''}
+                        render={({ field }) => (
+                          <Tiptap
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Add frequently asked questions and answers for your product..."
+                            limit={50000}
+                            showCharacterCount={true}
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Pricing & Inventory */}
               <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
                 <CardHeader className="pb-4">
