@@ -227,7 +227,7 @@ const PromotionalEmailForm = () => {
             </div>
 
             {/* Email Count Display */}
-            {emailsData && (
+            {emailsData && (dateRange || selectAll) && (
               <div className="rounded-lg bg-muted p-4">
                 <p className="text-sm text-muted-foreground">
                   <strong className="text-foreground">
