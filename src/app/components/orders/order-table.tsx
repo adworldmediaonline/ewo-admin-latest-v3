@@ -765,19 +765,50 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     try {
       const result = await sendBulkReviewRequestEmails({}).unwrap();
       
-      alert(
-        `Review request emails processed!\n\n` +
-        `Total Orders: ${result.totalOrders}\n` +
-        `Emails Sent: ${result.emailsSent}\n` +
-        `Failed: ${result.emailsFailed}\n` +
-        `Skipped (already sent): ${result.skipped}`
-      );
-      
-      // Refresh orders to show updated feedbackEmailSent status
-      refetch();
+      if (result.success) {
+        let message = `Review request emails processed!\n\n` +
+          `Total Orders: ${result.totalOrders}\n` +
+          `Emails Sent: ${result.emailsSent}\n` +
+          `Failed: ${result.emailsFailed}\n` +
+          `Skipped (already reviewed): ${result.skipped}`;
+        
+        if (result.failedOrders && result.failedOrders.length > 0) {
+          message += `\n\nFailed Orders: ${result.failedOrders.length}`;
+          if (result.failedOrders.length <= 5) {
+            message += '\n' + result.failedOrders.map((o: any) => `- Order ${o.orderId}: ${o.error || 'Unknown error'}`).join('\n');
+          }
+        }
+        
+        alert(message);
+        
+        // Refresh orders to show updated feedbackEmailSent status
+        refetch();
+      } else {
+        alert(`Failed to send review request emails: ${result.message || 'Unknown error'}`);
+      }
     } catch (error: any) {
       console.error('Error sending review request emails:', error);
-      alert(`Failed to send review request emails: ${error?.data?.message || error?.message || 'Unknown error'}`);
+      
+      // Extract error message from RTK Query error structure
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.data?.error) {
+        errorMessage = error.data.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        // Try to extract any meaningful error information
+        const errorStr = JSON.stringify(error);
+        if (errorStr !== '{}') {
+          errorMessage = `Error: ${errorStr}`;
+        }
+      }
+      
+      alert(`Failed to send review request emails: ${errorMessage}`);
     } finally {
       setIsSendingReviewEmails(false);
     }
@@ -801,20 +832,51 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         endDate,
       }).unwrap();
       
-      alert(
-        `Review request emails processed!\n\n` +
-        `Date Range: ${startDate} to ${endDate}\n` +
-        `Total Orders: ${result.totalOrders}\n` +
-        `Emails Sent: ${result.emailsSent}\n` +
-        `Failed: ${result.emailsFailed}\n` +
-        `Skipped (already sent): ${result.skipped}`
-      );
-      
-      // Refresh orders to show updated feedbackEmailSent status
-      refetch();
+      if (result.success) {
+        let message = `Review request emails processed!\n\n` +
+          `Date Range: ${startDate} to ${endDate}\n` +
+          `Total Orders: ${result.totalOrders}\n` +
+          `Emails Sent: ${result.emailsSent}\n` +
+          `Failed: ${result.emailsFailed}\n` +
+          `Skipped (already reviewed): ${result.skipped}`;
+        
+        if (result.failedOrders && result.failedOrders.length > 0) {
+          message += `\n\nFailed Orders: ${result.failedOrders.length}`;
+          if (result.failedOrders.length <= 5) {
+            message += '\n' + result.failedOrders.map((o: any) => `- Order ${o.orderId}: ${o.error || 'Unknown error'}`).join('\n');
+          }
+        }
+        
+        alert(message);
+        
+        // Refresh orders to show updated feedbackEmailSent status
+        refetch();
+      } else {
+        alert(`Failed to send review request emails: ${result.message || 'Unknown error'}`);
+      }
     } catch (error: any) {
       console.error('Error sending review request emails:', error);
-      alert(`Failed to send review request emails: ${error?.data?.message || error?.message || 'Unknown error'}`);
+      
+      // Extract error message from RTK Query error structure
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.data?.error) {
+        errorMessage = error.data.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        // Try to extract any meaningful error information
+        const errorStr = JSON.stringify(error);
+        if (errorStr !== '{}') {
+          errorMessage = `Error: ${errorStr}`;
+        }
+      }
+      
+      alert(`Failed to send review request emails: ${errorMessage}`);
     } finally {
       setIsSendingReviewEmails(false);
     }
@@ -1157,105 +1219,116 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
               )}
             </div>
 
-            {/* Bottom Row: Action Buttons */}
-            <div className="flex items-center gap-2">
-              <Link
-                href="/dashboard/admin/orders/create"
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Order
-              </Link>
-              <button
-                onClick={() => refetch()}
-                disabled={isFetching}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Refresh orders"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-              <button
-                onClick={handleExport}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export CSV
-              </button>
+            {/* Bottom Row: Action Buttons - Grouped by Function */}
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Primary Actions Group */}
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/dashboard/admin/orders/create"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Order
+                </Link>
+                <button
+                  onClick={() => refetch()}
+                  disabled={isFetching}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Refresh orders"
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+
+              {/* Visual Separator */}
+              <div className="h-6 w-px bg-border" />
+
+              {/* Export Actions Group */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Export:</span>
+                <button
+                  onClick={handleExport}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export CSV
+                </button>
+                {role === 'super-admin' && (
+                  <>
+                    <button
+                      onClick={handleDownloadByDateRange}
+                      disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
+                    >
+                      {isDownloadingByDateRange ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <CalendarIcon className="w-4 h-4 mr-2" />
+                          Download by Date Range
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleDownloadAll}
+                      disabled={isDownloadingAll}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Download all orders (ignores all filters)"
+                    >
+                      {isDownloadingAll ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4 mr-2" />
+                          Download All
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Review Actions Group (Super Admin Only) */}
               {role === 'super-admin' && (
                 <>
-                  <button
-                    onClick={handleDownloadByDateRange}
-                    disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
-                  >
-                    {isDownloadingByDateRange ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Downloading...
-                      </>
-                    ) : (
-                      <>
-                        <CalendarIcon className="w-4 h-4 mr-2" />
-                        Download by Date Range
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleDownloadAll}
-                    disabled={isDownloadingAll}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Download all orders (ignores all filters)"
-                  >
-                    {isDownloadingAll ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Downloading...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4 mr-2" />
-                        Download All
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleSendReviewEmailsByDateRange}
-                    disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Send review request emails to all delivered orders within the selected date range'}
-                  >
-                    {isSendingReviewEmails ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-4 h-4 mr-2" />
-                        Send Review Requests (Date Range)
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleSendReviewEmailsAll}
-                    disabled={isSendingReviewEmails}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Send review request emails to all delivered orders"
-                  >
-                    {isSendingReviewEmails ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-4 h-4 mr-2" />
-                        Send Review Requests (All Orders)
-                      </>
-                    )}
-                  </button>
+                  {/* Visual Separator */}
+                  <div className="h-6 w-px bg-border" />
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Reviews:</span>
+                    <button
+                      onClick={() => {
+                        if (!dateRange?.from || !dateRange?.to) {
+                          alert('Please select a date range first');
+                          return;
+                        }
+                        setShowDateRangeDialog(true);
+                      }}
+                      disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Send review request emails to all delivered orders within the selected date range'}
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Reviews (Date Range)
+                    </button>
+                    <button
+                      onClick={() => setShowAllOrdersDialog(true)}
+                      disabled={isSendingReviewEmails}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Send review request emails to all delivered orders"
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Reviews (All Orders)
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -1410,85 +1483,97 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           {/* Download and Review Request Buttons at Bottom - Super Admin Only */}
           {role === 'super-admin' && (
             <div className="px-6 py-4 border-t border-border bg-muted/20">
-              <div className="flex justify-center gap-2 flex-wrap">
-                <button
-                  onClick={handleDownloadByDateRange}
-                  disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
-                  className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
-                >
-                  {isDownloadingByDateRange ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <CalendarIcon className="w-4 h-4 mr-2" />
-                      Download by Date Range
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleDownloadAll}
-                  disabled={isDownloadingAll}
-                  className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Download all orders (ignores all filters)"
-                >
-                  {isDownloadingAll ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Downloading All Orders...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download All Orders
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    if (!dateRange?.from || !dateRange?.to) {
-                      alert('Please select a date range first');
-                      return;
-                    }
-                    setShowDateRangeDialog(true);
-                  }}
-                  disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
-                  className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Send review request emails to all delivered orders within the selected date range'}
-                >
-                  {isSendingReviewEmails ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="w-4 h-4 mr-2" />
-                      Send Review Requests (Date Range)
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={() => setShowAllOrdersDialog(true)}
-                  disabled={isSendingReviewEmails}
-                  className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Send review request emails to all delivered orders"
-                >
-                  {isSendingReviewEmails ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="w-4 h-4 mr-2" />
-                      Send Review Requests (All Orders)
-                    </>
-                  )}
-                </button>
+              <div className="flex justify-center items-center gap-4 flex-wrap">
+                {/* Export Actions Group */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Export:</span>
+                  <button
+                    onClick={handleDownloadByDateRange}
+                    disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
+                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
+                  >
+                    {isDownloadingByDateRange ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <CalendarIcon className="w-4 h-4 mr-2" />
+                        Download by Date Range
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleDownloadAll}
+                    disabled={isDownloadingAll}
+                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Download all orders (ignores all filters)"
+                  >
+                    {isDownloadingAll ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Downloading All Orders...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download All Orders
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Visual Separator */}
+                <div className="h-8 w-px bg-border" />
+
+                {/* Review Actions Group */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Reviews:</span>
+                  <button
+                    onClick={() => {
+                      if (!dateRange?.from || !dateRange?.to) {
+                        alert('Please select a date range first');
+                        return;
+                      }
+                      setShowDateRangeDialog(true);
+                    }}
+                    disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
+                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Send review request emails to all delivered orders within the selected date range'}
+                  >
+                    {isSendingReviewEmails ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Reviews (Date Range)
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowAllOrdersDialog(true)}
+                    disabled={isSendingReviewEmails}
+                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Send review request emails to all delivered orders"
+                  >
+                    {isSendingReviewEmails ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Reviews (All Orders)
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}
