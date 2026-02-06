@@ -254,6 +254,40 @@ export const authApi = apiSlice.injectEndpoints({
         };
       },
     }),
+    // Send bulk review request emails
+    sendBulkReviewRequestEmails: builder.mutation<
+      {
+        success: boolean;
+        message: string;
+        totalOrders: number;
+        emailsSent: number;
+        emailsFailed: number;
+        skipped: number;
+        failedOrders?: Array<{ orderId: string; email: string; error?: string }>;
+      },
+      { startDate?: string; endDate?: string }
+    >({
+      query: (data) => ({
+        url: `/api/order/send-bulk-review-requests`,
+        method: 'POST',
+        body: data,
+      }),
+    }),
+    // Trigger feedback email for a single order
+    triggerFeedbackEmail: builder.mutation<
+      {
+        success: boolean;
+        message: string;
+        scheduledAt?: Date;
+      },
+      string
+    >({
+      query: (orderId) => ({
+        url: `/api/order/trigger-feedback/${orderId}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['AllOrders'],
+    }),
   }),
 });
 
@@ -276,4 +310,6 @@ export const {
   useGetPaymentDetailsQuery,
   useCreateOrderMutation,
   useCreatePaymentIntentMutation,
+  useSendBulkReviewRequestEmailsMutation,
+  useTriggerFeedbackEmailMutation,
 } = authApi;
