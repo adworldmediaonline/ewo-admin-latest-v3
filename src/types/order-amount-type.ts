@@ -65,6 +65,9 @@ export interface Order {
     percentage: number;
     amount: number;
   };
+  feedbackEmailSent?: boolean;
+  hasReview?: boolean;
+  reviewCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }

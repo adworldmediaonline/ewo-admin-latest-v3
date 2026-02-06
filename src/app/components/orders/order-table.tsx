@@ -8,7 +8,7 @@ import React, { useMemo, useState } from 'react';
 import ErrorMsg from '../common/error-msg';
 import ShippingActions from './shipping-actions';
 // import OrderStatusChange from './status-change';
-import { useGetAllOrdersQuery, authApi } from '@/redux/order/orderApi';
+import { useGetAllOrdersQuery, authApi, useSendBulkReviewRequestEmailsMutation, useTriggerFeedbackEmailMutation } from '@/redux/order/orderApi';
 import { store } from '@/redux/store';
 import {
   ColumnDef,
@@ -29,6 +29,7 @@ import {
   Clock,
   Download,
   Eye,
+  Mail,
   Package,
   Plus,
   RefreshCw,
@@ -46,6 +47,16 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 
 const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
@@ -58,6 +69,18 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   });
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
   const [isDownloadingByDateRange, setIsDownloadingByDateRange] = useState<boolean>(false);
+  const [isSendingReviewEmails, setIsSendingReviewEmails] = useState<boolean>(false);
+  const [sendingReviewForOrderId, setSendingReviewForOrderId] = useState<string | null>(null);
+  
+  // Alert Dialog states
+  const [showSingleOrderDialog, setShowSingleOrderDialog] = useState<boolean>(false);
+  const [showAllOrdersDialog, setShowAllOrdersDialog] = useState<boolean>(false);
+  const [showDateRangeDialog, setShowDateRangeDialog] = useState<boolean>(false);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [pendingOrderNumber, setPendingOrderNumber] = useState<string | null>(null);
+  
+  const [sendBulkReviewRequestEmails] = useSendBulkReviewRequestEmailsMutation();
+  const [triggerFeedbackEmail] = useTriggerFeedbackEmailMutation();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   // Debounce search to avoid too many API calls
@@ -229,6 +252,59 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     </div>
   );
 
+  // Open single order review dialog
+  const handleOpenSingleOrderDialog = (orderId: string, orderNumber: string) => {
+    setPendingOrderId(orderId);
+    setPendingOrderNumber(orderNumber);
+    setShowSingleOrderDialog(true);
+  };
+
+  // Send review request email for a single order (called from dialog)
+  const handleSendReviewEmail = React.useCallback(async () => {
+    if (!pendingOrderId || !pendingOrderNumber) return;
+
+    setShowSingleOrderDialog(false);
+    setSendingReviewForOrderId(pendingOrderId);
+    try {
+      const result = await triggerFeedbackEmail(pendingOrderId).unwrap();
+      
+      if (result.success) {
+        alert(`Review request email sent successfully for order ${pendingOrderNumber}`);
+        // Refresh orders to show updated feedbackEmailSent status
+        refetch();
+      } else {
+        alert(`Failed to send review request email: ${result.message || 'Unknown error'}`);
+      }
+    } catch (error: any) {
+      console.error('Error sending review request email:', error);
+      
+      // Extract error message from RTK Query error structure
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.data?.error) {
+        errorMessage = error.data.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        // Try to extract any meaningful error information
+        const errorStr = JSON.stringify(error);
+        if (errorStr !== '{}') {
+          errorMessage = `Error: ${errorStr}`;
+        }
+      }
+      
+      alert(`Failed to send review request email: ${errorMessage}`);
+    } finally {
+      setSendingReviewForOrderId(null);
+      setPendingOrderId(null);
+      setPendingOrderNumber(null);
+    }
+  }, [pendingOrderId, pendingOrderNumber, triggerFeedbackEmail, refetch]);
+
   // TanStack Table columns
   const columns = useMemo<ColumnDef<any, any>[]>(
     () => [
@@ -334,20 +410,58 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       {
         id: 'actions',
         header: 'Actions',
-        cell: info => (
-          <div className="flex items-center space-x-2">
-            <Link
-              href={`/dashboard/${role}/order-details/${info.row.original._id}`}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
-            >
-              <Eye className="w-4 h-4 mr-1" />
-              View
-            </Link>
-          </div>
-        ),
+        cell: info => {
+          const order = info.row.original;
+          const isSending = sendingReviewForOrderId === order._id;
+          // Button is enabled if order is delivered, has email, and customer hasn't submitted a review yet
+          // Note: feedbackEmailSent doesn't matter - manual button is independent of automated emails
+          const canSendReview = order.status === 'delivered' && order.email && !order.hasReview;
+          
+          return (
+            <div className="flex items-center space-x-2">
+              <Link
+                href={`/dashboard/${role}/order-details/${order._id}`}
+                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                View
+              </Link>
+              {role === 'super-admin' && (
+                <button
+                  onClick={() => handleOpenSingleOrderDialog(order._id, order.orderId || order._id)}
+                  disabled={isSending || !canSendReview}
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={
+                    !canSendReview
+                      ? order.status !== 'delivered'
+                        ? 'Order must be delivered'
+                        : !order.email
+                          ? 'Order has no email address'
+                          : order.hasReview
+                            ? 'Customer has already submitted a review'
+                            : 'Cannot send review email'
+                      : 'Send review request email'
+                  }
+                >
+                  {isSending ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-1" />
+                      Send Review
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          );
+        },
       },
     ],
-    [selectedRows]
+    [selectedRows, role, sendingReviewForOrderId, handleSendReviewEmail]
   );
 
   // TanStack Table instance with server-side pagination
@@ -641,6 +755,68 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       alert('Failed to download orders. Please try again.');
     } finally {
       setIsDownloadingByDateRange(false);
+    }
+  };
+
+  // Send review request emails to all orders (called from dialog)
+  const handleSendReviewEmailsAll = async () => {
+    setShowAllOrdersDialog(false);
+    setIsSendingReviewEmails(true);
+    try {
+      const result = await sendBulkReviewRequestEmails({}).unwrap();
+      
+      alert(
+        `Review request emails processed!\n\n` +
+        `Total Orders: ${result.totalOrders}\n` +
+        `Emails Sent: ${result.emailsSent}\n` +
+        `Failed: ${result.emailsFailed}\n` +
+        `Skipped (already sent): ${result.skipped}`
+      );
+      
+      // Refresh orders to show updated feedbackEmailSent status
+      refetch();
+    } catch (error: any) {
+      console.error('Error sending review request emails:', error);
+      alert(`Failed to send review request emails: ${error?.data?.message || error?.message || 'Unknown error'}`);
+    } finally {
+      setIsSendingReviewEmails(false);
+    }
+  };
+
+  // Send review request emails by date range (called from dialog)
+  const handleSendReviewEmailsByDateRange = async () => {
+    if (!dateRange?.from || !dateRange?.to) {
+      alert('Please select a date range first');
+      return;
+    }
+
+    setShowDateRangeDialog(false);
+    const startDate = format(dateRange.from, 'yyyy-MM-dd');
+    const endDate = format(dateRange.to, 'yyyy-MM-dd');
+
+    setIsSendingReviewEmails(true);
+    try {
+      const result = await sendBulkReviewRequestEmails({
+        startDate,
+        endDate,
+      }).unwrap();
+      
+      alert(
+        `Review request emails processed!\n\n` +
+        `Date Range: ${startDate} to ${endDate}\n` +
+        `Total Orders: ${result.totalOrders}\n` +
+        `Emails Sent: ${result.emailsSent}\n` +
+        `Failed: ${result.emailsFailed}\n` +
+        `Skipped (already sent): ${result.skipped}`
+      );
+      
+      // Refresh orders to show updated feedbackEmailSent status
+      refetch();
+    } catch (error: any) {
+      console.error('Error sending review request emails:', error);
+      alert(`Failed to send review request emails: ${error?.data?.message || error?.message || 'Unknown error'}`);
+    } finally {
+      setIsSendingReviewEmails(false);
     }
   };
 
@@ -1044,6 +1220,42 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                       </>
                     )}
                   </button>
+                  <button
+                    onClick={handleSendReviewEmailsByDateRange}
+                    disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Send review request emails to all delivered orders within the selected date range'}
+                  >
+                    {isSendingReviewEmails ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Review Requests (Date Range)
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleSendReviewEmailsAll}
+                    disabled={isSendingReviewEmails}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Send review request emails to all delivered orders"
+                  >
+                    {isSendingReviewEmails ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Review Requests (All Orders)
+                      </>
+                    )}
+                  </button>
                 </>
               )}
             </div>
@@ -1195,7 +1407,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             </div>
           )}
 
-          {/* Download Buttons at Bottom - Super Admin Only */}
+          {/* Download and Review Request Buttons at Bottom - Super Admin Only */}
           {role === 'super-admin' && (
             <div className="px-6 py-4 border-t border-border bg-muted/20">
               <div className="flex justify-center gap-2 flex-wrap">
@@ -1235,11 +1447,134 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                     </>
                   )}
                 </button>
+                <button
+                  onClick={() => {
+                    if (!dateRange?.from || !dateRange?.to) {
+                      alert('Please select a date range first');
+                      return;
+                    }
+                    setShowDateRangeDialog(true);
+                  }}
+                  disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
+                  className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Send review request emails to all delivered orders within the selected date range'}
+                >
+                  {isSendingReviewEmails ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Review Requests (Date Range)
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setShowAllOrdersDialog(true)}
+                  disabled={isSendingReviewEmails}
+                  className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Send review request emails to all delivered orders"
+                >
+                  {isSendingReviewEmails ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Review Requests (All Orders)
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Alert Dialogs for Review Email Confirmations */}
+      {/* Single Order Review Dialog */}
+      <AlertDialog open={showSingleOrderDialog} onOpenChange={setShowSingleOrderDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Review Request Email</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to send a review request email for order{' '}
+              <strong>{pendingOrderNumber}</strong>?
+              <br />
+              <br />
+              This will send an email to the customer asking them to review their order.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSendReviewEmail}>
+              Send Email
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* All Orders Review Dialog */}
+      <AlertDialog open={showAllOrdersDialog} onOpenChange={setShowAllOrdersDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Review Request Emails to All Orders</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to send review request emails to <strong>ALL delivered orders</strong>?
+              <br />
+              <br />
+              This action will:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Send emails to all customers with delivered orders</li>
+                <li>Skip orders that already have review emails sent</li>
+                <li>This may take a while depending on the number of orders</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSendReviewEmailsAll}>
+              Send Emails
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Date Range Review Dialog */}
+      <AlertDialog open={showDateRangeDialog} onOpenChange={setShowDateRangeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Review Request Emails by Date Range</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to send review request emails to all delivered orders between{' '}
+              <strong>
+                {dateRange?.from && dateRange?.to
+                  ? `${format(dateRange.from, 'MMM dd, yyyy')} and ${format(dateRange.to, 'MMM dd, yyyy')}`
+                  : 'selected date range'}
+              </strong>
+              ?
+              <br />
+              <br />
+              This action will:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Send emails to customers with delivered orders in this date range</li>
+                <li>Skip orders that already have review emails sent</li>
+                <li>This may take a while depending on the number of orders</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSendReviewEmailsByDateRange}>
+              Send Emails
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
