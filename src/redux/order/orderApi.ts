@@ -274,22 +274,66 @@ export const authApi = apiSlice.injectEndpoints({
       }),
     }),
     // Trigger feedback email for a single order
-    triggerFeedbackEmail: builder.mutation<
-      {
-        success: boolean;
-        message: string;
-        scheduledAt?: Date;
-      },
-      string
-    >({
-      query: (orderId) => ({
-        url: `/api/order/trigger-feedback/${orderId}`,
-        method: 'POST',
+      triggerFeedbackEmail: builder.mutation<
+        {
+          success: boolean;
+          message: string;
+          scheduledAt?: Date;
+        },
+        string
+      >({
+        query: (orderId) => ({
+          url: `/api/order/trigger-feedback/${orderId}`,
+          method: 'POST',
+        }),
+        invalidatesTags: ['AllOrders'],
       }),
-      invalidatesTags: ['AllOrders'],
+      // Get order email addresses by date range
+      getOrderEmails: builder.query<
+        {
+          success: boolean;
+          emails: string[];
+          totalOrders: number;
+        },
+        {
+          startDate?: string;
+          endDate?: string;
+          selectAll?: boolean;
+        }
+      >({
+        query: (params) => {
+          const queryParams = new URLSearchParams();
+          if (params.startDate) queryParams.append('startDate', params.startDate);
+          if (params.endDate) queryParams.append('endDate', params.endDate);
+          if (params.selectAll) queryParams.append('selectAll', 'true');
+          return `/api/order/emails?${queryParams.toString()}`;
+        },
+      }),
+      // Send promotional email
+      sendPromotionalEmail: builder.mutation<
+        {
+          success: boolean;
+          message: string;
+          emailsSent: number;
+          emailsFailed: number;
+        },
+        {
+          subject: string;
+          recipients: string[];
+          emailBody: string;
+          startDate?: string;
+          endDate?: string;
+          selectAll?: boolean;
+        }
+      >({
+        query: (data) => ({
+          url: `/api/order/send-promotional-email`,
+          method: 'POST',
+          body: data,
+        }),
+      }),
     }),
-  }),
-});
+  });
 
 export const {
   useGetDashboardAmountQuery,
@@ -312,4 +356,6 @@ export const {
   useCreatePaymentIntentMutation,
   useSendBulkReviewRequestEmailsMutation,
   useTriggerFeedbackEmailMutation,
+  useGetOrderEmailsQuery,
+  useSendPromotionalEmailMutation,
 } = authApi;

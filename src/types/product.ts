@@ -59,6 +59,7 @@ export interface IProduct {
   status: string;
   reviews: IReview[];
   description: string;
+  faqs?: string;
   videoId?: string;
   additionalInformation: Array<{
     key: string;
