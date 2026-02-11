@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCreateOrderMutation, useCreatePaymentIntentMutation } from '@/redux/order/orderApi';
+import { useCreateOrderMutation, useCreatePaymentIntentMutation, useCalculateTaxMutation } from '@/redux/order/orderApi';
 import { IProduct } from '@/types/product';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -40,6 +40,7 @@ export default function CreateOrderPage() {
   const router = useRouter();
   const [createOrder, { isLoading: isCreating }] = useCreateOrderMutation();
   const [createPaymentIntent] = useCreatePaymentIntentMutation();
+  const [calculateTax, { data: taxPreview, isLoading: isTaxLoading }] = useCalculateTaxMutation();
   const stripe = useStripe();
   const elements = useElements();
 
@@ -47,7 +48,6 @@ export default function CreateOrderPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [customerData, setCustomerData] = useState<CustomerFormData | null>(null);
   const [shippingCost, setShippingCost] = useState(0);
-  const [tax, setTax] = useState(0);
   // Default payment method is "Card" to match frontend
   const paymentMethod = 'Card';
   const [cardError, setCardError] = useState('');
@@ -89,8 +89,48 @@ export default function CreateOrderPage() {
     }
   }, [isFreeShippingEligible, shippingCost]);
 
-  // Calculate total amount
-  const totalAmount = subtotal + finalShippingCost + tax;
+  // Calculate total amount (pre-tax; tax preview may include tax)
+  const totalAmount = subtotal + finalShippingCost;
+
+  // Fetch tax preview when on summary step with customerData and cart
+  useEffect(() => {
+    if (step !== 'summary' || !customerData || cartItems.length === 0) return;
+
+    const hasCompleteAddress =
+      customerData.address?.trim() &&
+      customerData.city?.trim() &&
+      customerData.state?.trim() &&
+      customerData.zipCode?.trim() &&
+      customerData.country?.trim();
+
+    if (!hasCompleteAddress) return;
+
+    const cart = cartItems.map(item => {
+      const priceToUse = item.customPrice !== undefined
+        ? item.customPrice
+        : (item.finalPriceDiscount || item.price || 0);
+      return {
+        _id: item._id,
+        title: item.title,
+        price: Number(priceToUse),
+        finalPriceDiscount: Number(priceToUse),
+        orderQuantity: item.orderQuantity,
+        shipping: item.shipping || {},
+      };
+    });
+
+    calculateTax({
+      cart,
+      orderData: {
+        address: customerData.address.trim(),
+        city: customerData.city.trim(),
+        state: customerData.state.trim(),
+        zipCode: customerData.zipCode.trim(),
+        country: customerData.country.trim(),
+        shippingCost: finalShippingCost,
+      },
+    });
+  }, [step, customerData, cartItems, finalShippingCost, calculateTax]);
 
   const handleAddProduct = (product: IProduct & {
     selectedOption?: any;
@@ -216,7 +256,6 @@ export default function CreateOrderPage() {
       // Pricing
       subTotal: subtotal,
       shippingCost: finalShippingCost,
-      tax: tax,
       discount: 0,
       totalAmount: totalAmount,
 
@@ -283,7 +322,7 @@ export default function CreateOrderPage() {
           return;
         }
 
-        // Step 2: Create payment intent
+        // Step 2: Create payment intent (backend calculates tax when address is present)
         const paymentIntentResult = await createPaymentIntent({
           price: Math.max(0, Math.round(totalAmount * 100)), // Convert to cents
           email: customerData.email,
@@ -293,6 +332,8 @@ export default function CreateOrderPage() {
             totalAmount: totalAmount,
           },
         }).unwrap();
+        const paymentTaxAmount = paymentIntentResult.taxAmount;
+        const paymentTotalAmount = paymentIntentResult.totalAmount;
 
         // Handle free orders (when total is 0)
         if (paymentIntentResult.isFreeOrder) {
@@ -360,12 +401,15 @@ export default function CreateOrderPage() {
 
         // Step 4: Payment succeeded - create order
         if (paymentIntent.status === 'succeeded') {
-          const result = await createOrder({
+          const orderToSave = {
             ...orderData,
+            totalAmount: paymentTotalAmount ?? orderData.totalAmount,
             paymentInfo: paymentIntent,
             isPaid: true,
             paidAt: new Date(),
-          }).unwrap();
+            ...(paymentTaxAmount !== undefined && paymentTaxAmount > 0 && { taxAmount: paymentTaxAmount }),
+          };
+          const result = await createOrder(orderToSave).unwrap();
 
           if (result.success) {
             toast.success('Order created and payment processed successfully!');
@@ -621,13 +665,13 @@ export default function CreateOrderPage() {
               cartItems={cartItems}
               shippingCost={shippingCost}
               onShippingCostChange={setShippingCost}
-              tax={tax}
-              onTaxChange={setTax}
               onUpdatePrice={handleUpdatePrice}
               onSubmit={handleCreateOrder}
               isSubmitting={isCreating || processingPayment}
               cardError={cardError}
               onCardErrorChange={setCardError}
+              taxPreview={taxPreview?.success ? taxPreview : null}
+              isTaxLoading={isTaxLoading}
             />
           ) : (
             <Card>

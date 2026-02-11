@@ -16,30 +16,37 @@ interface CartItem extends IProduct {
   customPrice?: number;
 }
 
+interface TaxPreview {
+  subtotal: number;
+  tax: number;
+  total: number;
+  taxCollected: boolean;
+}
+
 interface OrderSummaryProps {
   cartItems: CartItem[];
   shippingCost: number;
   onShippingCostChange: (cost: number) => void;
-  tax?: number;
-  onTaxChange?: (tax: number) => void;
   onUpdatePrice?: (productId: string, price: number) => void;
   onSubmit: () => void;
   isSubmitting: boolean;
   cardError?: string;
   onCardErrorChange?: (error: string) => void;
+  taxPreview?: TaxPreview | null;
+  isTaxLoading?: boolean;
 }
 
 export default function OrderSummary({
   cartItems,
   shippingCost,
   onShippingCostChange,
-  tax = 0,
-  onTaxChange,
   onUpdatePrice,
   onSubmit,
   isSubmitting,
   cardError,
   onCardErrorChange,
+  taxPreview,
+  isTaxLoading = false,
 }: OrderSummaryProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -80,10 +87,13 @@ export default function OrderSummary({
     return isFreeShippingEligible ? 0 : baseShippingCost;
   }, [isFreeShippingEligible, baseShippingCost]);
 
-  // Calculate total amount
+  // Calculate total amount - use tax-inclusive total when tax preview available
   const totalAmount = useMemo(() => {
-    return subtotal + finalShippingCost + tax;
-  }, [subtotal, finalShippingCost, tax]);
+    if (taxPreview?.taxCollected && taxPreview.total) {
+      return taxPreview.total / 100;
+    }
+    return subtotal + finalShippingCost;
+  }, [subtotal, finalShippingCost, taxPreview]);
 
   return (
     <Card>
@@ -236,23 +246,25 @@ export default function OrderSummary({
             </div>
           </div>
 
-          {/* Tax */}
-          {onTaxChange && (
-            <div className="flex justify-between items-center">
-              <div className="flex flex-col gap-1">
-                <span className="text-muted-foreground">Tax</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={tax || 0}
-                  onChange={e => onTaxChange(Number(e.target.value) || 0)}
-                  className="w-20 px-2 py-1 border rounded text-sm"
-                />
-                <span className="text-xs text-muted-foreground">USD</span>
-              </div>
+          {isTaxLoading ? (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Tax (estimated)</span>
+              <span className="text-xs text-muted-foreground">Calculating...</span>
+            </div>
+          ) : taxPreview?.taxCollected ? (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Tax (estimated)</span>
+              <span className="font-medium">${(taxPreview.tax / 100).toFixed(2)}</span>
+            </div>
+          ) : taxPreview ? (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Tax</span>
+              <span className="text-xs text-muted-foreground">No tax for this location</span>
+            </div>
+          ) : (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Tax</span>
+              <span className="text-xs text-muted-foreground italic">Applied at payment</span>
             </div>
           )}
 
