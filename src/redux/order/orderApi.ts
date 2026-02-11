@@ -236,9 +236,22 @@ export const authApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: ['AllOrders', 'DashboardRecentOrders', 'OrderBreakdown', 'DashboardAmount'],
     }),
+    // calculate tax preview (for checkout/admin create order)
+    calculateTax: builder.mutation<
+      { success: boolean; subtotal: number; tax: number; total: number; calculationId: string; taxCollected: boolean },
+      { cart: any[]; orderData: { address: string; city: string; state: string; zipCode: string; country: string; shippingCost: number } }
+    >({
+      query(data) {
+        return {
+          url: `/api/order/calculate-tax`,
+          method: 'POST',
+          body: data,
+        };
+      },
+    }),
     // create payment intent (for Stripe card payments)
     createPaymentIntent: builder.mutation<
-      { clientSecret: string; paymentIntentId?: string; isFreeOrder?: boolean; totalAmount?: number },
+      { clientSecret: string; paymentIntentId?: string; isFreeOrder?: boolean; totalAmount?: number; taxAmount?: number },
       {
         price: number;
         email: string;
@@ -353,6 +366,7 @@ export const {
   useCancelOrderMutation,
   useGetPaymentDetailsQuery,
   useCreateOrderMutation,
+  useCalculateTaxMutation,
   useCreatePaymentIntentMutation,
   useSendBulkReviewRequestEmailsMutation,
   useTriggerFeedbackEmailMutation,

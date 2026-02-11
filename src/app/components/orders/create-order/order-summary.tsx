@@ -16,6 +16,13 @@ interface CartItem extends IProduct {
   customPrice?: number;
 }
 
+interface TaxPreview {
+  subtotal: number;
+  tax: number;
+  total: number;
+  taxCollected: boolean;
+}
+
 interface OrderSummaryProps {
   cartItems: CartItem[];
   shippingCost: number;
@@ -25,6 +32,8 @@ interface OrderSummaryProps {
   isSubmitting: boolean;
   cardError?: string;
   onCardErrorChange?: (error: string) => void;
+  taxPreview?: TaxPreview | null;
+  isTaxLoading?: boolean;
 }
 
 export default function OrderSummary({
@@ -36,6 +45,8 @@ export default function OrderSummary({
   isSubmitting,
   cardError,
   onCardErrorChange,
+  taxPreview,
+  isTaxLoading = false,
 }: OrderSummaryProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -76,10 +87,13 @@ export default function OrderSummary({
     return isFreeShippingEligible ? 0 : baseShippingCost;
   }, [isFreeShippingEligible, baseShippingCost]);
 
-  // Calculate total amount
+  // Calculate total amount - use tax-inclusive total when tax preview available
   const totalAmount = useMemo(() => {
+    if (taxPreview?.taxCollected && taxPreview.total) {
+      return taxPreview.total / 100;
+    }
     return subtotal + finalShippingCost;
-  }, [subtotal, finalShippingCost]);
+  }, [subtotal, finalShippingCost, taxPreview]);
 
   return (
     <Card>
@@ -232,12 +246,27 @@ export default function OrderSummary({
             </div>
           </div>
 
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Tax</span>
-            <span className="text-xs text-muted-foreground italic">
-              Applied at payment
-            </span>
-          </div>
+          {isTaxLoading ? (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Tax (estimated)</span>
+              <span className="text-xs text-muted-foreground">Calculating...</span>
+            </div>
+          ) : taxPreview?.taxCollected ? (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Tax (estimated)</span>
+              <span className="font-medium">${(taxPreview.tax / 100).toFixed(2)}</span>
+            </div>
+          ) : taxPreview ? (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Tax</span>
+              <span className="text-xs text-muted-foreground">No tax for this location</span>
+            </div>
+          ) : (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Tax</span>
+              <span className="text-xs text-muted-foreground italic">Applied at payment</span>
+            </div>
+          )}
 
           <div className="flex justify-between text-lg font-semibold border-t pt-2 mt-2">
             <span>Total</span>
