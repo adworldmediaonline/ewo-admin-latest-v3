@@ -1253,6 +1253,16 @@ export default function OrderDetailsArea({ id, role }: OrderDetailsAreaProps) {
                         </span>
                       </div>
                     )}
+                    {(order.taxAmount || 0) > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">
+                          Tax
+                        </span>
+                        <span className="text-sm font-medium text-foreground">
+                          ${(order.taxAmount || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
                     <div className="pt-3 border-t border-border">
                       <div className="flex justify-between items-center">
                         <span className="text-base font-semibold text-foreground">

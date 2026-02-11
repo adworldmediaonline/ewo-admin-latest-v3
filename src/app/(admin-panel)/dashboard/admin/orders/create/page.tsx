@@ -281,7 +281,7 @@ export default function CreateOrderPage() {
           return;
         }
 
-        // Step 2: Create payment intent
+        // Step 2: Create payment intent (backend calculates tax when address is present)
         const paymentIntentResult = await createPaymentIntent({
           price: Math.max(0, Math.round(totalAmount * 100)), // Convert to cents
           email: customerData.email,
@@ -291,6 +291,8 @@ export default function CreateOrderPage() {
             totalAmount: totalAmount,
           },
         }).unwrap();
+        const paymentTaxAmount = paymentIntentResult.taxAmount;
+        const paymentTotalAmount = paymentIntentResult.totalAmount;
 
         // Handle free orders (when total is 0)
         if (paymentIntentResult.isFreeOrder) {
@@ -358,12 +360,17 @@ export default function CreateOrderPage() {
 
         // Step 4: Payment succeeded - create order
         if (paymentIntent.status === 'succeeded') {
-          const result = await createOrder({
+          const orderToSave = {
             ...orderData,
+            totalAmount: paymentTotalAmount ?? orderData.totalAmount,
             paymentInfo: paymentIntent,
             isPaid: true,
             paidAt: new Date(),
-          }).unwrap();
+          };
+          if (paymentTaxAmount !== undefined && paymentTaxAmount > 0) {
+            orderToSave.taxAmount = paymentTaxAmount;
+          }
+          const result = await createOrder(orderToSave).unwrap();
 
           if (result.success) {
             toast.success('Order created and payment processed successfully!');

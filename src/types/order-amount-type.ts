@@ -30,6 +30,8 @@ export interface Order {
   shippingCost: number;
   discount?: number;
   totalAmount: number;
+  taxAmount?: number;
+  taxCalculationId?: string;
   shippingOption: string;
   paymentMethod: string;
   orderNote?: string;

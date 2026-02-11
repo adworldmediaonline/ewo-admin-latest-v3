@@ -232,6 +232,12 @@ export default function OrderSummary({
             </div>
           </div>
 
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">Tax</span>
+            <span className="text-xs text-muted-foreground italic">
+              Applied at payment
+            </span>
+          </div>
 
           <div className="flex justify-between text-lg font-semibold border-t pt-2 mt-2">
             <span>Total</span>
