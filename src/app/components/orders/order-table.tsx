@@ -507,7 +507,6 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       'Product Price',
       'Subtotal',
       'Shipping Cost',
-      'Tax',
       'Discount',
       'Total',
       'Status',
@@ -548,7 +547,6 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       const carriers = escapeCsvValue(carriersInfo);
       const subtotal = escapeCsvValue(order.subTotal || 0);
       const shippingCost = escapeCsvValue(order.shippingCost || 0);
-      const tax = escapeCsvValue(order.tax || 0);
       const discount = escapeCsvValue(order.discount || 0);
 
       // If order has cart items, create a row for each product
@@ -571,7 +569,6 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             productPrice,
             subtotal,
             shippingCost,
-            tax,
             discount,
             total,
             status,
@@ -709,7 +706,6 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
               escapeCsvValue(item.finalPriceDiscount || item.price || 0),
               escapeCsvValue(order.subTotal || 0),
               escapeCsvValue(order.shippingCost || 0),
-              escapeCsvValue(order.tax || 0),
               escapeCsvValue(order.discount || 0),
               escapeCsvValue(order.totalAmount || 0),
               escapeCsvValue(order.status),
@@ -1025,7 +1021,6 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             '',
             subtotal,
             shippingCost,
-            tax,
             discount,
             total,
             status,

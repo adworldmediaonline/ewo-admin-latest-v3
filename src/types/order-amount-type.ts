@@ -28,7 +28,6 @@ export interface Order {
   zipCode: string;
   subTotal: number;
   shippingCost: number;
-  tax: number;
   discount?: number;
   totalAmount: number;
   shippingOption: string;

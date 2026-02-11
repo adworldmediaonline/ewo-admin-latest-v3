@@ -20,8 +20,6 @@ interface OrderSummaryProps {
   cartItems: CartItem[];
   shippingCost: number;
   onShippingCostChange: (cost: number) => void;
-  tax?: number;
-  onTaxChange?: (tax: number) => void;
   onUpdatePrice?: (productId: string, price: number) => void;
   onSubmit: () => void;
   isSubmitting: boolean;
@@ -33,8 +31,6 @@ export default function OrderSummary({
   cartItems,
   shippingCost,
   onShippingCostChange,
-  tax = 0,
-  onTaxChange,
   onUpdatePrice,
   onSubmit,
   isSubmitting,
@@ -82,8 +78,8 @@ export default function OrderSummary({
 
   // Calculate total amount
   const totalAmount = useMemo(() => {
-    return subtotal + finalShippingCost + tax;
-  }, [subtotal, finalShippingCost, tax]);
+    return subtotal + finalShippingCost;
+  }, [subtotal, finalShippingCost]);
 
   return (
     <Card>
@@ -236,25 +232,6 @@ export default function OrderSummary({
             </div>
           </div>
 
-          {/* Tax */}
-          {onTaxChange && (
-            <div className="flex justify-between items-center">
-              <div className="flex flex-col gap-1">
-                <span className="text-muted-foreground">Tax</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={tax || 0}
-                  onChange={e => onTaxChange(Number(e.target.value) || 0)}
-                  className="w-20 px-2 py-1 border rounded text-sm"
-                />
-                <span className="text-xs text-muted-foreground">USD</span>
-              </div>
-            </div>
-          )}
 
           <div className="flex justify-between text-lg font-semibold border-t pt-2 mt-2">
             <span>Total</span>
