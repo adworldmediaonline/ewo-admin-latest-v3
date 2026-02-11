@@ -592,7 +592,6 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           '', // Product Price
           subtotal,
           shippingCost,
-          tax,
           discount,
           total,
           status,
