@@ -3,7 +3,7 @@ import Breadcrumb from '../../../../components/breadcrumb/breadcrumb';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileText, ArrowRight } from 'lucide-react';
+import { FileText, ArrowRight, Layout } from 'lucide-react';
 
 const WebsiteContentPage = () => {
   return (
@@ -29,6 +29,27 @@ const WebsiteContentPage = () => {
                   </div>
                   <Button asChild variant="outline" size="sm">
                     <Link href="/dashboard/super-admin/website-content/metadata">
+                      Manage
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <Layout className="h-10 w-10 text-primary mb-3" />
+                    <h3 className="font-semibold text-foreground mb-1">
+                      Page Sections
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Manage hero banners, content blocks, and more per page
+                    </p>
+                  </div>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/dashboard/super-admin/website-content/sections">
                       Manage
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>

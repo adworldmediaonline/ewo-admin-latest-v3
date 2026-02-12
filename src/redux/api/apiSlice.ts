@@ -62,5 +62,6 @@ export const apiSlice = createApi({
     'Contact',
     'AllPageMetadata',
     'PageMetadata',
+    'PageSections',
   ],
 });
