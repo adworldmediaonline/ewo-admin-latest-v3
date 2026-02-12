@@ -5,6 +5,8 @@ export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+    // Include cookies so Better Auth session (backend.session_token) is sent cross-origin
+    credentials: 'include',
     prepareHeaders: async (headers, { getState, endpoint }) => {
       try {
         const userInfo = Cookies.get('admin');
@@ -58,5 +60,7 @@ export const apiSlice = createApi({
     'CartTrackingEvents',
     'AllContacts',
     'Contact',
+    'AllPageMetadata',
+    'PageMetadata',
   ],
 });
