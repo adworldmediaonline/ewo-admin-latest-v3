@@ -257,7 +257,7 @@ const PageSectionListArea = () => {
                       Order: {section.order}
                     </p>
                     {section.sectionType === 'hero' && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                         {(section.content as unknown as HeroSectionContent)?.image?.url ? (
                           <>
                             <Image className="h-4 w-4" />
@@ -265,6 +265,11 @@ const PageSectionListArea = () => {
                           </>
                         ) : (
                           <span>Content only</span>
+                        )}
+                        {(section.content as unknown as HeroSectionContent)?.mobileImage?.url && (
+                          <Badge variant="outline" className="text-xs">
+                            Mobile variant
+                          </Badge>
                         )}
                       </div>
                     )}

@@ -9,6 +9,12 @@ export interface HeroSectionContent {
   description?: string;
   smallSubDescription?: string;
   cta?: { text: string; link: string };
+  /** Mobile variant – separate image and content optimized for mobile */
+  mobileImage?: ImageWithMeta;
+  mobileHeading?: string;
+  mobileDescription?: string;
+  mobileSmallSubDescription?: string;
+  mobileCta?: { text: string; link: string };
 }
 
 export interface PageSection {

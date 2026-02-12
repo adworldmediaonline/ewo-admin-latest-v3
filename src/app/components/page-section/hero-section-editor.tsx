@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Smartphone } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { notifyError, notifySuccess } from '@/utils/toast';
 
 const HERO_VARIANTS: { value: HeroVariant; label: string }[] = [
@@ -47,6 +48,12 @@ export const HeroSectionEditor = ({
   const [smallSubDescription, setSmallSubDescription] = useState('');
   const [ctaText, setCtaText] = useState('');
   const [ctaLink, setCtaLink] = useState('');
+  const [mobileImage, setMobileImage] = useState<ImageWithMeta | null>(null);
+  const [mobileHeading, setMobileHeading] = useState('');
+  const [mobileDescription, setMobileDescription] = useState('');
+  const [mobileSmallSubDescription, setMobileSmallSubDescription] = useState('');
+  const [mobileCtaText, setMobileCtaText] = useState('');
+  const [mobileCtaLink, setMobileCtaLink] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -58,6 +65,12 @@ export const HeroSectionEditor = ({
       setSmallSubDescription(content.smallSubDescription ?? '');
       setCtaText(content.cta?.text ?? '');
       setCtaLink(content.cta?.link ?? '');
+      setMobileImage(content.mobileImage ?? null);
+      setMobileHeading(content.mobileHeading ?? '');
+      setMobileDescription(content.mobileDescription ?? '');
+      setMobileSmallSubDescription(content.mobileSmallSubDescription ?? '');
+      setMobileCtaText(content.mobileCta?.text ?? '');
+      setMobileCtaLink(content.mobileCta?.link ?? '');
     }
   }, [content]);
 
@@ -77,6 +90,17 @@ export const HeroSectionEditor = ({
 
     if (variant !== 'content_only' && image) {
       payload.image = image;
+    }
+
+    if (mobileImage || mobileHeading || mobileDescription || mobileSmallSubDescription || mobileCtaText.trim() || mobileCtaLink.trim()) {
+      payload.mobileImage = mobileImage ?? undefined;
+      payload.mobileHeading = mobileHeading.trim() || undefined;
+      payload.mobileDescription = mobileDescription.trim() || undefined;
+      payload.mobileSmallSubDescription = mobileSmallSubDescription.trim() || undefined;
+      payload.mobileCta =
+        mobileCtaText.trim() || mobileCtaLink.trim()
+          ? { text: mobileCtaText.trim(), link: mobileCtaLink.trim() }
+          : undefined;
     }
 
     try {
@@ -182,6 +206,82 @@ export const HeroSectionEditor = ({
           </div>
         </>
       )}
+
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Smartphone className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold">Mobile variant (optional)</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Override image and content for mobile. Leave empty to use desktop values.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {showImage && (
+            <div className="space-y-2">
+              <Label>Mobile hero image</Label>
+              <ImageUploadWithMeta
+                value={mobileImage}
+                onChange={setMobileImage}
+                folder="ewo-assets/heros/mobile"
+              />
+            </div>
+          )}
+          {showContent && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="mobile-heading">Mobile heading</Label>
+                <Input
+                  id="mobile-heading"
+                  value={mobileHeading}
+                  onChange={(e) => setMobileHeading(e.target.value)}
+                  placeholder="Leave empty for desktop heading"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mobile-description">Mobile description</Label>
+                <Textarea
+                  id="mobile-description"
+                  value={mobileDescription}
+                  onChange={(e) => setMobileDescription(e.target.value)}
+                  placeholder="Leave empty for desktop description"
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mobile-small">Mobile sub-description</Label>
+                <Input
+                  id="mobile-small"
+                  value={mobileSmallSubDescription}
+                  onChange={(e) => setMobileSmallSubDescription(e.target.value)}
+                  placeholder="Leave empty for desktop"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="mobile-cta-text">Mobile CTA text</Label>
+                  <Input
+                    id="mobile-cta-text"
+                    value={mobileCtaText}
+                    onChange={(e) => setMobileCtaText(e.target.value)}
+                    placeholder="Leave empty for desktop"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mobile-cta-link">Mobile CTA link</Label>
+                  <Input
+                    id="mobile-cta-link"
+                    value={mobileCtaLink}
+                    onChange={(e) => setMobileCtaLink(e.target.value)}
+                    placeholder="Leave empty for desktop"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {onActiveChange && (
         <div className="flex items-center justify-between rounded-lg border p-4">
