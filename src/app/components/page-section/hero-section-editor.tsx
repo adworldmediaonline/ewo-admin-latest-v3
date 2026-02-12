@@ -117,7 +117,7 @@ export const HeroSectionEditor = ({
   const showContent = variant === 'image_content' || variant === 'content_only';
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 pb-4">
       <div className="space-y-2">
         <Label>Hero variant</Label>
         <Select
@@ -207,8 +207,8 @@ export const HeroSectionEditor = ({
         </>
       )}
 
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className="border-muted">
+        <CardHeader className="pb-3 pt-4 px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <Smartphone className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold">Mobile variant (optional)</h3>
@@ -217,7 +217,7 @@ export const HeroSectionEditor = ({
             Override image and content for mobile. Leave empty to use desktop values.
           </p>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 pb-6 sm:px-6">
           {showImage && (
             <div className="space-y-2">
               <Label>Mobile hero image</Label>
@@ -225,7 +225,20 @@ export const HeroSectionEditor = ({
                 value={mobileImage}
                 onChange={setMobileImage}
                 folder="ewo-assets/heros/mobile"
+                defaultMetaForNewUpload={
+                  image
+                    ? {
+                        fileName: image.fileName,
+                        title: image.title,
+                        altText: image.altText,
+                        link: image.link,
+                      }
+                    : undefined
+                }
               />
+              <p className="text-xs text-muted-foreground">
+                Title, alt text, and file name auto-fill from main image when available
+              </p>
             </div>
           )}
           {showContent && (

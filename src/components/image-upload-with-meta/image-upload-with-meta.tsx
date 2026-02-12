@@ -23,6 +23,8 @@ interface ImageUploadWithMetaProps {
   acceptedFormats?: string;
   maxSizeMb?: number;
   className?: string;
+  /** Pre-fill metadata when uploading a new file (e.g. from main image for mobile variant) */
+  defaultMetaForNewUpload?: Pick<ImageWithMeta, 'fileName' | 'title' | 'altText' | 'link'>;
 }
 
 export const ImageUploadWithMeta = ({
@@ -32,6 +34,7 @@ export const ImageUploadWithMeta = ({
   acceptedFormats = 'image/png,image/jpg,image/jpeg,image/webp,image/avif',
   maxSizeMb = 5,
   className = '',
+  defaultMetaForNewUpload,
 }: ImageUploadWithMetaProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadImageWithMeta, { isLoading }] = useUploadImageWithMetaMutation();
@@ -52,9 +55,17 @@ export const ImageUploadWithMeta = ({
 
     const baseName = file.name.replace(/\.[^/.]+$/, '');
     setPendingFile(file);
-    setFileName(file.name);
-    setTitle(baseName);
-    setAltText(baseName);
+    if (defaultMetaForNewUpload) {
+      setFileName(defaultMetaForNewUpload.fileName || file.name);
+      setTitle(defaultMetaForNewUpload.title || baseName);
+      setAltText(defaultMetaForNewUpload.altText || defaultMetaForNewUpload.title || baseName);
+      setLink(defaultMetaForNewUpload.link ?? '');
+    } else {
+      setFileName(file.name);
+      setTitle(baseName);
+      setAltText(baseName);
+      setLink('');
+    }
     setDialogOpen(true);
     e.target.value = '';
   };

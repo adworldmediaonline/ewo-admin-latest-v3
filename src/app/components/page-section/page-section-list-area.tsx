@@ -361,7 +361,7 @@ const PageSectionListArea = () => {
           className="w-full sm:max-w-lg overflow-y-auto"
           aria-label={editSection ? `Edit ${editSection.sectionKey}` : undefined}
         >
-          <SheetHeader>
+          <SheetHeader className="px-6 pt-6 pb-2">
             <SheetTitle>
               Edit — {editSection?.sectionKey?.replace(/_/g, ' ')}
             </SheetTitle>
@@ -369,7 +369,7 @@ const PageSectionListArea = () => {
               Page: {editSection?.pageSlug}
             </p>
           </SheetHeader>
-          <div className="py-6">
+          <div className="flex-1 overflow-y-auto px-6 pr-12 py-4 pb-8">
             {editSection?.sectionType === 'hero' && (
               <HeroSectionEditor
                 content={heroContent}
