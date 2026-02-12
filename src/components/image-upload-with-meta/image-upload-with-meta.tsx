@@ -40,6 +40,7 @@ export const ImageUploadWithMeta = ({
   const [fileName, setFileName] = useState('');
   const [title, setTitle] = useState('');
   const [altText, setAltText] = useState('');
+  const [link, setLink] = useState('');
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,6 +65,7 @@ export const ImageUploadWithMeta = ({
     setFileName('');
     setTitle('');
     setAltText('');
+    setLink('');
   };
 
   const handleUpload = async () => {
@@ -79,7 +81,11 @@ export const ImageUploadWithMeta = ({
       });
 
       if ('data' in res && res.data?.data) {
-        onChange(res.data.data as ImageWithMeta);
+        const data = res.data.data as ImageWithMeta;
+        onChange({
+          ...data,
+          link: link.trim() || undefined,
+        });
         handleCloseDialog();
       }
     } catch {
@@ -92,6 +98,7 @@ export const ImageUploadWithMeta = ({
       setFileName(value.fileName);
       setTitle(value.title);
       setAltText(value.altText);
+      setLink(value.link ?? '');
       setPendingFile(null);
       setDialogOpen(true);
     }
@@ -105,6 +112,7 @@ export const ImageUploadWithMeta = ({
       fileName: fileName.trim() || value.fileName,
       title: title.trim(),
       altText: altText.trim() || title.trim() || value.fileName,
+      link: link.trim() || undefined,
     });
     handleCloseDialog();
   };
@@ -134,6 +142,9 @@ export const ImageUploadWithMeta = ({
             <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 text-white text-xs">
               <p className="font-medium truncate">{value.fileName}</p>
               {value.title && <p className="truncate opacity-90">{value.title}</p>}
+              {value.link && (
+                <p className="truncate opacity-75 mt-1">Link: {value.link}</p>
+              )}
             </div>
           </div>
           <div className="flex gap-2">
@@ -153,7 +164,7 @@ export const ImageUploadWithMeta = ({
               onClick={handleEditMeta}
             >
               <Pencil className="h-4 w-4 mr-2" />
-              Edit name, title, alt text
+              Edit name, title, alt text, link
             </Button>
           </div>
         </div>
@@ -178,7 +189,7 @@ export const ImageUploadWithMeta = ({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {isEditMode ? 'Edit image metadata' : 'Set file name, title & alt text'}
+              {isEditMode ? 'Edit image metadata' : 'Set file name, title, alt text & link'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -211,6 +222,18 @@ export const ImageUploadWithMeta = ({
                 onChange={(e) => setAltText(e.target.value)}
                 placeholder="Description for accessibility"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="img-link">Link (optional)</Label>
+              <Input
+                id="img-link"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                placeholder="/shop, /about, etc."
+              />
+              <p className="text-xs text-muted-foreground">
+                URL path to navigate when image is clicked
+              </p>
             </div>
           </div>
           <DialogFooter>

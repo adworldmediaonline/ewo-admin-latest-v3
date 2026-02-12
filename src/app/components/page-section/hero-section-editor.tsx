@@ -125,7 +125,7 @@ export const HeroSectionEditor = ({
             folder="ewo-assets/heros"
           />
           <p className="text-xs text-muted-foreground">
-            File name, title, and alt text are managed together for all images
+            File name, title, alt text, and optional link are managed together for all images
           </p>
         </div>
       )}
