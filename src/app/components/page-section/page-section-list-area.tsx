@@ -378,8 +378,8 @@ const PageSectionListArea = () => {
                 }}
                 onCancel={() => setEditSection(null)}
                 isActive={editSection.isActive}
-                onActiveChange={async (active) => {
-                  await handleSaveHero(heroContent, active);
+                onActiveChange={async (active, getCurrentContent) => {
+                  await handleSaveHero(getCurrentContent(), active);
                 }}
               />
             )}

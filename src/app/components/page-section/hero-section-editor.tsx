@@ -31,7 +31,7 @@ interface HeroSectionEditorProps {
   onSave: (content: HeroSectionContent) => Promise<void>;
   onCancel: () => void;
   isActive?: boolean;
-  onActiveChange?: (active: boolean) => void;
+  onActiveChange?: (active: boolean, getCurrentContent: () => HeroSectionContent) => void | Promise<void>;
 }
 
 export const HeroSectionEditor = ({
@@ -115,6 +115,38 @@ export const HeroSectionEditor = ({
 
   const showImage = variant === 'image_only' || variant === 'image_content';
   const showContent = variant === 'image_content' || variant === 'content_only';
+
+  const buildPayloadFromFormState = (): HeroSectionContent => {
+    const payload: HeroSectionContent = {
+      variant,
+      heading: heading.trim() || undefined,
+      description: description.trim() || undefined,
+      smallSubDescription: smallSubDescription.trim() || undefined,
+      cta: ctaText.trim() || ctaLink.trim()
+        ? { text: ctaText.trim(), link: ctaLink.trim() }
+        : undefined,
+    };
+    if (variant !== 'content_only' && image) {
+      payload.image = image;
+    }
+    if (mobileImage || mobileHeading || mobileDescription || mobileSmallSubDescription || mobileCtaText.trim() || mobileCtaLink.trim()) {
+      payload.mobileImage = mobileImage ?? undefined;
+      payload.mobileHeading = mobileHeading.trim() || undefined;
+      payload.mobileDescription = mobileDescription.trim() || undefined;
+      payload.mobileSmallSubDescription = mobileSmallSubDescription.trim() || undefined;
+      payload.mobileCta =
+        mobileCtaText.trim() || mobileCtaLink.trim()
+          ? { text: mobileCtaText.trim(), link: mobileCtaLink.trim() }
+          : undefined;
+    }
+    return payload;
+  };
+
+  const handleActiveChange = (checked: boolean) => {
+    if (onActiveChange) {
+      onActiveChange(checked, buildPayloadFromFormState);
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-4">
@@ -304,7 +336,7 @@ export const HeroSectionEditor = ({
           <Switch
             id="hero-active"
             checked={isActive}
-            onCheckedChange={onActiveChange}
+            onCheckedChange={handleActiveChange}
           />
         </div>
       )}
