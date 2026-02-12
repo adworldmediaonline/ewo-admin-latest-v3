@@ -8,7 +8,7 @@ import {
   useDeleteSectionMutation,
 } from '@/redux/page-section/pageSectionApi';
 import type { PageSection } from '@/types/page-section-type';
-import type { HeroSectionContent } from '@/types/page-section-type';
+import type { HeroSectionContent, CustomSectionContent } from '@/types/page-section-type';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +47,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Edit, Plus, Trash2, Layout, Image } from 'lucide-react';
 import { HeroSectionEditor } from './hero-section-editor';
+import { CustomSectionEditor } from './custom-section-editor';
 import { notifyError, notifySuccess } from '@/utils/toast';
 
 const COMMON_PAGE_SLUGS = ['home', 'shop', 'about', 'contact'];
@@ -100,7 +101,12 @@ const PageSectionListArea = () => {
         sectionKey: key,
         data: {
           sectionType: newSectionType,
-          content: newSectionType === 'hero' ? { variant: 'image_content' } : {},
+          content:
+          newSectionType === 'hero'
+            ? { variant: 'image_content' }
+            : newSectionType === 'custom'
+              ? { layout: { width: 'contained' }, blocks: [] }
+              : {},
           order: sections.length,
           isActive: true,
         },
@@ -111,12 +117,41 @@ const PageSectionListArea = () => {
         setAddDialogOpen(false);
         setNewSectionKey('');
         setNewSectionType('hero');
-        setEditSection(res.data.data);
+        setEditSection(res.data.data as PageSection);
       } else {
         notifyError('Failed to add section');
       }
     } catch {
       notifyError('Failed to add section');
+    }
+  };
+
+  const handleSaveCustom = async (
+    content: CustomSectionContent,
+    isActive?: boolean
+  ) => {
+    if (!editSection) return;
+
+    try {
+      const res = await upsertSection({
+        pageSlug: editSection.pageSlug,
+        sectionKey: editSection.sectionKey,
+        data: {
+          sectionType: 'custom',
+          content: content as unknown as Record<string, unknown>,
+          order: editSection.order,
+          isActive: isActive ?? editSection.isActive,
+        },
+      });
+
+      if ('data' in res && res.data?.success) {
+        notifySuccess('Section updated');
+        setEditSection(res.data.data as PageSection);
+      } else {
+        notifyError('Failed to update section');
+      }
+    } catch {
+      notifyError('Failed to update section');
     }
   };
 
@@ -173,6 +208,7 @@ const PageSectionListArea = () => {
   };
 
   const heroContent = (editSection?.content || {}) as unknown as HeroSectionContent;
+  const customContent = (editSection?.content || {}) as unknown as CustomSectionContent;
 
   return (
     <div className="space-y-6">
@@ -271,6 +307,11 @@ const PageSectionListArea = () => {
                             Mobile variant
                           </Badge>
                         )}
+                      </div>
+                    )}
+                    {section.sectionType === 'custom' && (
+                      <div className="text-sm text-muted-foreground">
+                        {(section.content as { blocks?: unknown[] })?.blocks?.length ?? 0} block(s)
                       </div>
                     )}
                   </div>
@@ -383,11 +424,25 @@ const PageSectionListArea = () => {
                 }}
               />
             )}
-            {editSection?.sectionType !== 'hero' && (
-              <p className="text-muted-foreground">
-                Editor for {editSection?.sectionType} coming soon...
-              </p>
+            {editSection?.sectionType === 'custom' && (
+              <CustomSectionEditor
+                content={customContent}
+                onSave={async (content) => {
+                  await handleSaveCustom(content, editSection.isActive);
+                }}
+                onCancel={() => setEditSection(null)}
+                isActive={editSection.isActive}
+                onActiveChange={async (active, getCurrentContent) => {
+                  await handleSaveCustom(getCurrentContent(), active);
+                }}
+              />
             )}
+            {editSection?.sectionType !== 'hero' &&
+              editSection?.sectionType !== 'custom' && (
+                <p className="text-muted-foreground">
+                  Editor for {editSection?.sectionType} coming soon...
+                </p>
+              )}
           </div>
         </SheetContent>
       </Sheet>
