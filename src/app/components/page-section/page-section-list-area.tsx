@@ -8,7 +8,11 @@ import {
   useDeleteSectionMutation,
 } from '@/redux/page-section/pageSectionApi';
 import type { PageSection } from '@/types/page-section-type';
-import type { HeroSectionContent, CustomSectionContent } from '@/types/page-section-type';
+import type {
+  HeroSectionContent,
+  CustomSectionContent,
+  CategoryShowcaseContent,
+} from '@/types/page-section-type';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,12 +52,14 @@ import {
 import { Edit, Plus, Trash2, Layout, Image } from 'lucide-react';
 import { HeroSectionEditor } from './hero-section-editor';
 import { CustomSectionEditor } from './custom-section-editor';
+import { CategoryShowcaseEditor } from './category-showcase-editor';
 import { notifyError, notifySuccess } from '@/utils/toast';
 
 const COMMON_PAGE_SLUGS = ['home', 'shop', 'about', 'contact'];
 
 const SECTION_TYPE_LABELS: Record<string, string> = {
   hero: 'Hero Banner',
+  category_showcase: 'Category Showcase',
   text_block: 'Text Block',
   features: 'Features',
   cta: 'Call to Action',
@@ -102,11 +108,18 @@ const PageSectionListArea = () => {
         data: {
           sectionType: newSectionType,
           content:
-          newSectionType === 'hero'
-            ? { variant: 'image_content' }
-            : newSectionType === 'custom'
-              ? { layout: { width: 'contained' }, blocks: [] }
-              : {},
+            newSectionType === 'hero'
+              ? { variant: 'image_content' }
+              : newSectionType === 'category_showcase'
+                ? {
+                    heading: 'Shop by Category',
+                    showExploreAll: true,
+                    exploreAllLink: '/shop',
+                    exploreAllLabel: 'Explore all',
+                  }
+                : newSectionType === 'custom'
+                  ? { layout: { width: 'contained' }, blocks: [] }
+                  : {},
           order: sections.length,
           isActive: true,
         },
@@ -138,6 +151,35 @@ const PageSectionListArea = () => {
         sectionKey: editSection.sectionKey,
         data: {
           sectionType: 'custom',
+          content: content as unknown as Record<string, unknown>,
+          order: editSection.order,
+          isActive: isActive ?? editSection.isActive,
+        },
+      });
+
+      if ('data' in res && res.data?.success) {
+        notifySuccess('Section updated');
+        setEditSection(res.data.data as PageSection);
+      } else {
+        notifyError('Failed to update section');
+      }
+    } catch {
+      notifyError('Failed to update section');
+    }
+  };
+
+  const handleSaveCategoryShowcase = async (
+    content: CategoryShowcaseContent,
+    isActive?: boolean
+  ) => {
+    if (!editSection) return;
+
+    try {
+      const res = await upsertSection({
+        pageSlug: editSection.pageSlug,
+        sectionKey: editSection.sectionKey,
+        data: {
+          sectionType: 'category_showcase',
           content: content as unknown as Record<string, unknown>,
           order: editSection.order,
           isActive: isActive ?? editSection.isActive,
@@ -209,6 +251,7 @@ const PageSectionListArea = () => {
 
   const heroContent = (editSection?.content || {}) as unknown as HeroSectionContent;
   const customContent = (editSection?.content || {}) as unknown as CustomSectionContent;
+  const categoryShowcaseContent = (editSection?.content || {}) as unknown as CategoryShowcaseContent;
 
   return (
     <div className="space-y-6">
@@ -312,6 +355,11 @@ const PageSectionListArea = () => {
                     {section.sectionType === 'custom' && (
                       <div className="text-sm text-muted-foreground">
                         {(section.content as { blocks?: unknown[] })?.blocks?.length ?? 0} block(s)
+                      </div>
+                    )}
+                    {section.sectionType === 'category_showcase' && (
+                      <div className="text-sm text-muted-foreground">
+                        {(section.content as CategoryShowcaseContent)?.heading ?? 'Shop by Category'}
                       </div>
                     )}
                   </div>
@@ -437,8 +485,22 @@ const PageSectionListArea = () => {
                 }}
               />
             )}
+            {editSection?.sectionType === 'category_showcase' && (
+              <CategoryShowcaseEditor
+                content={categoryShowcaseContent}
+                onSave={async (content) => {
+                  await handleSaveCategoryShowcase(content, editSection.isActive);
+                }}
+                onCancel={() => setEditSection(null)}
+                isActive={editSection.isActive}
+                onActiveChange={async (active, getCurrentContent) => {
+                  await handleSaveCategoryShowcase(getCurrentContent(), active);
+                }}
+              />
+            )}
             {editSection?.sectionType !== 'hero' &&
-              editSection?.sectionType !== 'custom' && (
+              editSection?.sectionType !== 'custom' &&
+              editSection?.sectionType !== 'category_showcase' && (
                 <p className="text-muted-foreground">
                   Editor for {editSection?.sectionType} coming soon...
                 </p>

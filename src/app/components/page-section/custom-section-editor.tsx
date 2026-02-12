@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import type {
   CustomBlock,
   CustomBlockType,
+  CustomColumnItem,
   CustomSectionContent,
   CustomSectionLayout,
 } from '@/types/page-section-type';
@@ -30,6 +31,8 @@ const BLOCK_TYPES: { value: CustomBlockType; label: string }[] = [
   { value: 'image', label: 'Image' },
   { value: 'button', label: 'Button' },
   { value: 'spacer', label: 'Spacer' },
+  { value: 'columns', label: 'Columns' },
+  { value: 'video', label: 'Video embed' },
 ];
 
 const generateBlockId = () => `block-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -45,6 +48,10 @@ const createEmptyBlock = (type: CustomBlockType): CustomBlock => {
       return { id, type: 'button', text: '', link: '' };
     case 'spacer':
       return { id, type: 'spacer', height: 24 };
+    case 'columns':
+      return { id, type: 'columns', columnCount: 2, items: [{ heading: '', body: '' }, { heading: '', body: '' }] };
+    case 'video':
+      return { id, type: 'video', url: '' };
     default:
       return { id, type: 'text', heading: '', body: '' };
   }
@@ -259,6 +266,71 @@ export const CustomSectionEditor = ({
   );
 };
 
+interface ColumnsBlockEditorProps {
+  block: Extract<CustomBlock, { type: 'columns' }>;
+  onChange: (block: Extract<CustomBlock, { type: 'columns' }>) => void;
+}
+
+const ColumnsBlockEditor = ({ block, onChange }: ColumnsBlockEditorProps) => {
+  const columnCount = block.columnCount ?? 2;
+  const items = block.items ?? [];
+
+  const handleColumnCountChange = (count: 2 | 3 | 4) => {
+    const newItems: CustomColumnItem[] = Array.from({ length: count }, (_, i) =>
+      items[i] ?? { heading: '', body: '' }
+    );
+    onChange({ ...block, columnCount: count, items: newItems });
+  };
+
+  const handleItemChange = (index: number, item: CustomColumnItem) => {
+    const padded = Array.from({ length: columnCount }, (_, i) => items[i] ?? { heading: '', body: '' });
+    const newItems = [...padded];
+    newItems[index] = item;
+    onChange({ ...block, items: newItems });
+  };
+
+  const displayItems = Array.from({ length: columnCount }, (_, i) => items[i] ?? { heading: '', body: '' });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label>Column count</Label>
+        <Select
+          value={String(columnCount)}
+          onValueChange={(v) => handleColumnCountChange(Number(v) as 2 | 3 | 4)}
+        >
+          <SelectTrigger className="w-24">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="2">2</SelectItem>
+            <SelectItem value="3">3</SelectItem>
+            <SelectItem value="4">4</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-3">
+        {displayItems.map((item, i) => (
+          <div key={i} className="rounded border p-3 space-y-2">
+            <span className="text-sm font-medium">Column {i + 1}</span>
+            <Input
+              placeholder="Heading"
+              value={item.heading ?? ''}
+              onChange={(e) => handleItemChange(i, { ...item, heading: e.target.value })}
+            />
+            <Textarea
+              placeholder="Body text"
+              value={item.body ?? ''}
+              onChange={(e) => handleItemChange(i, { ...item, body: e.target.value })}
+              rows={2}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 interface BlockEditorProps {
   block: CustomBlock;
   index: number;
@@ -388,6 +460,32 @@ const BlockEditor = ({
             max={200}
             value={block.height ?? 24}
             onChange={(e) => onChange({ ...block, height: parseInt(e.target.value, 10) || 24 })}
+          />
+        </div>
+      )}
+
+      {block.type === 'columns' && (
+        <ColumnsBlockEditor
+          block={block}
+          onChange={(b) => onChange(b as CustomBlock)}
+        />
+      )}
+
+      {block.type === 'video' && (
+        <div className="space-y-2">
+          <Label htmlFor={`video-url-${block.id}`}>Video URL</Label>
+          <Input
+            id={`video-url-${block.id}`}
+            placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/... or direct video URL"
+            value={block.url}
+            onChange={(e) => onChange({ ...block, url: e.target.value })}
+          />
+          <Label htmlFor={`video-title-${block.id}`}>Title (for accessibility)</Label>
+          <Input
+            id={`video-title-${block.id}`}
+            placeholder="Video description"
+            value={block.title ?? ''}
+            onChange={(e) => onChange({ ...block, title: e.target.value.trim() || undefined })}
           />
         </div>
       )}
