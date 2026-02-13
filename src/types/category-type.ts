@@ -6,10 +6,17 @@ export type BannerDisplayScope =
   | 'children_only'
   | 'parent_and_children';
 
-/** Per-scope Tailwind classes for banner title and description */
+/** Heading tag for banner title (H1–H3) */
+export type BannerTitleHeadingTag = 'h1' | 'h2' | 'h3';
+
+/** Per-scope Tailwind classes and options for banner title and description */
 export interface BannerScopeClasses {
   titleClasses?: string;
   descriptionClasses?: string;
+  /** Heading tag for the title (H1, H2, or H3) */
+  headingTag?: BannerTitleHeadingTag;
+  /** Tailwind classes for the product count span */
+  productCountClasses?: string;
 }
 
 /** Classes by scope: parent and per-child (keyed by child slug) */
