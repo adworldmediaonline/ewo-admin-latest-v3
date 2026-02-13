@@ -27,9 +27,14 @@ export interface CustomBlockBase {
   className?: string;
 }
 
+export type HeadingLevel = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+export const HEADING_LEVELS: HeadingLevel[] = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+
 export interface CustomTextBlock extends CustomBlockBase {
   type: 'text';
   heading?: string;
+  headingLevel?: HeadingLevel;
   body?: string;
 }
 
@@ -51,6 +56,7 @@ export interface CustomSpacerBlock extends CustomBlockBase {
 
 export interface CustomColumnItem {
   heading?: string;
+  headingLevel?: HeadingLevel;
   body?: string;
 }
 

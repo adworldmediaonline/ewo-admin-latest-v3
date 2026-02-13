@@ -7,13 +7,15 @@ import type {
   CustomColumnItem,
   CustomSectionContent,
   CustomSectionLayout,
+  HeadingLevel,
 } from '@/types/page-section-type';
+import { HEADING_LEVELS } from '@/types/page-section-type';
 import type { ImageWithMeta } from '@/types/image-with-meta';
 import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import Tiptap from '@/components/tipTap/Tiptap';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -41,7 +43,7 @@ const createEmptyBlock = (type: CustomBlockType): CustomBlock => {
   const id = generateBlockId();
   switch (type) {
     case 'text':
-      return { id, type: 'text', heading: '', body: '' };
+      return { id, type: 'text', heading: '', headingLevel: 'h2', body: '' };
     case 'image':
       return { id, type: 'image' };
     case 'button':
@@ -49,11 +51,19 @@ const createEmptyBlock = (type: CustomBlockType): CustomBlock => {
     case 'spacer':
       return { id, type: 'spacer', height: 24 };
     case 'columns':
-      return { id, type: 'columns', columnCount: 2, items: [{ heading: '', body: '' }, { heading: '', body: '' }] };
+      return {
+        id,
+        type: 'columns',
+        columnCount: 2,
+        items: [
+          { heading: '', headingLevel: 'h3', body: '' },
+          { heading: '', headingLevel: 'h3', body: '' },
+        ],
+      };
     case 'video':
       return { id, type: 'video', url: '' };
     default:
-      return { id, type: 'text', heading: '', body: '' };
+      return { id, type: 'text', heading: '', headingLevel: 'h2', body: '' };
   }
 };
 
@@ -277,19 +287,23 @@ const ColumnsBlockEditor = ({ block, onChange }: ColumnsBlockEditorProps) => {
 
   const handleColumnCountChange = (count: 2 | 3 | 4) => {
     const newItems: CustomColumnItem[] = Array.from({ length: count }, (_, i) =>
-      items[i] ?? { heading: '', body: '' }
+      items[i] ?? { heading: '', headingLevel: 'h3', body: '' }
     );
     onChange({ ...block, columnCount: count, items: newItems });
   };
 
   const handleItemChange = (index: number, item: CustomColumnItem) => {
-    const padded = Array.from({ length: columnCount }, (_, i) => items[i] ?? { heading: '', body: '' });
+    const padded = Array.from({ length: columnCount }, (_, i) =>
+      items[i] ?? { heading: '', headingLevel: 'h3', body: '' }
+    );
     const newItems = [...padded];
     newItems[index] = item;
     onChange({ ...block, items: newItems });
   };
 
-  const displayItems = Array.from({ length: columnCount }, (_, i) => items[i] ?? { heading: '', body: '' });
+  const displayItems = Array.from({ length: columnCount }, (_, i) =>
+    items[i] ?? { heading: '', headingLevel: 'h3', body: '' }
+  );
 
   return (
     <div className="space-y-4">
@@ -313,16 +327,43 @@ const ColumnsBlockEditor = ({ block, onChange }: ColumnsBlockEditorProps) => {
         {displayItems.map((item, i) => (
           <div key={i} className="rounded border p-3 space-y-2">
             <span className="text-sm font-medium">Column {i + 1}</span>
-            <Input
-              placeholder="Heading"
-              value={item.heading ?? ''}
-              onChange={(e) => handleItemChange(i, { ...item, heading: e.target.value })}
-            />
-            <Textarea
-              placeholder="Body text"
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Heading</Label>
+                <Input
+                  placeholder="Heading"
+                  value={item.heading ?? ''}
+                  onChange={(e) => handleItemChange(i, { ...item, heading: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Level</Label>
+                <Select
+                  value={item.headingLevel ?? 'h3'}
+                  onValueChange={(v) =>
+                    handleItemChange(i, { ...item, headingLevel: v as HeadingLevel })
+                  }
+                >
+                  <SelectTrigger className="w-full sm:w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HEADING_LEVELS.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level.toUpperCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Tiptap
               value={item.body ?? ''}
-              onChange={(e) => handleItemChange(i, { ...item, body: e.target.value })}
-              rows={2}
+              onChange={(html) => handleItemChange(i, { ...item, body: html })}
+              placeholder="Add body text with formatting..."
+              limit={5000}
+              showCharacterCount={false}
+              compact
             />
           </div>
         ))}
@@ -406,18 +447,43 @@ const BlockEditor = ({
 
       {block.type === 'text' && (
         <div className="space-y-2">
-          <Label>Heading</Label>
-          <Input
-            placeholder="Heading"
-            value={block.heading ?? ''}
-            onChange={(e) => onChange({ ...block, heading: e.target.value })}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+            <div className="space-y-2">
+              <Label>Heading</Label>
+              <Input
+                placeholder="Heading"
+                value={block.heading ?? ''}
+                onChange={(e) => onChange({ ...block, heading: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Heading level</Label>
+              <Select
+                value={block.headingLevel ?? 'h2'}
+                onValueChange={(v) =>
+                  onChange({ ...block, headingLevel: v as HeadingLevel })
+                }
+              >
+                <SelectTrigger className="w-full sm:w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {HEADING_LEVELS.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {level.toUpperCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <Label>Body text</Label>
-          <Textarea
-            placeholder="Body text"
+          <Tiptap
             value={block.body ?? ''}
-            onChange={(e) => onChange({ ...block, body: e.target.value })}
-            rows={3}
+            onChange={(html) => onChange({ ...block, body: html })}
+            placeholder="Add body text with formatting (bold, lists, links...)"
+            limit={10000}
+            showCharacterCount={false}
           />
         </div>
       )}

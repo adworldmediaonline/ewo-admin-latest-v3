@@ -35,12 +35,15 @@ const Tiptap = ({
   placeholder = 'Start writing your product description...',
   limit = 5000,
   showCharacterCount = true,
+  compact = false,
 }: {
   value?: string;
   onChange: (value: string) => void;
   placeholder?: string;
   limit?: number;
   showCharacterCount?: boolean;
+  /** Use smaller min-height (e.g. for column body fields) */
+  compact?: boolean;
 }) => {
   const [isMounted, setIsMounted] = useState(false);
   const [wordCount, setWordCount] = useState(0);
@@ -63,7 +66,7 @@ const Tiptap = ({
           keepAttributes: false,
         },
         heading: {
-          levels: [1, 2, 3],
+          levels: [1, 2, 3, 4, 5, 6],
         },
       }),
       // Configure additional extensions
@@ -107,7 +110,7 @@ const Tiptap = ({
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: 'focus:outline-none min-h-[200px]',
+        class: `focus:outline-none ${compact ? 'min-h-[120px]' : 'min-h-[200px]'}`,
         'data-placeholder': placeholder,
       },
     },
@@ -136,10 +139,10 @@ const Tiptap = ({
       {/* Editor Container */}
       <div className="border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all duration-200">
         <MenuBar editor={editor} />
-        <div className="relative">
+        <div className="relative px-3 pb-3 prose prose-sm max-w-none [&_.ProseMirror]:outline-none">
           <EditorContent
             editor={editor}
-            className="min-h-[200px] focus:outline-none"
+            className={compact ? 'min-h-[120px] focus:outline-none' : 'min-h-[200px] focus:outline-none'}
           />
         </div>
 
