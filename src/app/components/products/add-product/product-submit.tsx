@@ -114,11 +114,10 @@ const ProductSubmit = () => {
 
           <TabsContent value="basic" className="mt-6 focus-visible:outline-none">
             <div
-              className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+              className="space-y-6"
               role="main"
               aria-label="Product creation form"
             >
-              <div className="col-span-1 lg:col-span-8 xl:col-span-9 space-y-6">
             {/* General Information */}
             <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
               <CardHeader className="pb-4">
@@ -203,7 +202,7 @@ const ProductSubmit = () => {
                   {errors?.description && (
                     <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                       <svg
-                        className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0"
+                        className="w-4 h-4 text-destructive mt-0.5 shrink-0"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -272,7 +271,6 @@ const ProductSubmit = () => {
                 </div>
               </CardContent>
             </Card>
-              </div>
             </div>
           </TabsContent>
 
@@ -570,7 +568,7 @@ const ProductSubmit = () => {
           </TabsContent>
 
           <TabsContent value="seo" className="mt-6 focus-visible:outline-none">
-            <div className="max-w-2xl">
+            <div className="w-full">
               <SEOFields register={register} errors={errors} />
             </div>
           </TabsContent>

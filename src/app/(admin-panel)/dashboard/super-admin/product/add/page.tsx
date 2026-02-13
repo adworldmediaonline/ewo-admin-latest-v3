@@ -21,7 +21,7 @@ import ProductSubmit from '../../../../../components/products/add-product/produc
 const AddProduct = () => {
   return (
     <Wrapper>
-      <div className="space-y-6">
+      <div className="space-y-8 px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <Breadcrumb>
@@ -54,7 +54,7 @@ const AddProduct = () => {
         </div>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="p-6 sm:p-8">
             <ProductSubmit />
           </CardContent>
         </Card>

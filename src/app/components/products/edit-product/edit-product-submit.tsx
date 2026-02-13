@@ -206,8 +206,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
             </div>
 
             <TabsContent value="basic" className="mt-6 focus-visible:outline-none">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" role="main" aria-label="Product editing form">
-                <div className="col-span-1 lg:col-span-8 xl:col-span-9 space-y-6">
+              <div className="space-y-6" role="main" aria-label="Product editing form">
               <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-3">
@@ -386,7 +385,6 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                   </div>
                 </CardContent>
               </Card>
-                </div>
               </div>
             </TabsContent>
 
@@ -697,7 +695,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
             </TabsContent>
 
             <TabsContent value="seo" className="mt-6 focus-visible:outline-none">
-              <div className="max-w-2xl">
+              <div className="w-full">
                 <SEOFields
                   register={register}
                   errors={errors}
@@ -712,7 +710,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
           </Tabs>
 
           {/* Action Buttons */}
-          <Card className="shadow-card">
+          <Card className="mt-8 shadow-card">
             <CardContent className="pt-6">
               <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
                 <div className="space-y-1">

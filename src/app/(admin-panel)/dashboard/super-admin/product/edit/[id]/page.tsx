@@ -20,7 +20,7 @@ const EditProduct = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   return (
     <Wrapper>
-      <div className="space-y-6">
+      <div className="space-y-8 px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <Breadcrumb>
@@ -53,7 +53,7 @@ const EditProduct = async ({ params }: { params: Promise<{ id: string }> }) => {
         </div>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="p-6 sm:p-8">
             <EditProductSubmit id={id} />
           </CardContent>
         </Card>
