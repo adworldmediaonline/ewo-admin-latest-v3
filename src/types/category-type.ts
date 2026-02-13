@@ -15,6 +15,11 @@ export interface ICategoryItem {
   banner?: ImageWithMeta;
   bannerDisplayScope?: BannerDisplayScope;
   bannerDisplayChildren?: string[];
+  bannerContentActive?: boolean;
+  bannerContentDisplayScope?: BannerDisplayScope;
+  bannerContentDisplayChildren?: string[];
+  bannerTitle?: string;
+  bannerDescription?: string;
   parent: string;
   children: string[];
   products?: string[];
@@ -42,6 +47,11 @@ export interface IAddCategory {
   banner?: ImageWithMeta;
   bannerDisplayScope?: BannerDisplayScope;
   bannerDisplayChildren?: string[];
+  bannerContentActive?: boolean;
+  bannerContentDisplayScope?: BannerDisplayScope;
+  bannerContentDisplayChildren?: string[];
+  bannerTitle?: string;
+  bannerDescription?: string;
   parent: string;
   children?: string[];
   description?: string;

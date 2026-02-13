@@ -20,6 +20,10 @@ interface CategoryBannerDisplaySettingsProps {
   onSelectedChildrenChange: (slugs: string[]) => void;
   categoryChildren: Tag[];
   disabled?: boolean;
+  /** Override label for scope section */
+  label?: string;
+  /** Override label for children selector */
+  childrenLabel?: string;
 }
 
 const SCOPE_OPTIONS: { value: BannerDisplayScope; label: string }[] = [
@@ -39,6 +43,8 @@ const CategoryBannerDisplaySettings = ({
   onSelectedChildrenChange,
   categoryChildren,
   disabled = false,
+  label = 'Banner display scope',
+  childrenLabel = 'Select child categories for banner',
 }: CategoryBannerDisplaySettingsProps) => {
   const childSlugs = categoryChildren
     .map(t => t.text)
@@ -59,7 +65,7 @@ const CategoryBannerDisplaySettings = ({
   return (
     <div className="space-y-4">
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Banner display scope</Label>
+        <Label className="text-sm font-medium">{label}</Label>
         <RadioGroup
           value={scope}
           onValueChange={(v) => onScopeChange(v as BannerDisplayScope)}
@@ -90,7 +96,7 @@ const CategoryBannerDisplaySettings = ({
       {showChildrenSelector && childSlugs.length > 0 && (
         <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
           <Label className="text-sm font-medium">
-            Select child categories for banner
+            {childrenLabel}
           </Label>
           <div className="flex flex-wrap gap-3">
             {childSlugs.map((slug) => {

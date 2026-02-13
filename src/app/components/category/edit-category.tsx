@@ -5,6 +5,7 @@ import useCategorySubmit from '@/hooks/useCategorySubmit';
 import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
 import CategoryChildren from './category-children';
 import CategoryBannerDisplaySettings from './category-banner-display-settings';
+import CategoryBannerContent from './category-banner-content';
 import { useGetCategoryQuery } from '@/redux/category/categoryApi';
 import CategoryParent from './category-parent';
 import CategoryDescription from './category-description';
@@ -29,6 +30,16 @@ const EditCategory = ({ id }: { id: string }) => {
     setBannerDisplayScope,
     bannerDisplayChildren,
     setBannerDisplayChildren,
+    bannerContentActive,
+    setBannerContentActive,
+    bannerContentDisplayScope,
+    setBannerContentDisplayScope,
+    bannerContentDisplayChildren,
+    setBannerContentDisplayChildren,
+    bannerTitle,
+    setBannerTitle,
+    bannerDescription,
+    setBannerDescription,
     error,
     isSubmitted,
     handleSubmitEditCategory,
@@ -67,14 +78,35 @@ const EditCategory = ({ id }: { id: string }) => {
         ? categoryData.bannerDisplayChildren
         : []
     );
+    setBannerContentActive(!!categoryData.bannerContentActive);
+    setBannerContentDisplayScope(
+      categoryData.bannerContentDisplayScope || 'all'
+    );
+    setBannerContentDisplayChildren(
+      Array.isArray(categoryData.bannerContentDisplayChildren)
+        ? categoryData.bannerContentDisplayChildren
+        : []
+    );
+    setBannerTitle(categoryData.bannerTitle || '');
+    setBannerDescription(categoryData.bannerDescription || '');
   }, [
     categoryData?._id,
     categoryData?.banner?.url,
     categoryData?.bannerDisplayScope,
     categoryData?.bannerDisplayChildren,
+    categoryData?.bannerContentActive,
+    categoryData?.bannerContentDisplayScope,
+    categoryData?.bannerContentDisplayChildren,
+    categoryData?.bannerTitle,
+    categoryData?.bannerDescription,
     setCategoryBanner,
     setBannerDisplayScope,
     setBannerDisplayChildren,
+    setBannerContentActive,
+    setBannerContentDisplayScope,
+    setBannerContentDisplayChildren,
+    setBannerTitle,
+    setBannerDescription,
   ]);
 
   // Convert children array (string[]) to Tag[] format
@@ -295,13 +327,30 @@ const EditCategory = ({ id }: { id: string }) => {
                   folder="ewo-assets/categories/banners"
                 />
                 {categoryBanner?.url && (
-                  <CategoryBannerDisplaySettings
-                    scope={bannerDisplayScope}
-                    onScopeChange={setBannerDisplayScope}
-                    selectedChildren={bannerDisplayChildren}
-                    onSelectedChildrenChange={setBannerDisplayChildren}
-                    categoryChildren={categoryChildren}
-                  />
+                  <>
+                    <CategoryBannerContent
+                      bannerContentActive={bannerContentActive}
+                      onBannerContentActiveChange={setBannerContentActive}
+                      bannerTitle={bannerTitle}
+                      onBannerTitleChange={setBannerTitle}
+                      bannerDescription={bannerDescription}
+                      onBannerDescriptionChange={setBannerDescription}
+                      bannerContentDisplayScope={bannerContentDisplayScope}
+                      onBannerContentDisplayScopeChange={setBannerContentDisplayScope}
+                      bannerContentDisplayChildren={bannerContentDisplayChildren}
+                      onBannerContentDisplayChildrenChange={setBannerContentDisplayChildren}
+                      categoryChildren={categoryChildren}
+                      parentName={categoryData.parent || ''}
+                      productCount={categoryData.products?.length ?? 0}
+                    />
+                    <CategoryBannerDisplaySettings
+                      scope={bannerDisplayScope}
+                      onScopeChange={setBannerDisplayScope}
+                      selectedChildren={bannerDisplayChildren}
+                      onSelectedChildrenChange={setBannerDisplayChildren}
+                      categoryChildren={categoryChildren}
+                    />
+                  </>
                 )}
               </CardContent>
             </Card>

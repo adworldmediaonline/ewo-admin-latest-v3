@@ -18,6 +18,13 @@ const useCategorySubmit = () => {
   const [bannerDisplayChildren, setBannerDisplayChildren] = useState<string[]>(
     []
   );
+  const [bannerContentActive, setBannerContentActive] = useState<boolean>(false);
+  const [bannerContentDisplayScope, setBannerContentDisplayScope] =
+    useState<BannerDisplayScope>('all');
+  const [bannerContentDisplayChildren, setBannerContentDisplayChildren] =
+    useState<string[]>([]);
+  const [bannerTitle, setBannerTitle] = useState<string>('');
+  const [bannerDescription, setBannerDescription] = useState<string>('');
   const [parent, setParent] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -46,6 +53,7 @@ const useCategorySubmit = () => {
     handleSubmit,
     setValue,
     control,
+    watch,
     formState: { errors },
     reset,
   } = useForm();
@@ -59,6 +67,11 @@ const useCategorySubmit = () => {
         banner: categoryBanner ?? null,
         bannerDisplayScope,
         bannerDisplayChildren,
+        bannerContentActive,
+        bannerContentDisplayScope,
+        bannerContentDisplayChildren,
+        bannerTitle: bannerTitle.trim() || '',
+        bannerDescription: bannerDescription.trim() || '',
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -80,6 +93,11 @@ const useCategorySubmit = () => {
         setCategoryBanner(null);
         setBannerDisplayScope('all');
         setBannerDisplayChildren([]);
+        setBannerContentActive(false);
+        setBannerContentDisplayScope('all');
+        setBannerContentDisplayChildren([]);
+        setBannerTitle('');
+        setBannerDescription('');
         router.push('/dashboard/super-admin/category');
       }
     } catch (error) {
@@ -96,6 +114,11 @@ const useCategorySubmit = () => {
         banner: categoryBanner ?? null,
         bannerDisplayScope,
         bannerDisplayChildren,
+        bannerContentActive,
+        bannerContentDisplayScope,
+        bannerContentDisplayChildren,
+        bannerTitle: bannerTitle.trim() || '',
+        bannerDescription: bannerDescription.trim() || '',
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -123,6 +146,7 @@ const useCategorySubmit = () => {
   return {
     register,
     handleSubmit,
+    watch,
     setValue,
     errors,
     control,
@@ -134,6 +158,16 @@ const useCategorySubmit = () => {
     setBannerDisplayScope,
     bannerDisplayChildren,
     setBannerDisplayChildren,
+    bannerContentActive,
+    setBannerContentActive,
+    bannerContentDisplayScope,
+    setBannerContentDisplayScope,
+    bannerContentDisplayChildren,
+    setBannerContentDisplayChildren,
+    bannerTitle,
+    setBannerTitle,
+    bannerDescription,
+    setBannerDescription,
     parent,
     setParent,
     description,
