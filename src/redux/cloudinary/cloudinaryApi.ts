@@ -40,7 +40,7 @@ export const cloudinaryApi = apiSlice.injectEndpoints({
         const d = res.data as Record<string, string>;
         return {
           success: res.success,
-          message: (res as { message?: string }).message,
+          message: (res as { message?: string }).message ?? 'Upload successful',
           data: {
             url: d.url ?? '',
             fileName: d.fileName ?? d.original_filename ?? 'image',

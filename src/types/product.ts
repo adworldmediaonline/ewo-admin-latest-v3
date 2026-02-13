@@ -113,4 +113,8 @@ export interface IOrderProduct extends IProduct {
 }
 
 export interface IAddProduct
-  extends Omit<IProduct, '_id' | 'reviews' | 'sellCount'> { }
+  extends Omit<IProduct, '_id' | 'reviews' | 'sellCount'> {
+  _id?: string;
+  image?: { url?: string; fileName?: string; title?: string; altText?: string };
+  imageURLsWithMeta?: Array<{ url?: string; fileName?: string; title?: string; altText?: string }>;
+}

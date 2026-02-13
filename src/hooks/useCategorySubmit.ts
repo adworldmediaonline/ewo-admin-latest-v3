@@ -65,9 +65,9 @@ const useCategorySubmit = () => {
   const handleSubmitCategory = async (data: any) => {
     try {
       const category_data = {
-        image: categoryImg ?? null,
-        img: categoryImg?.url ?? null,
-        banner: categoryBanner ?? null,
+        image: categoryImg ?? undefined,
+        img: categoryImg?.url ?? undefined,
+        banner: categoryBanner ?? undefined,
         bannerDisplayScope,
         bannerDisplayChildren,
         bannerContentActive,
@@ -114,9 +114,9 @@ const useCategorySubmit = () => {
   const handleSubmitEditCategory = async (data: any, id: string) => {
     try {
       const category_data = {
-        image: categoryImg ?? null,
-        img: categoryImg?.url ?? null,
-        banner: categoryBanner ?? null,
+        image: categoryImg ?? undefined,
+        img: categoryImg?.url ?? undefined,
+        banner: categoryBanner ?? undefined,
         bannerDisplayScope,
         bannerDisplayChildren,
         bannerContentActive,

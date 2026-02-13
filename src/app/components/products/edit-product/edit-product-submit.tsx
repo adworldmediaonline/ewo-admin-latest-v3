@@ -29,6 +29,7 @@ import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-u
 import ProductOptions from '../add-product/product-options';
 import ProductConfigurations from '../add-product/product-configurations';
 import ProductVariants from '../add-product/product-variants';
+import type { ImageWithMeta } from '@/types/image-with-meta';
 import SEOFields from '../add-product/seo-fields';
 import Tags from '../add-product/tags';
 import Badges from '../add-product/badges';
@@ -158,7 +159,12 @@ const EditProductSubmit = ({ id }: { id: string }) => {
   useEffect(() => {
     if (!product) return;
     if (product.image?.url) {
-      setImage(product.image);
+      setImage({
+        url: product.image.url,
+        fileName: product.image.fileName ?? '',
+        title: product.image.title ?? '',
+        altText: product.image.altText ?? '',
+      });
     } else if (product.img) {
       setImage({
         url: product.img,
@@ -502,7 +508,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                   setImageURLsWithMeta={setImageURLsWithMeta}
                   default_value={
                     product.imageURLsWithMeta?.length
-                      ? product.imageURLsWithMeta
+                      ? (product.imageURLsWithMeta as ImageWithMeta[])
                       : product.imageURLs
                   }
                 />

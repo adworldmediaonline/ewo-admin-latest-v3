@@ -62,7 +62,9 @@ export interface CategoryResponse {
 }
 
 export interface IAddCategory {
+  _id?: string;
   img?: string;
+  products?: unknown[];
   /** Image with metadata (fileName, title, altText) */
   image?: ImageWithMeta;
   /** Category banner for shop page */

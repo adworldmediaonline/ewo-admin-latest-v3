@@ -82,7 +82,7 @@ const CategoryTables = () => {
                         {(item.image?.url || item.img) && (
                           <Image
                             className="w-10 h-10 rounded-full shrink shrink-0 object-cover"
-                            src={item.image?.url || item.img}
+                            src={item.image?.url || item.img || '/placeholder.svg'}
                             alt={item.image?.altText || item.image?.title || item.parent}
                             width={40}
                             height={40}

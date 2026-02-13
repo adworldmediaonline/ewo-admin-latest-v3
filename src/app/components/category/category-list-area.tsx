@@ -143,7 +143,7 @@ export default function CategoryListArea() {
               {(category.image?.url || category.img) && (
                 <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted">
                   <Image
-                    src={category.image?.url || category.img}
+                    src={category.image?.url || category.img || '/placeholder.svg'}
                     alt={category.image?.altText || category.image?.title || category.parent}
                     fill
                     className="object-cover"
