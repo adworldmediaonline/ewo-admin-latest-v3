@@ -40,6 +40,10 @@ const EditCategory = ({ id }: { id: string }) => {
     setBannerTitle,
     bannerDescription,
     setBannerDescription,
+    bannerTitleClasses,
+    setBannerTitleClasses,
+    bannerDescriptionClasses,
+    setBannerDescriptionClasses,
     error,
     isSubmitted,
     handleSubmitEditCategory,
@@ -89,6 +93,12 @@ const EditCategory = ({ id }: { id: string }) => {
     );
     setBannerTitle(categoryData.bannerTitle || '');
     setBannerDescription(categoryData.bannerDescription || '');
+    setBannerTitleClasses(
+      categoryData.bannerTitleClasses?.trim() || 'text-center'
+    );
+    setBannerDescriptionClasses(
+      categoryData.bannerDescriptionClasses?.trim() || 'text-center'
+    );
   }, [
     categoryData?._id,
     categoryData?.banner?.url,
@@ -99,6 +109,8 @@ const EditCategory = ({ id }: { id: string }) => {
     categoryData?.bannerContentDisplayChildren,
     categoryData?.bannerTitle,
     categoryData?.bannerDescription,
+    categoryData?.bannerTitleClasses,
+    categoryData?.bannerDescriptionClasses,
     setCategoryBanner,
     setBannerDisplayScope,
     setBannerDisplayChildren,
@@ -107,6 +119,8 @@ const EditCategory = ({ id }: { id: string }) => {
     setBannerContentDisplayChildren,
     setBannerTitle,
     setBannerDescription,
+    setBannerTitleClasses,
+    setBannerDescriptionClasses,
   ]);
 
   // Convert children array (string[]) to Tag[] format
@@ -336,6 +350,10 @@ const EditCategory = ({ id }: { id: string }) => {
                       onBannerTitleChange={setBannerTitle}
                       bannerDescription={bannerDescription}
                       onBannerDescriptionChange={setBannerDescription}
+                      bannerTitleClasses={bannerTitleClasses}
+                      onBannerTitleClassesChange={setBannerTitleClasses}
+                      bannerDescriptionClasses={bannerDescriptionClasses}
+                      onBannerDescriptionClassesChange={setBannerDescriptionClasses}
                       bannerContentDisplayScope={bannerContentDisplayScope}
                       onBannerContentDisplayScopeChange={setBannerContentDisplayScope}
                       bannerContentDisplayChildren={bannerContentDisplayChildren}

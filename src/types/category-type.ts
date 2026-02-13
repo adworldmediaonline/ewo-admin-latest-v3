@@ -20,6 +20,8 @@ export interface ICategoryItem {
   bannerContentDisplayChildren?: string[];
   bannerTitle?: string;
   bannerDescription?: string;
+  bannerTitleClasses?: string;
+  bannerDescriptionClasses?: string;
   parent: string;
   children: string[];
   products?: string[];
@@ -52,6 +54,8 @@ export interface IAddCategory {
   bannerContentDisplayChildren?: string[];
   bannerTitle?: string;
   bannerDescription?: string;
+  bannerTitleClasses?: string;
+  bannerDescriptionClasses?: string;
   parent: string;
   children?: string[];
   description?: string;

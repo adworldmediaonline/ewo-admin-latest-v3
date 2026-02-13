@@ -25,6 +25,10 @@ const useCategorySubmit = () => {
     useState<string[]>([]);
   const [bannerTitle, setBannerTitle] = useState<string>('');
   const [bannerDescription, setBannerDescription] = useState<string>('');
+  const [bannerTitleClasses, setBannerTitleClasses] =
+    useState<string>('text-center');
+  const [bannerDescriptionClasses, setBannerDescriptionClasses] =
+    useState<string>('text-center');
   const [parent, setParent] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -72,6 +76,9 @@ const useCategorySubmit = () => {
         bannerContentDisplayChildren,
         bannerTitle: bannerTitle.trim() || '',
         bannerDescription: bannerDescription.trim() || '',
+        bannerTitleClasses: bannerTitleClasses.trim() || 'text-center',
+        bannerDescriptionClasses:
+          bannerDescriptionClasses.trim() || 'text-center',
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -98,6 +105,8 @@ const useCategorySubmit = () => {
         setBannerContentDisplayChildren([]);
         setBannerTitle('');
         setBannerDescription('');
+        setBannerTitleClasses('text-center');
+        setBannerDescriptionClasses('text-center');
         router.push('/dashboard/super-admin/category');
       }
     } catch (error) {
@@ -119,6 +128,9 @@ const useCategorySubmit = () => {
         bannerContentDisplayChildren,
         bannerTitle: bannerTitle.trim() || '',
         bannerDescription: bannerDescription.trim() || '',
+        bannerTitleClasses: bannerTitleClasses.trim() || 'text-center',
+        bannerDescriptionClasses:
+          bannerDescriptionClasses.trim() || 'text-center',
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -168,6 +180,10 @@ const useCategorySubmit = () => {
     setBannerTitle,
     bannerDescription,
     setBannerDescription,
+    bannerTitleClasses,
+    setBannerTitleClasses,
+    bannerDescriptionClasses,
+    setBannerDescriptionClasses,
     parent,
     setParent,
     description,

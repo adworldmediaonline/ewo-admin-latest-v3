@@ -19,6 +19,10 @@ interface CategoryBannerContentProps {
   onBannerTitleChange: (title: string) => void;
   bannerDescription: string;
   onBannerDescriptionChange: (description: string) => void;
+  bannerTitleClasses: string;
+  onBannerTitleClassesChange: (value: string) => void;
+  bannerDescriptionClasses: string;
+  onBannerDescriptionClassesChange: (value: string) => void;
   bannerContentDisplayScope: BannerDisplayScope;
   onBannerContentDisplayScopeChange: (scope: BannerDisplayScope) => void;
   bannerContentDisplayChildren: string[];
@@ -36,6 +40,10 @@ const CategoryBannerContent = ({
   onBannerTitleChange,
   bannerDescription,
   onBannerDescriptionChange,
+  bannerTitleClasses,
+  onBannerTitleClassesChange,
+  bannerDescriptionClasses,
+  onBannerDescriptionClassesChange,
   bannerContentDisplayScope,
   onBannerContentDisplayScopeChange,
   bannerContentDisplayChildren,
@@ -116,6 +124,40 @@ const CategoryBannerContent = ({
               disabled={disabled}
               className="resize-none"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="banner-title-classes" className="text-sm font-medium">
+              Banner title classes
+            </Label>
+            <Input
+              id="banner-title-classes"
+              value={bannerTitleClasses}
+              onChange={(e) => onBannerTitleClassesChange(e.target.value)}
+              placeholder="e.g. text-center text-primary font-bold"
+              disabled={disabled}
+            />
+            <p className="text-xs text-muted-foreground">
+              Tailwind classes for alignment, colors, typography. Default:
+              text-center
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="banner-desc-classes" className="text-sm font-medium">
+              Banner description classes
+            </Label>
+            <Input
+              id="banner-desc-classes"
+              value={bannerDescriptionClasses}
+              onChange={(e) => onBannerDescriptionClassesChange(e.target.value)}
+              placeholder="e.g. text-center text-muted-foreground"
+              disabled={disabled}
+            />
+            <p className="text-xs text-muted-foreground">
+              Tailwind classes for alignment, colors, typography. Default:
+              text-center
+            </p>
           </div>
 
           <CategoryBannerDisplaySettings
