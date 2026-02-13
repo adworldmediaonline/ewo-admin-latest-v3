@@ -1,6 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
 import { useGetAllPageMetadataQuery } from '@/redux/page-metadata/pageMetadataApi';
 import {
   useGetSectionsByPageQuery,
@@ -15,7 +32,6 @@ import type {
 } from '@/types/page-section-type';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
@@ -49,7 +65,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Edit, Plus, Trash2, Layout, Image } from 'lucide-react';
+import { Plus, Trash2, Layout } from 'lucide-react';
+import { SortableSectionCard, SectionCardPreview } from './sortable-section-card';
 import { HeroSectionEditor } from './hero-section-editor';
 import { CustomSectionEditor } from './custom-section-editor';
 import { CategoryShowcaseEditor } from './category-showcase-editor';
@@ -75,6 +92,7 @@ const PageSectionListArea = () => {
   const [newSectionType, setNewSectionType] = useState<string>('hero');
   const [editSection, setEditSection] = useState<PageSection | null>(null);
   const [deleteSection, setDeleteSection] = useState<PageSection | null>(null);
+  const [activeSection, setActiveSection] = useState<PageSection | null>(null);
 
   const pages = metadataData?.data ?? [];
   const pageSlugs = Array.from(
@@ -95,7 +113,65 @@ const PageSectionListArea = () => {
   const [deleteSectionMutation, { isLoading: isDeleting }] =
     useDeleteSectionMutation();
 
-  const sections = sectionsData?.data ?? [];
+  const sections = [...(sectionsData?.data ?? [])].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0)
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const section = sections.find((s) => s._id === event.active.id);
+    setActiveSection(section ?? null);
+  }, [sections]);
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      setActiveSection(null);
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = sections.findIndex((s) => s._id === active.id);
+      const newIndex = sections.findIndex((s) => s._id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const reordered = arrayMove(sections, oldIndex, newIndex);
+
+      const toUpdate = reordered.filter(
+        (s, i) => s.order !== i
+      );
+
+      if (toUpdate.length === 0) return;
+
+      try {
+        await Promise.all(
+          toUpdate.map((section) =>
+            upsertSection({
+              pageSlug: section.pageSlug,
+              sectionKey: section.sectionKey,
+              data: {
+                sectionType: section.sectionType,
+                content: section.content,
+                config: section.config,
+                order: reordered.indexOf(section),
+                isActive: section.isActive,
+              },
+            })
+          )
+        );
+        notifySuccess('Sections reordered');
+      } catch {
+        notifyError('Failed to reorder sections');
+      }
+    },
+    [sections, upsertSection]
+  );
 
   const handleAddSection = async () => {
     const key = newSectionKey.trim().toLowerCase().replace(/\s+/g, '_');
@@ -315,77 +391,33 @@ const PageSectionListArea = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {sections.map((section) => (
-            <Card key={section._id} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-foreground capitalize">
-                        {section.sectionKey.replace(/_/g, ' ')}
-                      </h3>
-                      <Badge variant={section.isActive ? 'default' : 'secondary'}>
-                        {section.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                      <Badge variant="outline">
-                        {SECTION_TYPE_LABELS[section.sectionType] ?? section.sectionType}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Order: {section.order}
-                    </p>
-                    {section.sectionType === 'hero' && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-                        {(section.content as unknown as HeroSectionContent)?.image?.url ? (
-                          <>
-                            <Image className="h-4 w-4" />
-                            <span>Image + content</span>
-                          </>
-                        ) : (
-                          <span>Content only</span>
-                        )}
-                        {(section.content as unknown as HeroSectionContent)?.mobileImage?.url && (
-                          <Badge variant="outline" className="text-xs">
-                            Mobile variant
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                    {section.sectionType === 'custom' && (
-                      <div className="text-sm text-muted-foreground">
-                        {(section.content as { blocks?: unknown[] })?.blocks?.length ?? 0} block(s)
-                      </div>
-                    )}
-                    {section.sectionType === 'category_showcase' && (
-                      <div className="text-sm text-muted-foreground">
-                        {(section.content as CategoryShowcaseContent)?.heading ?? 'Shop by Category'}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditSection(section)}
-                      aria-label={`Edit section ${section.sectionKey}`}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDeleteSection(section)}
-                      aria-label={`Delete section ${section.sectionKey}`}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sections.map((s) => s._id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-4">
+              {sections.map((section) => (
+                <SortableSectionCard
+                  key={section._id}
+                  section={section}
+                  onEdit={setEditSection}
+                  onDelete={setDeleteSection}
+                />
+              ))}
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeSection ? (
+              <SectionCardPreview section={activeSection} />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {/* Add section dialog */}
