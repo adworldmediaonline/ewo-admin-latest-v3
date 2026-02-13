@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form';
 import type { Tag } from 'react-tag-input';
 import type { ImageWithMeta } from '@/types/image-with-meta';
 import type { BannerDisplayScope } from '@/app/components/category/category-banner-display-settings';
+import type { BannerContentClassesByScope } from '@/types/category-type';
 
 const useCategorySubmit = () => {
   const [categoryImg, setCategoryImg] = useState<ImageWithMeta | null>(null);
@@ -25,10 +26,8 @@ const useCategorySubmit = () => {
     useState<string[]>([]);
   const [bannerTitle, setBannerTitle] = useState<string>('');
   const [bannerDescription, setBannerDescription] = useState<string>('');
-  const [bannerTitleClasses, setBannerTitleClasses] =
-    useState<string>('text-center');
-  const [bannerDescriptionClasses, setBannerDescriptionClasses] =
-    useState<string>('text-center');
+  const [bannerContentClassesByScope, setBannerContentClassesByScope] =
+    useState<BannerContentClassesByScope>({ parent: null, children: {} });
   const [parent, setParent] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -76,9 +75,7 @@ const useCategorySubmit = () => {
         bannerContentDisplayChildren,
         bannerTitle: bannerTitle.trim() || '',
         bannerDescription: bannerDescription.trim() || '',
-        bannerTitleClasses: bannerTitleClasses.trim() || 'text-center',
-        bannerDescriptionClasses:
-          bannerDescriptionClasses.trim() || 'text-center',
+        bannerContentClassesByScope: bannerContentClassesByScope,
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -105,8 +102,7 @@ const useCategorySubmit = () => {
         setBannerContentDisplayChildren([]);
         setBannerTitle('');
         setBannerDescription('');
-        setBannerTitleClasses('text-center');
-        setBannerDescriptionClasses('text-center');
+        setBannerContentClassesByScope({ parent: null, children: {} });
         router.push('/dashboard/super-admin/category');
       }
     } catch (error) {
@@ -128,9 +124,7 @@ const useCategorySubmit = () => {
         bannerContentDisplayChildren,
         bannerTitle: bannerTitle.trim() || '',
         bannerDescription: bannerDescription.trim() || '',
-        bannerTitleClasses: bannerTitleClasses.trim() || 'text-center',
-        bannerDescriptionClasses:
-          bannerDescriptionClasses.trim() || 'text-center',
+        bannerContentClassesByScope: bannerContentClassesByScope,
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -180,10 +174,8 @@ const useCategorySubmit = () => {
     setBannerTitle,
     bannerDescription,
     setBannerDescription,
-    bannerTitleClasses,
-    setBannerTitleClasses,
-    bannerDescriptionClasses,
-    setBannerDescriptionClasses,
+    bannerContentClassesByScope,
+    setBannerContentClassesByScope,
     parent,
     setParent,
     description,

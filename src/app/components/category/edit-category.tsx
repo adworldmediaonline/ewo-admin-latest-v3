@@ -40,10 +40,8 @@ const EditCategory = ({ id }: { id: string }) => {
     setBannerTitle,
     bannerDescription,
     setBannerDescription,
-    bannerTitleClasses,
-    setBannerTitleClasses,
-    bannerDescriptionClasses,
-    setBannerDescriptionClasses,
+    bannerContentClassesByScope,
+    setBannerContentClassesByScope,
     error,
     isSubmitted,
     handleSubmitEditCategory,
@@ -93,12 +91,28 @@ const EditCategory = ({ id }: { id: string }) => {
     );
     setBannerTitle(categoryData.bannerTitle || '');
     setBannerDescription(categoryData.bannerDescription || '');
-    setBannerTitleClasses(
-      categoryData.bannerTitleClasses?.trim() || 'text-center'
-    );
-    setBannerDescriptionClasses(
-      categoryData.bannerDescriptionClasses?.trim() || 'text-center'
-    );
+    const byScope = categoryData.bannerContentClassesByScope;
+    const hasByScope =
+      byScope &&
+      (byScope.parent ||
+        (byScope.children && Object.keys(byScope.children).length > 0));
+    if (hasByScope) {
+      setBannerContentClassesByScope(byScope);
+    } else if (
+      categoryData.bannerTitleClasses ||
+      categoryData.bannerDescriptionClasses
+    ) {
+      setBannerContentClassesByScope({
+        parent: {
+          titleClasses: categoryData.bannerTitleClasses?.trim() || undefined,
+          descriptionClasses:
+            categoryData.bannerDescriptionClasses?.trim() || undefined,
+        },
+        children: {},
+      });
+    } else {
+      setBannerContentClassesByScope({ parent: null, children: {} });
+    }
   }, [
     categoryData?._id,
     categoryData?.banner?.url,
@@ -109,8 +123,7 @@ const EditCategory = ({ id }: { id: string }) => {
     categoryData?.bannerContentDisplayChildren,
     categoryData?.bannerTitle,
     categoryData?.bannerDescription,
-    categoryData?.bannerTitleClasses,
-    categoryData?.bannerDescriptionClasses,
+    categoryData?.bannerContentClassesByScope,
     setCategoryBanner,
     setBannerDisplayScope,
     setBannerDisplayChildren,
@@ -119,8 +132,7 @@ const EditCategory = ({ id }: { id: string }) => {
     setBannerContentDisplayChildren,
     setBannerTitle,
     setBannerDescription,
-    setBannerTitleClasses,
-    setBannerDescriptionClasses,
+    setBannerContentClassesByScope,
   ]);
 
   // Convert children array (string[]) to Tag[] format
@@ -350,10 +362,10 @@ const EditCategory = ({ id }: { id: string }) => {
                       onBannerTitleChange={setBannerTitle}
                       bannerDescription={bannerDescription}
                       onBannerDescriptionChange={setBannerDescription}
-                      bannerTitleClasses={bannerTitleClasses}
-                      onBannerTitleClassesChange={setBannerTitleClasses}
-                      bannerDescriptionClasses={bannerDescriptionClasses}
-                      onBannerDescriptionClassesChange={setBannerDescriptionClasses}
+                      bannerContentClassesByScope={bannerContentClassesByScope}
+                      onBannerContentClassesByScopeChange={
+                        setBannerContentClassesByScope
+                      }
                       bannerContentDisplayScope={bannerContentDisplayScope}
                       onBannerContentDisplayScopeChange={setBannerContentDisplayScope}
                       bannerContentDisplayChildren={bannerContentDisplayChildren}

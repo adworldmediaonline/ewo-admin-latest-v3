@@ -39,10 +39,8 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
     setBannerTitle,
     bannerDescription,
     setBannerDescription,
-    bannerTitleClasses,
-    setBannerTitleClasses,
-    bannerDescriptionClasses,
-    setBannerDescriptionClasses,
+    bannerContentClassesByScope,
+    setBannerContentClassesByScope,
     error,
     isSubmitted,
     watch,
@@ -189,10 +187,10 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
                       onBannerTitleChange={setBannerTitle}
                       bannerDescription={bannerDescription}
                       onBannerDescriptionChange={setBannerDescription}
-                      bannerTitleClasses={bannerTitleClasses}
-                      onBannerTitleClassesChange={setBannerTitleClasses}
-                      bannerDescriptionClasses={bannerDescriptionClasses}
-                      onBannerDescriptionClassesChange={setBannerDescriptionClasses}
+                      bannerContentClassesByScope={bannerContentClassesByScope}
+                      onBannerContentClassesByScopeChange={
+                        setBannerContentClassesByScope
+                      }
                       bannerContentDisplayScope={bannerContentDisplayScope}
                       onBannerContentDisplayScopeChange={setBannerContentDisplayScope}
                       bannerContentDisplayChildren={bannerContentDisplayChildren}

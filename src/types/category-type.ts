@@ -6,6 +6,18 @@ export type BannerDisplayScope =
   | 'children_only'
   | 'parent_and_children';
 
+/** Per-scope Tailwind classes for banner title and description */
+export interface BannerScopeClasses {
+  titleClasses?: string;
+  descriptionClasses?: string;
+}
+
+/** Classes by scope: parent and per-child (keyed by child slug) */
+export interface BannerContentClassesByScope {
+  parent?: BannerScopeClasses | null;
+  children?: Record<string, BannerScopeClasses>;
+}
+
 export interface ICategoryItem {
   _id: string;
   img?: string;
@@ -22,6 +34,7 @@ export interface ICategoryItem {
   bannerDescription?: string;
   bannerTitleClasses?: string;
   bannerDescriptionClasses?: string;
+  bannerContentClassesByScope?: BannerContentClassesByScope;
   parent: string;
   children: string[];
   products?: string[];
@@ -56,6 +69,7 @@ export interface IAddCategory {
   bannerDescription?: string;
   bannerTitleClasses?: string;
   bannerDescriptionClasses?: string;
+  bannerContentClassesByScope?: BannerContentClassesByScope;
   parent: string;
   children?: string[];
   description?: string;

@@ -11,6 +11,8 @@ import { Sparkles } from 'lucide-react';
 import CategoryBannerDisplaySettings, {
   type BannerDisplayScope,
 } from './category-banner-display-settings';
+import { toSlug } from '@/lib/slug';
+import type { BannerContentClassesByScope } from '@/types/category-type';
 
 interface CategoryBannerContentProps {
   bannerContentActive: boolean;
@@ -19,10 +21,10 @@ interface CategoryBannerContentProps {
   onBannerTitleChange: (title: string) => void;
   bannerDescription: string;
   onBannerDescriptionChange: (description: string) => void;
-  bannerTitleClasses: string;
-  onBannerTitleClassesChange: (value: string) => void;
-  bannerDescriptionClasses: string;
-  onBannerDescriptionClassesChange: (value: string) => void;
+  bannerContentClassesByScope: BannerContentClassesByScope;
+  onBannerContentClassesByScopeChange: (
+    value: BannerContentClassesByScope
+  ) => void;
   bannerContentDisplayScope: BannerDisplayScope;
   onBannerContentDisplayScopeChange: (scope: BannerDisplayScope) => void;
   bannerContentDisplayChildren: string[];
@@ -33,6 +35,8 @@ interface CategoryBannerContentProps {
   disabled?: boolean;
 }
 
+const DEFAULT_CLASSES = 'text-center';
+
 const CategoryBannerContent = ({
   bannerContentActive,
   onBannerContentActiveChange,
@@ -40,10 +44,8 @@ const CategoryBannerContent = ({
   onBannerTitleChange,
   bannerDescription,
   onBannerDescriptionChange,
-  bannerTitleClasses,
-  onBannerTitleClassesChange,
-  bannerDescriptionClasses,
-  onBannerDescriptionClassesChange,
+  bannerContentClassesByScope,
+  onBannerContentClassesByScopeChange,
   bannerContentDisplayScope,
   onBannerContentDisplayScopeChange,
   bannerContentDisplayChildren,
@@ -56,8 +58,47 @@ const CategoryBannerContent = ({
   const handleAutoFillTitle = () => {
     const count = productCount ?? 0;
     const productLabel = count === 1 ? 'product' : 'products';
-    onBannerTitleChange(`${parentName || 'Category'} (${count} ${productLabel})`);
+    onBannerTitleChange(
+      `${parentName || 'Category'} (${count} ${productLabel})`
+    );
   };
+
+  const childSlugs = categoryChildren
+    .map((t) => t.text)
+    .filter(Boolean)
+    .map((c) => toSlug(c));
+
+  const updateParentClasses = (field: 'titleClasses' | 'descriptionClasses', value: string) => {
+    const parent = bannerContentClassesByScope?.parent ?? {};
+    onBannerContentClassesByScopeChange({
+      ...bannerContentClassesByScope,
+      parent: { ...parent, [field]: value.trim() || undefined },
+    });
+  };
+
+  const updateChildClasses = (
+    childSlug: string,
+    field: 'titleClasses' | 'descriptionClasses',
+    value: string
+  ) => {
+    const children = { ...(bannerContentClassesByScope?.children ?? {}) };
+    const current = children[childSlug] ?? {};
+    const updated = { ...current, [field]: value.trim() || undefined };
+    if (updated.titleClasses || updated.descriptionClasses) {
+      children[childSlug] = updated;
+    } else {
+      delete children[childSlug];
+    }
+    onBannerContentClassesByScopeChange({
+      ...bannerContentClassesByScope,
+      children,
+    });
+  };
+
+  const parentTitleClasses =
+    bannerContentClassesByScope?.parent?.titleClasses ?? '';
+  const parentDescriptionClasses =
+    bannerContentClassesByScope?.parent?.descriptionClasses ?? '';
 
   return (
     <div className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
@@ -126,40 +167,6 @@ const CategoryBannerContent = ({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="banner-title-classes" className="text-sm font-medium">
-              Banner title classes
-            </Label>
-            <Input
-              id="banner-title-classes"
-              value={bannerTitleClasses}
-              onChange={(e) => onBannerTitleClassesChange(e.target.value)}
-              placeholder="e.g. text-center text-primary font-bold"
-              disabled={disabled}
-            />
-            <p className="text-xs text-muted-foreground">
-              Tailwind classes for alignment, colors, typography. Default:
-              text-center
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="banner-desc-classes" className="text-sm font-medium">
-              Banner description classes
-            </Label>
-            <Input
-              id="banner-desc-classes"
-              value={bannerDescriptionClasses}
-              onChange={(e) => onBannerDescriptionClassesChange(e.target.value)}
-              placeholder="e.g. text-center text-muted-foreground"
-              disabled={disabled}
-            />
-            <p className="text-xs text-muted-foreground">
-              Tailwind classes for alignment, colors, typography. Default:
-              text-center
-            </p>
-          </div>
-
           <CategoryBannerDisplaySettings
             scope={bannerContentDisplayScope}
             onScopeChange={onBannerContentDisplayScopeChange}
@@ -170,6 +177,134 @@ const CategoryBannerContent = ({
             label="Banner content display scope"
             childrenLabel="Select child categories for banner content"
           />
+
+          {/* Per-scope Tailwind classes */}
+          <div className="space-y-4 rounded-md border border-border bg-background p-4">
+            <Label className="text-sm font-medium">
+              Per-scope Tailwind classes
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Configure different styling for parent vs child category views.
+              Leave empty to use default (text-center).
+            </p>
+
+            {/* Parent scope */}
+            <div className="space-y-3 rounded-md border border-border/50 bg-muted/20 p-3">
+              <Label className="text-sm font-medium text-foreground">
+                Parent scope
+              </Label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="banner-parent-title-classes"
+                    className="text-xs font-medium"
+                  >
+                    Title classes
+                  </Label>
+                  <Input
+                    id="banner-parent-title-classes"
+                    value={parentTitleClasses}
+                    onChange={(e) =>
+                      updateParentClasses('titleClasses', e.target.value)
+                    }
+                    placeholder={DEFAULT_CLASSES}
+                    disabled={disabled}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="banner-parent-desc-classes"
+                    className="text-xs font-medium"
+                  >
+                    Description classes
+                  </Label>
+                  <Input
+                    id="banner-parent-desc-classes"
+                    value={parentDescriptionClasses}
+                    onChange={(e) =>
+                      updateParentClasses('descriptionClasses', e.target.value)
+                    }
+                    placeholder={DEFAULT_CLASSES}
+                    disabled={disabled}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Per-child scope */}
+            {childSlugs.length > 0 && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-foreground">
+                  Child scope (per subcategory)
+                </Label>
+                <div className="space-y-2">
+                  {childSlugs.map((slug) => {
+                    const label =
+                      categoryChildren.find((t) => toSlug(t.text) === slug)
+                        ?.text ?? slug;
+                    const childClasses =
+                      bannerContentClassesByScope?.children?.[slug] ?? {};
+                    const titleVal = childClasses.titleClasses ?? '';
+                    const descVal = childClasses.descriptionClasses ?? '';
+                    return (
+                      <div
+                        key={slug}
+                        className="rounded-md border border-border/50 bg-muted/20 p-3"
+                      >
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          {label}
+                        </Label>
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label
+                              htmlFor={`banner-child-${slug}-title`}
+                              className="text-xs"
+                            >
+                              Title classes
+                            </Label>
+                            <Input
+                              id={`banner-child-${slug}-title`}
+                              value={titleVal}
+                              onChange={(e) =>
+                                updateChildClasses(
+                                  slug,
+                                  'titleClasses',
+                                  e.target.value
+                                )
+                              }
+                              placeholder={DEFAULT_CLASSES}
+                              disabled={disabled}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label
+                              htmlFor={`banner-child-${slug}-desc`}
+                              className="text-xs"
+                            >
+                              Description classes
+                            </Label>
+                            <Input
+                              id={`banner-child-${slug}-desc`}
+                              value={descVal}
+                              onChange={(e) =>
+                                updateChildClasses(
+                                  slug,
+                                  'descriptionClasses',
+                                  e.target.value
+                                )
+                              }
+                              placeholder={DEFAULT_CLASSES}
+                              disabled={disabled}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
