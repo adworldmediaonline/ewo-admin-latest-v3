@@ -1,13 +1,15 @@
 import React, { useEffect } from 'react';
 import type { Tag } from 'react-tag-input';
 import { WithContext as ReactTags, SEPARATORS } from 'react-tag-input';
+import { cn } from '@/lib/utils';
 
 type IPropType = {
   tags: Tag[];
   setTags: React.Dispatch<React.SetStateAction<Tag[]>>;
   default_value?: Tag[];
+  className?: string;
 };
-const Tags = ({ tags, setTags, default_value }: IPropType) => {
+const Tags = ({ tags, setTags, default_value, className = '' }: IPropType) => {
   useEffect(() => {
     if (default_value) {
       setTags(default_value);
@@ -30,7 +32,7 @@ const Tags = ({ tags, setTags, default_value }: IPropType) => {
   };
 
   return (
-    <div className="mb-5 tp-product-tags">
+    <div className={cn('mb-5 tp-product-tags', className)}>
       <ReactTags
         tags={tags}
         separators={[SEPARATORS.ENTER, SEPARATORS.COMMA]}

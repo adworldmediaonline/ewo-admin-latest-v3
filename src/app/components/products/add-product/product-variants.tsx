@@ -38,24 +38,19 @@ const ProductVariants = ({
   }, [default_value, setImageURLsWithMeta]);
 
   return (
-    <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-      <CardHeader className="pb-4">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-orange-50 flex items-center justify-center">
-            <ImageIcon className="h-4 w-4 text-orange-600" />
+    <Card className="shadow-card">
+      <CardHeader className="py-3 px-4">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-md bg-orange-50 flex items-center justify-center shrink-0">
+            <ImageIcon className="h-3.5 w-3.5 text-orange-600" />
           </div>
-          <div>
-            <CardTitle className="text-lg font-semibold">
-              Product Variations
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Upload variant images with filename, title, and alt text. Supports
-              up to 15 images.
-            </p>
+          <div className="min-w-0">
+            <CardTitle className="text-base font-semibold">Variant Images</CardTitle>
+            <p className="text-xs text-muted-foreground">Up to 15 images with filename, title, alt text</p>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="px-4 pb-4 pt-0 space-y-3">
         <VariantImagesWithMeta
           value={imageURLsWithMeta}
           onChange={setImageURLsWithMeta}

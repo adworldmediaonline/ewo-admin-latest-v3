@@ -20,12 +20,14 @@ import YouTubeVideoInput from './youtube-video-input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DollarSign,
   FileText,
   Image as ImageIcon,
   Package,
   Save,
+  Search,
   Settings,
   Truck,
 } from 'lucide-react';
@@ -62,13 +64,6 @@ const ProductSubmit = () => {
     imageURLs,
   } = useProductSubmit();
 
-  console.log(
-    'additionalInformation--->',
-    additionalInformation,
-    'imageURLs--->',
-    imageURLs
-  );
-
   return (
     <div className="space-y-6">
       <form
@@ -76,13 +71,54 @@ const ProductSubmit = () => {
         noValidate
         aria-labelledby="add-product-form"
       >
-        <div
-          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
-          role="main"
-          aria-label="Product creation form"
-        >
-          {/* left side */}
-          <div className="col-span-1 lg:col-span-8 xl:col-span-9 space-y-6">
+        <Tabs defaultValue="basic" className="w-full">
+          <div className="overflow-x-auto pb-2 -mx-1 px-1">
+            <TabsList className="inline-flex h-10 min-w-max justify-start rounded-lg bg-muted p-1 text-muted-foreground lg:w-full lg:justify-center">
+              <TabsTrigger
+                value="basic"
+                className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <FileText className="h-4 w-4" />
+                Basic Info
+              </TabsTrigger>
+              <TabsTrigger
+                value="media"
+                className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Media & Organization
+              </TabsTrigger>
+              <TabsTrigger
+                value="pricing"
+                className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <DollarSign className="h-4 w-4" />
+                Pricing & Shipping
+              </TabsTrigger>
+              <TabsTrigger
+                value="options"
+                className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <Package className="h-4 w-4" />
+                Options & Variants
+              </TabsTrigger>
+              <TabsTrigger
+                value="seo"
+                className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <Search className="h-4 w-4" />
+                SEO
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="basic" className="mt-6 focus-visible:outline-none">
+            <div
+              className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+              role="main"
+              aria-label="Product creation form"
+            >
+              <div className="col-span-1 lg:col-span-8 xl:col-span-9 space-y-6">
             {/* General Information */}
             <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
               <CardHeader className="pb-4">
@@ -191,8 +227,8 @@ const ProductSubmit = () => {
               </CardContent>
             </Card>
 
-            {/* FAQs Section */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+                {/* FAQs Section */}
+                <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
@@ -236,7 +272,82 @@ const ProductSubmit = () => {
                 </div>
               </CardContent>
             </Card>
+              </div>
+            </div>
+          </TabsContent>
 
+          <TabsContent value="media" className="mt-6 focus-visible:outline-none">
+            <div className="space-y-4">
+              {/* Row 1: Main Image + Category/Tags/Badges - side by side on md */}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <Card className="md:col-span-2 shadow-card">
+                  <CardHeader className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-md bg-cyan-50 flex items-center justify-center shrink-0">
+                        <ImageIcon className="h-3.5 w-3.5 text-cyan-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <CardTitle className="text-base font-semibold">Main Product Image</CardTitle>
+                        <p className="text-xs text-muted-foreground">Filename, title, alt text for SEO</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4 pt-0">
+                    <ImageUploadWithMeta
+                      value={image}
+                      onChange={setImage}
+                      folder="ewo-assets/products"
+                    />
+                  </CardContent>
+                </Card>
+                <Card className="md:col-span-3 shadow-card">
+                  <CardHeader className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-md bg-amber-50 flex items-center justify-center shrink-0">
+                        <Settings className="h-3.5 w-3.5 text-amber-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <CardTitle className="text-base font-semibold">Category, Tags & Badges</CardTitle>
+                        <p className="text-xs text-muted-foreground">Organize and label your product</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4 pt-0 space-y-4">
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Product Category</label>
+                        <ProductCategory
+                          setCategory={setCategory}
+                          setParent={setParent}
+                          setChildren={setChildren}
+                        />
+                      </div>
+                      <Separator />
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Product Tags</label>
+                        <Tags tags={tags} setTags={setTags} className="mb-0" />
+                      </div>
+                      <Separator />
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Product Badges</label>
+                        <Badges badges={badges} setBadges={setBadges} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Row 2: Variant Images - full width, compact */}
+              <ProductVariants
+                isSubmitted={isSubmitted}
+                imageURLsWithMeta={imageURLsWithMeta}
+                setImageURLsWithMeta={setImageURLsWithMeta}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pricing" className="mt-6 focus-visible:outline-none">
+            <div className="space-y-6">
             {/* Pricing & Inventory */}
             <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
               <CardHeader className="pb-4">
@@ -401,154 +512,73 @@ const ProductSubmit = () => {
               </CardContent>
             </Card>
 
-            {/* Additional Information */}
-            {/* <AdditionalInformation
-              setAdditionalInformation={setAdditionalInformation}
-            /> */}
+            </div>
+          </TabsContent>
 
-            {/* Product Options */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                    <Package className="h-4 w-4 text-purple-600" />
+          <TabsContent value="options" className="mt-6 focus-visible:outline-none">
+            <div className="space-y-6">
+              <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                      <Package className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold">
+                        Product Options
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Add customizable options like size, color, or material for
+                        this product.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold">
-                      Product Options
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Add customizable options like size, color, or material for
-                      this product.
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ProductOptions
-                  setOptions={setOptions}
-                  isSubmitted={isSubmitted}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Product Configurations */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                    <Settings className="h-4 w-4 text-indigo-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold">
-                      Product Configurations
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Add product configurations with multiple options (e.g.,
-                      Bore Misalignment, Thread Direction). Each option can have
-                      its own price.
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ProductConfigurations
-                  setConfigurations={setProductConfigurations}
-                  isSubmitted={isSubmitted}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Product Variations */}
-            <ProductVariants
-              isSubmitted={isSubmitted}
-              imageURLsWithMeta={imageURLsWithMeta}
-              setImageURLsWithMeta={setImageURLsWithMeta}
-            />
-
-            {/* SEO Fields */}
-            <SEOFields register={register} errors={errors} />
-          </div>
-
-          {/* right side */}
-          <div className="col-span-1 lg:col-span-4 xl:col-span-3 space-y-6">
-            {/* Product Image */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-cyan-50 flex items-center justify-center">
-                    <ImageIcon className="h-4 w-4 text-cyan-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold">
-                      Product Image
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Upload a high-quality product image with filename, title,
-                      and alt text for SEO and accessibility.
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <ImageUploadWithMeta
-                  value={image}
-                  onChange={setImage}
-                  folder="ewo-assets/products"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Product Category & Tags */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                    <Settings className="h-4 w-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold">
-                      Category & Tags
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Categorize and tag your product
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Product Category
-                  </label>
-                  <ProductCategory
-                    setCategory={setCategory}
-                    setParent={setParent}
-                    setChildren={setChildren}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ProductOptions
+                    setOptions={setOptions}
+                    isSubmitted={isSubmitted}
                   />
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Product Tags
-                  </label>
-                  <Tags tags={tags} setTags={setTags} />
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Product Badges
-                  </label>
-                  <Badges badges={badges} setBadges={setBadges} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                      <Settings className="h-4 w-4 text-indigo-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold">
+                        Product Configurations
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Add product configurations with multiple options (e.g.,
+                        Bore Misalignment, Thread Direction). Each option can have
+                        its own price.
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ProductConfigurations
+                    setConfigurations={setProductConfigurations}
+                    isSubmitted={isSubmitted}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
-        {/* Action Buttons */}
-        <Card className="shadow-card">
-          <CardContent className="pt-6">
+          <TabsContent value="seo" className="mt-6 focus-visible:outline-none">
+            <div className="max-w-2xl">
+              <SEOFields register={register} errors={errors} />
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Action Bar */}
+        <Card className="shadow-card mt-8">
+            <CardContent className="pt-6">
             <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
               <div className="space-y-1">
                 <h3 className="text-sm font-medium text-foreground">
