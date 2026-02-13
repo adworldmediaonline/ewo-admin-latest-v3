@@ -381,11 +381,10 @@ export default function ProductListArea() {
           return (
             <Badge
               variant="secondary"
-              className={`text-xs ${
-                publishStatus === 'published'
+              className={`text-xs ${publishStatus === 'published'
                   ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
                   : 'bg-amber-100 text-amber-800 hover:bg-amber-100'
-              }`}
+                }`}
             >
               {publishStatus === 'published' ? 'Published' : 'Draft'}
             </Badge>
@@ -411,13 +410,12 @@ export default function ProductListArea() {
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem asChild>
                   <Link
-                    href={`/dashboard/super-admin/product/edit/${product._id}`}
+                    href={`/dashboard/super-admin/product/preview/${product._id}`}
                   >
                     <Eye className="mr-2 h-4 w-4" />
-                    View Product
+                    Preview
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link
                     href={`/dashboard/super-admin/product/edit/${product._id}`}
@@ -426,6 +424,7 @@ export default function ProductListArea() {
                     Edit Product
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 {(row.original as IProduct & { publishStatus?: string }).publishStatus === 'draft' ? (
                   <DropdownMenuItem
                     onClick={() => handleTogglePublishStatus(product, 'published')}
