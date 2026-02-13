@@ -142,7 +142,7 @@ export const ImageUploadWithMeta = ({
 
       {value?.url ? (
         <div className="space-y-3">
-          <div className="relative aspect-video w-full max-w-md rounded-lg overflow-hidden border bg-muted">
+          <div className="relative aspect-video w-full max-w-full rounded-lg overflow-hidden border bg-muted min-w-0">
             <Image
               src={value.url}
               alt={value.altText || value.title}
@@ -158,14 +158,15 @@ export const ImageUploadWithMeta = ({
               )}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => inputRef.current?.click()}
+              className="shrink-0"
             >
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="h-4 w-4 mr-1.5" />
               Replace
             </Button>
             <Button
@@ -173,9 +174,11 @@ export const ImageUploadWithMeta = ({
               variant="outline"
               size="sm"
               onClick={handleEditMeta}
+              className="shrink-0"
+              title="Edit file name, title, alt text, and link"
             >
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit name, title, alt text, link
+              <Pencil className="h-4 w-4 mr-1.5" />
+              Edit metadata
             </Button>
           </div>
         </div>
@@ -185,7 +188,7 @@ export const ImageUploadWithMeta = ({
           tabIndex={0}
           onClick={() => inputRef.current?.click()}
           onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
-          className="flex flex-col items-center justify-center w-full max-w-md aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/5 hover:bg-muted/10 hover:border-muted-foreground/40 transition-colors cursor-pointer"
+          className="flex flex-col items-center justify-center w-full max-w-full aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/5 hover:bg-muted/10 hover:border-muted-foreground/40 transition-colors cursor-pointer min-w-0"
           aria-label="Upload image"
         >
           <Upload className="h-4 w-4 text-muted-foreground mb-2" />

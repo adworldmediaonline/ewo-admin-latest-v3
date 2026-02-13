@@ -7,9 +7,10 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { Tag } from 'react-tag-input';
+import type { ImageWithMeta } from '@/types/image-with-meta';
 
 const useCategorySubmit = () => {
-  const [categoryImg, setCategoryImg] = useState<string>('');
+  const [categoryImg, setCategoryImg] = useState<ImageWithMeta | null>(null);
   const [parent, setParent] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -46,7 +47,8 @@ const useCategorySubmit = () => {
   const handleSubmitCategory = async (data: any) => {
     try {
       const category_data = {
-        img: categoryImg,
+        image: categoryImg ?? null,
+        img: categoryImg?.url ?? null,
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -64,7 +66,8 @@ const useCategorySubmit = () => {
         setIsSubmitted(true);
         reset();
         setCategoryChildren([] as Tag[]);
-        setCategoryImg('');
+        setCategoryImg(null);
+        router.push('/dashboard/super-admin/category');
       }
     } catch (error) {
       console.log(error);
@@ -75,7 +78,8 @@ const useCategorySubmit = () => {
   const handleSubmitEditCategory = async (data: any, id: string) => {
     try {
       const category_data = {
-        img: categoryImg,
+        image: categoryImg ?? null,
+        img: categoryImg?.url ?? null,
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -90,7 +94,7 @@ const useCategorySubmit = () => {
         }
       } else {
         notifySuccess('Category update successfully');
-        router.push('/category');
+        router.push('/dashboard/super-admin/category');
         setIsSubmitted(true);
         reset();
       }

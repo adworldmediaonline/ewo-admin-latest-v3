@@ -1,6 +1,10 @@
+import type { ImageWithMeta } from './image-with-meta';
+
 export interface ICategoryItem {
   _id: string;
-  img: string;
+  img?: string;
+  /** Image with metadata (fileName, title, altText) – preferred over img */
+  image?: ImageWithMeta;
   parent: string;
   children: string[];
   products?: string[];
@@ -22,6 +26,8 @@ export interface CategoryResponse {
 
 export interface IAddCategory {
   img?: string;
+  /** Image with metadata (fileName, title, altText) */
+  image?: ImageWithMeta;
   parent: string;
   children?: string[];
   description?: string;

@@ -2,7 +2,7 @@
 import React from 'react';
 import useCategorySubmit from '@/hooks/useCategorySubmit';
 import CategoryTables from './category-tables';
-import CategoryImgUpload from './global-img-upload';
+import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
 import CategoryChildren from './category-children';
 import CategoryParent from './category-parent';
 import CategoryDescription from './category-description';
@@ -26,21 +26,22 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
   } = useCategorySubmit();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <form
         onSubmit={handleSubmit(handleSubmitCategory)}
         noValidate
         aria-labelledby="add-category-form"
+        className="min-w-0"
       >
         <div
-          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-w-0"
           role="main"
           aria-label="Category creation form"
         >
           {/* Left side - Main content */}
-          <div className="col-span-1 lg:col-span-8 xl:col-span-9 space-y-6">
+          <div className="col-span-1 lg:col-span-8 xl:col-span-9 space-y-6 min-w-0">
             {/* General Information */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300 overflow-hidden">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
@@ -76,7 +77,7 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
             </Card>
 
             {/* Sub-Categories */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300 overflow-hidden">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
@@ -103,29 +104,29 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
           </div>
 
           {/* Right side - Sidebar */}
-          <div className="col-span-1 lg:col-span-4 xl:col-span-3 space-y-6">
+          <div className="col-span-1 lg:col-span-4 xl:col-span-3 space-y-6 min-w-0">
             {/* Category Image */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300 overflow-hidden">
               <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-cyan-50 flex items-center justify-center">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-8 w-8 shrink-0 rounded-lg bg-cyan-50 flex items-center justify-center">
                     <ImageIcon className="h-4 w-4 text-cyan-600" />
                   </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold">
+                  <div className="min-w-0">
+                    <CardTitle className="text-lg font-semibold truncate">
                       Category Image
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground truncate">
                       Upload a high-quality category image
                     </p>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-6">
-                <CategoryImgUpload
-                  isSubmitted={isSubmitted}
-                  setImage={setCategoryImg}
-                  image={categoryImg}
+              <CardContent className="p-4 sm:p-6 min-w-0">
+                <ImageUploadWithMeta
+                  value={categoryImg}
+                  onChange={setCategoryImg}
+                  folder="ewo-assets/categories"
                 />
               </CardContent>
             </Card>
@@ -136,7 +137,7 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
         <Card className="shadow-card">
           <CardContent className="pt-6">
             <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <h3 className="text-sm font-medium text-foreground">
                   Ready to create your category?
                 </h3>
@@ -146,7 +147,7 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto shrink-0">
                 <Button
                   type="button"
                   variant="outline"

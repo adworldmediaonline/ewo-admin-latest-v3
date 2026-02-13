@@ -23,11 +23,13 @@ export const cloudinaryApi = apiSlice.injectEndpoints({
     >({
       query: ({ file, fileName, title, altText, folder }) => {
         const formData = new FormData();
+        // Append metadata first so backend receives it reliably with multipart
+        const safeFileName = fileName?.trim() || file.name || 'image';
+        formData.append('fileName', safeFileName);
+        formData.append('title', title?.trim() ?? '');
+        formData.append('altText', altText?.trim() ?? '');
+        formData.append('folder', folder?.trim() ?? 'ewo-assets');
         formData.append('image', file);
-        if (fileName) formData.append('fileName', fileName);
-        if (title) formData.append('title', title);
-        if (altText) formData.append('altText', altText);
-        if (folder) formData.append('folder', folder);
         return {
           url: '/api/cloudinary/add-img',
           method: 'POST',

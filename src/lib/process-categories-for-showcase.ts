@@ -19,6 +19,7 @@ export interface CategoryItem {
   parent: string;
   description?: string;
   img?: string;
+  image?: { url: string; fileName?: string; title?: string; altText?: string };
   status?: string;
   products?: unknown[];
   children?: string[];
