@@ -22,7 +22,7 @@ import ProductCategory from '../../category/product-category';
 // import AdditionalInformation from '../add-product/additional-information';
 import { useRouter } from 'next/navigation';
 import OfferDatePicker from '../add-product/offer-date-picker';
-import ProductImgUpload from '../add-product/product-img-upload';
+import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
 import ProductOptions from '../add-product/product-options';
 import ProductConfigurations from '../add-product/product-configurations';
 import ProductVariants from '../add-product/product-variants';
@@ -63,7 +63,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     // Shipping section
     if (product.shipping) completedSections++;
     // Media section
-    if (product.img && product.imageURLs?.length) completedSections++;
+    if ((product.image?.url || product.img) && product.imageURLs?.length) completedSections++;
     // Category section
     if (product.category && product.tags?.length) completedSections++;
     // SEO section
@@ -71,6 +71,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
 
     setFormProgress(Math.round((completedSections / totalSections) * 100));
   }, [product]);
+
   const {
     handleSubmit,
     handleSubmitProduct,
@@ -86,10 +87,12 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     setCategory,
     setParent,
     setChildren,
-    setImg,
-    img,
+    setImage,
+    image,
     imageURLs,
     setImageURLs,
+    imageURLsWithMeta,
+    setImageURLsWithMeta,
     offerDate,
     setOfferDate,
     options,
@@ -101,6 +104,23 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     handleEditProduct,
     editLoading,
   } = useProductSubmit();
+
+  // Load main product image when product data is available
+  useEffect(() => {
+    if (!product) return;
+    if (product.image?.url) {
+      setImage(product.image);
+    } else if (product.img) {
+      setImage({
+        url: product.img,
+        fileName: '',
+        title: '',
+        altText: '',
+      });
+    } else {
+      setImage(null);
+    }
+  }, [product?._id, product?.img, product?.image?.url, setImage]);
 
   // decide what to render
   let content = null;
@@ -587,8 +607,13 @@ const EditProductSubmit = ({ id }: { id: string }) => {
               {/* product variations start */}
               <ProductVariants
                 isSubmitted={isSubmitted}
-                setImageURLs={setImageURLs}
-                default_value={product.imageURLs}
+                imageURLsWithMeta={imageURLsWithMeta}
+                setImageURLsWithMeta={setImageURLsWithMeta}
+                default_value={
+                  product.imageURLsWithMeta?.length
+                    ? product.imageURLsWithMeta
+                    : product.imageURLs
+                }
               />
               {/* product variations end */}
 
@@ -619,18 +644,17 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                         Product Image
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        Upload a high-quality product image. Supports drag &
-                        drop.
+                        Upload a high-quality product image with filename,
+                        title, and alt text for SEO and accessibility.
                       </p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <ProductImgUpload
-                    imgUrl={img}
-                    setImgUrl={setImg}
-                    default_img={product.img}
-                    isSubmitted={isSubmitted}
+                  <ImageUploadWithMeta
+                    value={image}
+                    onChange={setImage}
+                    folder="ewo-assets/products"
                   />
                 </CardContent>
               </Card>

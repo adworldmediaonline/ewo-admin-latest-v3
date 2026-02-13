@@ -7,7 +7,7 @@ import FormField from '../form-field';
 import ShippingPrice from '../shipping-price';
 // import AdditionalInformation from './additional-information';
 import OfferDatePicker from './offer-date-picker';
-import ProductImgUpload from './product-img-upload';
+import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
 import ProductOptions from './product-options';
 import ProductConfigurations from './product-configurations';
 import ProductVariants from './product-variants';
@@ -46,9 +46,11 @@ const ProductSubmit = () => {
     setCategory,
     setParent,
     setChildren,
-    setImg,
-    img,
+    setImage,
+    image,
     setImageURLs,
+    imageURLsWithMeta,
+    setImageURLsWithMeta,
     offerDate,
     setOfferDate,
     options,
@@ -460,7 +462,8 @@ const ProductSubmit = () => {
             {/* Product Variations */}
             <ProductVariants
               isSubmitted={isSubmitted}
-              setImageURLs={setImageURLs}
+              imageURLsWithMeta={imageURLsWithMeta}
+              setImageURLsWithMeta={setImageURLsWithMeta}
             />
 
             {/* SEO Fields */}
@@ -481,16 +484,17 @@ const ProductSubmit = () => {
                       Product Image
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Upload a high-quality product image. Supports drag & drop.
+                      Upload a high-quality product image with filename, title,
+                      and alt text for SEO and accessibility.
                     </p>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <ProductImgUpload
-                  imgUrl={img}
-                  setImgUrl={setImg}
-                  isSubmitted={isSubmitted}
+                <ImageUploadWithMeta
+                  value={image}
+                  onChange={setImage}
+                  folder="ewo-assets/products"
                 />
               </CardContent>
             </Card>

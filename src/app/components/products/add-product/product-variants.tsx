@@ -1,29 +1,41 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { ImageWithMeta } from '@/types/image-with-meta';
 import { Image as ImageIcon } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import VariantImgUpload from './variant-img-upload';
+import React, { useEffect, useRef } from 'react';
+import { VariantImagesWithMeta } from './variant-images-with-meta';
 
-// prop type
 type IPropType = {
-  isSubmitted: boolean;
-  setImageURLs: React.Dispatch<React.SetStateAction<string[]>>;
-  default_value?: string[];
+  isSubmitted?: boolean;
+  imageURLsWithMeta: ImageWithMeta[];
+  setImageURLsWithMeta: React.Dispatch<React.SetStateAction<ImageWithMeta[]>>;
+  default_value?: string[] | ImageWithMeta[];
 };
 
 const ProductVariants = ({
   isSubmitted,
-  setImageURLs,
+  imageURLsWithMeta,
+  setImageURLsWithMeta,
   default_value,
 }: IPropType) => {
-  const [formData, setFormData] = useState<string[]>(default_value || []);
-
-  // set default value
+  // Load default value when editing (product.imageURLsWithMeta or product.imageURLs)
+  const hasLoadedDefault = useRef(false);
   useEffect(() => {
-    if (default_value) {
-      setFormData(default_value);
-      setImageURLs(default_value);
+    if (!default_value || default_value.length === 0 || hasLoadedDefault.current) return;
+    hasLoadedDefault.current = true;
+    const first = default_value[0];
+    if (typeof first === 'object' && first !== null && 'url' in first && 'fileName' in first) {
+      setImageURLsWithMeta(default_value as ImageWithMeta[]);
+    } else {
+      setImageURLsWithMeta(
+        (default_value as string[]).map((url) => ({
+          url,
+          fileName: '',
+          title: '',
+          altText: '',
+        }))
+      );
     }
-  }, [default_value, setImageURLs]);
+  }, [default_value, setImageURLsWithMeta]);
 
   return (
     <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
@@ -37,17 +49,16 @@ const ProductVariants = ({
               Product Variations
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Upload multiple images for product variants. Supports up to 15
-              images.
+              Upload variant images with filename, title, and alt text. Supports
+              up to 15 images.
             </p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <VariantImgUpload
-          setFormData={setFormData}
-          formData={formData}
-          setImageURLs={setImageURLs}
+        <VariantImagesWithMeta
+          value={imageURLsWithMeta}
+          onChange={setImageURLsWithMeta}
           isSubmitted={isSubmitted}
         />
       </CardContent>
