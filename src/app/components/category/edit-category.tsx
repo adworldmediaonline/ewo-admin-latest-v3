@@ -4,12 +4,13 @@ import type { Tag } from 'react-tag-input';
 import useCategorySubmit from '@/hooks/useCategorySubmit';
 import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
 import CategoryChildren from './category-children';
+import CategoryBannerDisplaySettings from './category-banner-display-settings';
 import { useGetCategoryQuery } from '@/redux/category/categoryApi';
 import CategoryParent from './category-parent';
 import CategoryDescription from './category-description';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Folder, Image as ImageIcon, FileText, Loader2, Save } from 'lucide-react';
+import { Folder, Image as ImageIcon, FileText, Loader2, Save, Layout } from 'lucide-react';
 
 const EditCategory = ({ id }: { id: string }) => {
   const { data: categoryData, isError, isLoading } = useGetCategoryQuery(id);
@@ -22,6 +23,12 @@ const EditCategory = ({ id }: { id: string }) => {
     handleSubmit,
     setCategoryImg,
     categoryImg,
+    categoryBanner,
+    setCategoryBanner,
+    bannerDisplayScope,
+    setBannerDisplayScope,
+    bannerDisplayChildren,
+    setBannerDisplayChildren,
     error,
     isSubmitted,
     handleSubmitEditCategory,
@@ -43,6 +50,32 @@ const EditCategory = ({ id }: { id: string }) => {
       setCategoryImg(null);
     }
   }, [categoryData?._id, categoryData?.img, categoryData?.image?.url, setCategoryImg]);
+
+  // Load banner and display settings when category data is available
+  useEffect(() => {
+    if (!categoryData) return;
+    if (categoryData.banner?.url) {
+      setCategoryBanner(categoryData.banner);
+    } else {
+      setCategoryBanner(null);
+    }
+    setBannerDisplayScope(
+      categoryData.bannerDisplayScope || 'all'
+    );
+    setBannerDisplayChildren(
+      Array.isArray(categoryData.bannerDisplayChildren)
+        ? categoryData.bannerDisplayChildren
+        : []
+    );
+  }, [
+    categoryData?._id,
+    categoryData?.banner?.url,
+    categoryData?.bannerDisplayScope,
+    categoryData?.bannerDisplayChildren,
+    setCategoryBanner,
+    setBannerDisplayScope,
+    setBannerDisplayChildren,
+  ]);
 
   // Convert children array (string[]) to Tag[] format
   const defaultChildrenTags = useMemo(() => {
@@ -235,6 +268,41 @@ const EditCategory = ({ id }: { id: string }) => {
                   onChange={setCategoryImg}
                   folder="ewo-assets/categories"
                 />
+              </CardContent>
+            </Card>
+
+            {/* Category Banner */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300 overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-8 w-8 shrink-0 rounded-lg bg-amber-50 flex items-center justify-center">
+                    <Layout className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <CardTitle className="text-lg font-semibold truncate">
+                      Category Banner
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground truncate">
+                      Banner for shop page (filename, title, alt text)
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 p-4 sm:p-6 min-w-0">
+                <ImageUploadWithMeta
+                  value={categoryBanner}
+                  onChange={setCategoryBanner}
+                  folder="ewo-assets/categories/banners"
+                />
+                {categoryBanner?.url && (
+                  <CategoryBannerDisplaySettings
+                    scope={bannerDisplayScope}
+                    onScopeChange={setBannerDisplayScope}
+                    selectedChildren={bannerDisplayChildren}
+                    onSelectedChildrenChange={setBannerDisplayChildren}
+                    categoryChildren={categoryChildren}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>

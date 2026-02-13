@@ -4,11 +4,12 @@ import useCategorySubmit from '@/hooks/useCategorySubmit';
 import CategoryTables from './category-tables';
 import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
 import CategoryChildren from './category-children';
+import CategoryBannerDisplaySettings from './category-banner-display-settings';
 import CategoryParent from './category-parent';
 import CategoryDescription from './category-description';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Folder, Image as ImageIcon, FileText, Save } from 'lucide-react';
+import { Folder, Image as ImageIcon, FileText, Save, Layout } from 'lucide-react';
 
 const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
   const {
@@ -21,6 +22,12 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
     handleSubmitCategory,
     setCategoryImg,
     categoryImg,
+    categoryBanner,
+    setCategoryBanner,
+    bannerDisplayScope,
+    setBannerDisplayScope,
+    bannerDisplayChildren,
+    setBannerDisplayChildren,
     error,
     isSubmitted,
   } = useCategorySubmit();
@@ -128,6 +135,41 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
                   onChange={setCategoryImg}
                   folder="ewo-assets/categories"
                 />
+              </CardContent>
+            </Card>
+
+            {/* Category Banner */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300 overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-8 w-8 shrink-0 rounded-lg bg-amber-50 flex items-center justify-center">
+                    <Layout className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <CardTitle className="text-lg font-semibold truncate">
+                      Category Banner
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground truncate">
+                      Banner for shop page (filename, title, alt text)
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 p-4 sm:p-6 min-w-0">
+                <ImageUploadWithMeta
+                  value={categoryBanner}
+                  onChange={setCategoryBanner}
+                  folder="ewo-assets/categories/banners"
+                />
+                {categoryBanner?.url && (
+                  <CategoryBannerDisplaySettings
+                    scope={bannerDisplayScope}
+                    onScopeChange={setBannerDisplayScope}
+                    selectedChildren={bannerDisplayChildren}
+                    onSelectedChildrenChange={setBannerDisplayChildren}
+                    categoryChildren={categoryChildren}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>

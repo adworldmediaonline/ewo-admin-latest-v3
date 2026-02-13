@@ -8,9 +8,16 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { Tag } from 'react-tag-input';
 import type { ImageWithMeta } from '@/types/image-with-meta';
+import type { BannerDisplayScope } from '@/app/components/category/category-banner-display-settings';
 
 const useCategorySubmit = () => {
   const [categoryImg, setCategoryImg] = useState<ImageWithMeta | null>(null);
+  const [categoryBanner, setCategoryBanner] = useState<ImageWithMeta | null>(null);
+  const [bannerDisplayScope, setBannerDisplayScope] =
+    useState<BannerDisplayScope>('all');
+  const [bannerDisplayChildren, setBannerDisplayChildren] = useState<string[]>(
+    []
+  );
   const [parent, setParent] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -49,6 +56,9 @@ const useCategorySubmit = () => {
       const category_data = {
         image: categoryImg ?? null,
         img: categoryImg?.url ?? null,
+        banner: categoryBanner ?? null,
+        bannerDisplayScope,
+        bannerDisplayChildren,
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -67,6 +77,9 @@ const useCategorySubmit = () => {
         reset();
         setCategoryChildren([] as Tag[]);
         setCategoryImg(null);
+        setCategoryBanner(null);
+        setBannerDisplayScope('all');
+        setBannerDisplayChildren([]);
         router.push('/dashboard/super-admin/category');
       }
     } catch (error) {
@@ -80,6 +93,9 @@ const useCategorySubmit = () => {
       const category_data = {
         image: categoryImg ?? null,
         img: categoryImg?.url ?? null,
+        banner: categoryBanner ?? null,
+        bannerDisplayScope,
+        bannerDisplayChildren,
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -112,6 +128,12 @@ const useCategorySubmit = () => {
     control,
     categoryImg,
     setCategoryImg,
+    categoryBanner,
+    setCategoryBanner,
+    bannerDisplayScope,
+    setBannerDisplayScope,
+    bannerDisplayChildren,
+    setBannerDisplayChildren,
     parent,
     setParent,
     description,

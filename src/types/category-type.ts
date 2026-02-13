@@ -1,10 +1,20 @@
 import type { ImageWithMeta } from './image-with-meta';
 
+export type BannerDisplayScope =
+  | 'all'
+  | 'parent_only'
+  | 'children_only'
+  | 'parent_and_children';
+
 export interface ICategoryItem {
   _id: string;
   img?: string;
   /** Image with metadata (fileName, title, altText) – preferred over img */
   image?: ImageWithMeta;
+  /** Category banner for shop page */
+  banner?: ImageWithMeta;
+  bannerDisplayScope?: BannerDisplayScope;
+  bannerDisplayChildren?: string[];
   parent: string;
   children: string[];
   products?: string[];
@@ -28,6 +38,10 @@ export interface IAddCategory {
   img?: string;
   /** Image with metadata (fileName, title, altText) */
   image?: ImageWithMeta;
+  /** Category banner for shop page */
+  banner?: ImageWithMeta;
+  bannerDisplayScope?: BannerDisplayScope;
+  bannerDisplayChildren?: string[];
   parent: string;
   children?: string[];
   description?: string;
