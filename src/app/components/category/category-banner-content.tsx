@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Sparkles } from 'lucide-react';
+import BannerStyleControls from './banner-style-controls';
 import CategoryBannerDisplaySettings, {
   type BannerDisplayScope,
 } from './category-banner-display-settings';
@@ -34,8 +35,6 @@ interface CategoryBannerContentProps {
   productCount: number;
   disabled?: boolean;
 }
-
-const DEFAULT_CLASSES = 'text-center';
 
 const CategoryBannerContent = ({
   bannerContentActive,
@@ -178,56 +177,39 @@ const CategoryBannerContent = ({
             childrenLabel="Select child categories for banner content"
           />
 
-          {/* Per-scope Tailwind classes */}
+          {/* Per-scope styling - user-friendly controls */}
           <div className="space-y-4 rounded-md border border-border bg-background p-4">
             <Label className="text-sm font-medium">
-              Per-scope Tailwind classes
+              Per-scope styling
             </Label>
             <p className="text-xs text-muted-foreground">
-              Configure different styling for parent vs child category views.
-              Leave empty to use default (text-center).
+              Configure alignment, font size, weight, spacing, and color for
+              parent vs child category views. Selections apply Tailwind classes
+              automatically.
             </p>
 
             {/* Parent scope */}
-            <div className="space-y-3 rounded-md border border-border/50 bg-muted/20 p-3">
+            <div className="space-y-4 rounded-md border border-border/50 bg-muted/20 p-4">
               <Label className="text-sm font-medium text-foreground">
                 Parent scope
               </Label>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="banner-parent-title-classes"
-                    className="text-xs font-medium"
-                  >
-                    Title classes
-                  </Label>
-                  <Input
-                    id="banner-parent-title-classes"
-                    value={parentTitleClasses}
-                    onChange={(e) =>
-                      updateParentClasses('titleClasses', e.target.value)
-                    }
-                    placeholder={DEFAULT_CLASSES}
-                    disabled={disabled}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="banner-parent-desc-classes"
-                    className="text-xs font-medium"
-                  >
-                    Description classes
-                  </Label>
-                  <Input
-                    id="banner-parent-desc-classes"
-                    value={parentDescriptionClasses}
-                    onChange={(e) =>
-                      updateParentClasses('descriptionClasses', e.target.value)
-                    }
-                    placeholder={DEFAULT_CLASSES}
-                    disabled={disabled}
-                  />
-                </div>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <BannerStyleControls
+                  value={parentTitleClasses}
+                  onChange={(v) => updateParentClasses('titleClasses', v)}
+                  variant="title"
+                  disabled={disabled}
+                  label="Title styling"
+                />
+                <BannerStyleControls
+                  value={parentDescriptionClasses}
+                  onChange={(v) =>
+                    updateParentClasses('descriptionClasses', v)
+                  }
+                  variant="description"
+                  disabled={disabled}
+                  label="Description styling"
+                />
               </div>
             </div>
 
@@ -237,9 +219,9 @@ const CategoryBannerContent = ({
                 <Label className="text-sm font-medium text-foreground">
                   Child scope (per subcategory)
                 </Label>
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {childSlugs.map((slug) => {
-                    const label =
+                    const childLabel =
                       categoryChildren.find((t) => toSlug(t.text) === slug)
                         ?.text ?? slug;
                     const childClasses =
@@ -249,54 +231,34 @@ const CategoryBannerContent = ({
                     return (
                       <div
                         key={slug}
-                        className="rounded-md border border-border/50 bg-muted/20 p-3"
+                        className="rounded-md border border-border/50 bg-muted/20 p-4"
                       >
-                        <Label className="text-xs font-medium text-muted-foreground">
-                          {label}
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          {childLabel}
                         </Label>
-                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                          <div className="space-y-1">
-                            <Label
-                              htmlFor={`banner-child-${slug}-title`}
-                              className="text-xs"
-                            >
-                              Title classes
-                            </Label>
-                            <Input
-                              id={`banner-child-${slug}-title`}
-                              value={titleVal}
-                              onChange={(e) =>
-                                updateChildClasses(
-                                  slug,
-                                  'titleClasses',
-                                  e.target.value
-                                )
-                              }
-                              placeholder={DEFAULT_CLASSES}
-                              disabled={disabled}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label
-                              htmlFor={`banner-child-${slug}-desc`}
-                              className="text-xs"
-                            >
-                              Description classes
-                            </Label>
-                            <Input
-                              id={`banner-child-${slug}-desc`}
-                              value={descVal}
-                              onChange={(e) =>
-                                updateChildClasses(
-                                  slug,
-                                  'descriptionClasses',
-                                  e.target.value
-                                )
-                              }
-                              placeholder={DEFAULT_CLASSES}
-                              disabled={disabled}
-                            />
-                          </div>
+                        <div className="mt-3 grid gap-6 sm:grid-cols-2">
+                          <BannerStyleControls
+                            value={titleVal}
+                            onChange={(v) =>
+                              updateChildClasses(slug, 'titleClasses', v)
+                            }
+                            variant="title"
+                            disabled={disabled}
+                            label="Title styling"
+                          />
+                          <BannerStyleControls
+                            value={descVal}
+                            onChange={(v) =>
+                              updateChildClasses(
+                                slug,
+                                'descriptionClasses',
+                                v
+                              )
+                            }
+                            variant="description"
+                            disabled={disabled}
+                            label="Description styling"
+                          />
                         </div>
                       </div>
                     );
