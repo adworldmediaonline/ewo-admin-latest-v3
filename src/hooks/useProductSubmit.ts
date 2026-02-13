@@ -5,10 +5,11 @@ import {
 } from '@/redux/product/productApi';
 import { notifyError, notifySuccess } from '@/utils/toast';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { Tag } from 'react-tag-input';
 import slugify from 'slugify';
+import type { ImageWithMeta } from '@/types/image-with-meta';
 
 type ICategory = {
   name: string;
@@ -19,11 +20,12 @@ type status = 'in-stock' | 'out-of-stock' | 'discontinued';
 
 const useProductSubmit = () => {
   const [sku, setSku] = useState<string>('');
-  const [img, setImg] = useState<string>('');
+  const [image, setImage] = useState<ImageWithMeta | null>(null);
   const [title, setTitle] = useState<string>('');
   const [slug, setSlug] = useState<string>('');
   const [unit, setUnit] = useState<string>('');
   const [imageURLs, setImageURLs] = useState<string[]>([]);
+  const [imageURLsWithMeta, setImageURLsWithMeta] = useState<ImageWithMeta[]>([]);
   const [parent, setParent] = useState<string>('');
   const [children, setChildren] = useState<string>('');
   const [price, setPrice] = useState<number>(0);
@@ -46,6 +48,8 @@ const useProductSubmit = () => {
         name: string;
         price: number | string;
         isSelected: boolean;
+        image?: string;
+        imageWithMeta?: ImageWithMeta;
       }[];
     }[]
   >([]);
@@ -65,8 +69,19 @@ const useProductSubmit = () => {
   const [tags, setTags] = useState<Tag[]>([]);
   const [badges, setBadges] = useState<string[]>([]);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [publishStatus, setPublishStatus] = useState<'draft' | 'published'>('draft');
+  const publishStatusRef = useRef<'draft' | 'published'>('draft');
 
   const router = useRouter();
+
+  useEffect(() => {
+    publishStatusRef.current = publishStatus;
+  }, [publishStatus]);
+
+  // Keep imageURLs in sync with imageURLsWithMeta for form progress and legacy consumers
+  useEffect(() => {
+    setImageURLs(imageURLsWithMeta.map((i) => i.url));
+  }, [imageURLsWithMeta]);
 
   // useAddProductMutation
   const [addProduct, { data: addProductData, isError, isLoading }] =
@@ -89,11 +104,12 @@ const useProductSubmit = () => {
   // resetForm
   const resetForm = () => {
     setSku('');
-    setImg('');
+    setImage(null);
     setTitle('');
     setSlug('');
     setUnit('');
     setImageURLs([]);
+    setImageURLsWithMeta([]);
     setParent('');
     setChildren('');
     setPrice(0);
@@ -115,6 +131,7 @@ const useProductSubmit = () => {
     setAdditionalInformation([]);
     setTags([]);
     setBadges([]);
+    setPublishStatus('draft');
     reset();
   };
 
@@ -128,13 +145,16 @@ const useProductSubmit = () => {
       discount: data.discount,
     });
 
+    const imgUrl = image?.url ?? '';
     // product data
     const productData = {
       sku: data.SKU,
-      img: img,
+      img: imgUrl,
+      image: image ?? undefined,
       title: data.title,
       slug: slugify(data.title, { replacement: '-', lower: true }),
-      imageURLs,
+      imageURLs: imageURLsWithMeta.length > 0 ? imageURLsWithMeta.map((i) => i.url) : imageURLs,
+      imageURLsWithMeta: imageURLsWithMeta.length > 0 ? imageURLsWithMeta : undefined,
       parent: parent,
       children: children,
       price: data.price,
@@ -172,6 +192,7 @@ const useProductSubmit = () => {
         metaDescription: data.metaDescription || '',
         metaKeywords: data.metaKeywords || '',
       },
+      publishStatus: publishStatusRef.current,
     };
 
     // Debug: Log product data being sent
@@ -180,7 +201,7 @@ const useProductSubmit = () => {
       updatedPrice: productData.updatedPrice,
     });
 
-    if (!img) {
+    if (!imgUrl) {
       return notifyError('Product image is required');
     }
     if (!category.name || !category.id) {
@@ -231,13 +252,16 @@ const useProductSubmit = () => {
   // handle edit product
   const handleEditProduct = async (data: any, id: string) => {
     try {
+      const imgUrl = image?.url ?? '';
       // product data
       const productData = {
         sku: data.SKU,
-        img: img,
+        img: imgUrl,
+        image: image ?? undefined,
         title: data.title,
         slug: slugify(data.title, { replacement: '-', lower: true }),
-        imageURLs,
+        imageURLs: imageURLsWithMeta.length > 0 ? imageURLsWithMeta.map((i) => i.url) : imageURLs,
+        imageURLsWithMeta: imageURLsWithMeta.length > 0 ? imageURLsWithMeta : undefined,
         parent: parent,
         children: children || '',
         price: data.price,
@@ -283,7 +307,7 @@ const useProductSubmit = () => {
       updatedPrice: productData.updatedPrice,
     });
 
-    if (!img) {
+    if (!imgUrl) {
       return notifyError('Product image is required');
     }
       if (!category.name || !category.id) {
@@ -340,6 +364,9 @@ const useProductSubmit = () => {
     setValue,
     handleSubmitProduct,
     errors,
+    publishStatus,
+    setPublishStatus,
+    publishStatusRef,
     tags,
     setTags,
     badges,
@@ -349,10 +376,12 @@ const useProductSubmit = () => {
     setCategory,
     setParent,
     setChildren,
-    setImg,
-    img,
+    setImage,
+    image,
     imageURLs,
     setImageURLs,
+    imageURLsWithMeta,
+    setImageURLsWithMeta,
     offerDate,
     setOfferDate,
     options,

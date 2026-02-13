@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useUploadImageMutation } from '@/redux/cloudinary/cloudinaryApi';
-import Image from 'next/image';
+import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
+import type { ImageWithMeta } from '@/types/image-with-meta';
 import {
   AlertCircle,
   CheckCircle2,
@@ -23,7 +23,6 @@ import {
   Settings,
   Trash2,
   X,
-  Upload,
   Image as ImageIcon,
 } from 'lucide-react';
 import { ChangeEvent, SetStateAction, useEffect, useState } from 'react';
@@ -35,7 +34,9 @@ interface ConfigurationOption {
   percentage?: number;
   isPercentageIncrease?: boolean;
   isSelected: boolean;
+  /** @deprecated Use imageWithMeta.url for backward compat */
   image?: string;
+  imageWithMeta?: ImageWithMeta | null;
 }
 
 interface ConfigurationData {
@@ -74,7 +75,6 @@ export default function ProductConfigurations({
   default_value,
   isSubmitted,
 }: IPropType) {
-  const [uploadImage] = useUploadImageMutation();
   // Track raw percentage input values to preserve decimals while typing
   const [percentageInputs, setPercentageInputs] = useState<{
     [key: string]: string;
@@ -90,13 +90,18 @@ export default function ProductConfigurations({
         customNotePlaceholder:
           item.customNotePlaceholder ||
           'Specify Rod Ends preference (All left, All right, mixed, or custom).',
-        options: item.options.map(opt => ({
-          ...opt,
-          price: typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0,
-          priceType: opt.priceType || 'fixed',
-          percentage: opt.percentage || 0,
-          isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
-        })),
+        options: item.options.map(opt => {
+          const imgMeta = opt.imageWithMeta ?? (opt.image ? { url: opt.image, fileName: '', title: '', altText: '' } : null);
+          return {
+            ...opt,
+            price: typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0,
+            priceType: opt.priceType || 'fixed',
+            percentage: opt.percentage || 0,
+            isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
+            image: opt.image ?? imgMeta?.url ?? '',
+            imageWithMeta: imgMeta,
+          };
+        }),
       }))
       : []
   );
@@ -222,56 +227,17 @@ export default function ProductConfigurations({
     }
   };
 
-  // Handle option image upload
-  const handleOptionImageUpload = async (
-    configIndex: number,
-    optionIndex: number,
-    file: File
-  ) => {
-    if (!file.type.startsWith('image/')) {
-      return;
-    }
-
-    const uploadFormData = new FormData();
-    uploadFormData.append('image', file);
-
-    try {
-      const result = await uploadImage(uploadFormData).unwrap();
-
-      if (result?.data?.url) {
-        const updatedFormData = [...formData];
-        updatedFormData[configIndex].options[optionIndex] = {
-          ...updatedFormData[configIndex].options[optionIndex],
-          image: result.data.url,
-        };
-        setFormData(updatedFormData);
-        updateParentState(updatedFormData);
-      }
-    } catch (error) {
-      console.error('Image upload failed:', error);
-    }
-  };
-
-  // Handle option image change
+  // Handle option image change (ImageUploadWithMeta calls this)
   const handleOptionImageChange = (
     configIndex: number,
     optionIndex: number,
-    e: ChangeEvent<HTMLInputElement>
-  ) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleOptionImageUpload(configIndex, optionIndex, e.target.files[0]);
-    }
-  };
-
-  // Handle option image remove
-  const handleOptionImageRemove = (
-    configIndex: number,
-    optionIndex: number
+    value: ImageWithMeta | null
   ) => {
     const updatedFormData = [...formData];
     updatedFormData[configIndex].options[optionIndex] = {
       ...updatedFormData[configIndex].options[optionIndex],
-      image: '',
+      image: value?.url ?? '',
+      imageWithMeta: value ?? undefined,
     };
     setFormData(updatedFormData);
     updateParentState(updatedFormData);
@@ -438,6 +404,7 @@ export default function ProductConfigurations({
           isPercentageIncrease: true,
           isSelected: false, // Don't preselect empty options
           image: '',
+          imageWithMeta: undefined,
         },
       ],
       isValid: true,
@@ -475,6 +442,7 @@ export default function ProductConfigurations({
         isPercentageIncrease: true,
         isSelected: false,
         image: '',
+        imageWithMeta: undefined,
       };
 
       config.options.push(newOption);
@@ -517,7 +485,7 @@ export default function ProductConfigurations({
       .filter(config => config.title.trim() !== '')
       .map(config => {
         // If custom note is enabled, options are not required
-        let processedOptions: Array<{ name: string; price: number; isSelected: boolean; image?: string }> = [];
+        let processedOptions: Array<{ name: string; price: number; isSelected: boolean; image?: string; imageWithMeta?: ImageWithMeta }> = [];
         if (config.enableCustomNote) {
           // When custom note is enabled, we don't need options
           processedOptions = [];
@@ -538,7 +506,8 @@ export default function ProductConfigurations({
                 percentage: opt.percentage || 0,
                 isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
                 isSelected: false,
-                image: opt.image || '',
+                image: opt.image || opt.imageWithMeta?.url || '',
+                imageWithMeta: opt.imageWithMeta ?? undefined,
               };
             }
             if (opt.isSelected && !hasSelected) {
@@ -550,7 +519,8 @@ export default function ProductConfigurations({
                 percentage: opt.percentage || 0,
                 isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
                 isSelected: true,
-                image: opt.image || '',
+                image: opt.image || opt.imageWithMeta?.url || '',
+                imageWithMeta: opt.imageWithMeta ?? undefined,
               };
             }
             return {
@@ -560,7 +530,8 @@ export default function ProductConfigurations({
               percentage: opt.percentage || 0,
               isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
               isSelected: false,
-              image: opt.image || '',
+              image: opt.image || opt.imageWithMeta?.url || '',
+              imageWithMeta: opt.imageWithMeta ?? undefined,
             };
           });
         }
@@ -953,62 +924,16 @@ export default function ProductConfigurations({
                                   <ImageIcon className="h-3 w-3" />
                                   Option Image (Optional)
                                 </Label>
-                                {option.image ? (
-                                  <div className="relative inline-block">
-                                    <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-border">
-                                      <Image
-                                        src={option.image}
-                                        alt={option.name || 'Option image'}
-                                        fill
-                                        className="object-cover"
-                                        sizes="96px"
-                                      />
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() =>
-                                        handleOptionImageRemove(configIndex, optionIndex)
-                                      }
-                                      className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="space-y-2">
-                                    <input
-                                      type="file"
-                                      id={`option-image-${configIndex}-${optionIndex}`}
-                                      accept="image/png,image/jpg,image/jpeg,image/webp"
-                                      onChange={(e) =>
-                                        handleOptionImageChange(configIndex, optionIndex, e)
-                                      }
-                                      className="hidden"
-                                    />
-                                    <label
-                                      htmlFor={`option-image-${configIndex}-${optionIndex}`}
-                                      className="cursor-pointer"
-                                    >
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="gap-2"
-                                        asChild
-                                      >
-                                        <span>
-                                          <Upload className="h-3 w-3" />
-                                          Upload Image
-                                        </span>
-                                      </Button>
-                                    </label>
-                                    <p className="text-xs text-muted-foreground">
-                                      Image will replace main product image when this option is selected
-                                    </p>
-                                  </div>
-                                )}
+                                <ImageUploadWithMeta
+                                  value={option.imageWithMeta ?? (option.image ? { url: option.image, fileName: '', title: '', altText: '' } : null)}
+                                  onChange={(value) =>
+                                    handleOptionImageChange(configIndex, optionIndex, value)
+                                  }
+                                  folder="ewo-assets/products"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  Image will replace main product image when this option is selected. Supports filename, title, and alt text.
+                                </p>
                               </div>
                             </div>
 

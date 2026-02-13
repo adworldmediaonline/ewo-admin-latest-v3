@@ -7,9 +7,27 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { Tag } from 'react-tag-input';
+import type { ImageWithMeta } from '@/types/image-with-meta';
+import type { BannerDisplayScope } from '@/app/components/category/category-banner-display-settings';
+import type { BannerContentClassesByScope } from '@/types/category-type';
 
 const useCategorySubmit = () => {
-  const [categoryImg, setCategoryImg] = useState<string>('');
+  const [categoryImg, setCategoryImg] = useState<ImageWithMeta | null>(null);
+  const [categoryBanner, setCategoryBanner] = useState<ImageWithMeta | null>(null);
+  const [bannerDisplayScope, setBannerDisplayScope] =
+    useState<BannerDisplayScope>('all');
+  const [bannerDisplayChildren, setBannerDisplayChildren] = useState<string[]>(
+    []
+  );
+  const [bannerContentActive, setBannerContentActive] = useState<boolean>(false);
+  const [bannerContentDisplayScope, setBannerContentDisplayScope] =
+    useState<BannerDisplayScope>('all');
+  const [bannerContentDisplayChildren, setBannerContentDisplayChildren] =
+    useState<string[]>([]);
+  const [bannerTitle, setBannerTitle] = useState<string>('');
+  const [bannerDescription, setBannerDescription] = useState<string>('');
+  const [bannerContentClassesByScope, setBannerContentClassesByScope] =
+    useState<BannerContentClassesByScope>({ parent: null, children: {} });
   const [parent, setParent] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -38,6 +56,7 @@ const useCategorySubmit = () => {
     handleSubmit,
     setValue,
     control,
+    watch,
     formState: { errors },
     reset,
   } = useForm();
@@ -46,7 +65,17 @@ const useCategorySubmit = () => {
   const handleSubmitCategory = async (data: any) => {
     try {
       const category_data = {
-        img: categoryImg,
+        image: categoryImg ?? undefined,
+        img: categoryImg?.url ?? undefined,
+        banner: categoryBanner ?? undefined,
+        bannerDisplayScope,
+        bannerDisplayChildren,
+        bannerContentActive,
+        bannerContentDisplayScope,
+        bannerContentDisplayChildren,
+        bannerTitle: bannerTitle.trim() || '',
+        bannerDescription: bannerDescription.trim() || '',
+        bannerContentClassesByScope: bannerContentClassesByScope,
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -64,7 +93,17 @@ const useCategorySubmit = () => {
         setIsSubmitted(true);
         reset();
         setCategoryChildren([] as Tag[]);
-        setCategoryImg('');
+        setCategoryImg(null);
+        setCategoryBanner(null);
+        setBannerDisplayScope('all');
+        setBannerDisplayChildren([]);
+        setBannerContentActive(false);
+        setBannerContentDisplayScope('all');
+        setBannerContentDisplayChildren([]);
+        setBannerTitle('');
+        setBannerDescription('');
+        setBannerContentClassesByScope({ parent: null, children: {} });
+        router.push('/dashboard/super-admin/category');
       }
     } catch (error) {
       console.log(error);
@@ -75,7 +114,17 @@ const useCategorySubmit = () => {
   const handleSubmitEditCategory = async (data: any, id: string) => {
     try {
       const category_data = {
-        img: categoryImg,
+        image: categoryImg ?? undefined,
+        img: categoryImg?.url ?? undefined,
+        banner: categoryBanner ?? undefined,
+        bannerDisplayScope,
+        bannerDisplayChildren,
+        bannerContentActive,
+        bannerContentDisplayScope,
+        bannerContentDisplayChildren,
+        bannerTitle: bannerTitle.trim() || '',
+        bannerDescription: bannerDescription.trim() || '',
+        bannerContentClassesByScope: bannerContentClassesByScope,
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -90,7 +139,7 @@ const useCategorySubmit = () => {
         }
       } else {
         notifySuccess('Category update successfully');
-        router.push('/category');
+        router.push('/dashboard/super-admin/category');
         setIsSubmitted(true);
         reset();
       }
@@ -103,11 +152,30 @@ const useCategorySubmit = () => {
   return {
     register,
     handleSubmit,
+    watch,
     setValue,
     errors,
     control,
     categoryImg,
     setCategoryImg,
+    categoryBanner,
+    setCategoryBanner,
+    bannerDisplayScope,
+    setBannerDisplayScope,
+    bannerDisplayChildren,
+    setBannerDisplayChildren,
+    bannerContentActive,
+    setBannerContentActive,
+    bannerContentDisplayScope,
+    setBannerContentDisplayScope,
+    bannerContentDisplayChildren,
+    setBannerContentDisplayChildren,
+    bannerTitle,
+    setBannerTitle,
+    bannerDescription,
+    setBannerDescription,
+    bannerContentClassesByScope,
+    setBannerContentClassesByScope,
     parent,
     setParent,
     description,

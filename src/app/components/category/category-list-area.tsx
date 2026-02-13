@@ -140,11 +140,11 @@ export default function CategoryListArea() {
           const category = row.original;
           return (
             <div className="flex items-center space-x-3">
-              {category.img && (
+              {(category.image?.url || category.img) && (
                 <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted">
                   <Image
-                    src={category.img}
-                    alt={category.parent}
+                    src={category.image?.url || category.img || '/placeholder.svg'}
+                    alt={category.image?.altText || category.image?.title || category.parent}
                     fill
                     className="object-cover"
                     sizes="48px"

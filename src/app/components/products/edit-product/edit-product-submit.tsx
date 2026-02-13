@@ -3,8 +3,9 @@ import Tiptap from '@/components/tipTap/Tiptap';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import useProductSubmit from '@/hooks/useProductSubmit';
-import { useGetProductQuery } from '@/redux/product/productApi';
+import { useGetProductQuery, useDeleteProductMutation } from '@/redux/product/productApi';
 import {
   ArrowLeft,
   DollarSign,
@@ -13,30 +14,47 @@ import {
   Loader2,
   Package,
   Save,
+  Search,
   Settings,
+  Trash2,
   Truck,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import ProductCategory from '../../category/product-category';
 // import AdditionalInformation from '../add-product/additional-information';
 import { useRouter } from 'next/navigation';
 import OfferDatePicker from '../add-product/offer-date-picker';
-import ProductImgUpload from '../add-product/product-img-upload';
+import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
 import ProductOptions from '../add-product/product-options';
 import ProductConfigurations from '../add-product/product-configurations';
 import ProductVariants from '../add-product/product-variants';
+import type { ImageWithMeta } from '@/types/image-with-meta';
 import SEOFields from '../add-product/seo-fields';
 import Tags from '../add-product/tags';
 import Badges from '../add-product/badges';
 import YouTubeVideoInput from '../add-product/youtube-video-input';
 import FormField from '../form-field';
 import ShippingPrice from '../shipping-price';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { notifyError, notifySuccess } from '@/utils/toast';
 
 const EditProductSubmit = ({ id }: { id: string }) => {
   const { data: product, isError, isLoading } = useGetProductQuery(id);
+  const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [formProgress, setFormProgress] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Memoize the default tags value to prevent infinite re-renders
   const defaultTags = useMemo(() => {
@@ -63,7 +81,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     // Shipping section
     if (product.shipping) completedSections++;
     // Media section
-    if (product.img && product.imageURLs?.length) completedSections++;
+    if ((product.image?.url || product.img) && product.imageURLs?.length) completedSections++;
     // Category section
     if (product.category && product.tags?.length) completedSections++;
     // SEO section
@@ -71,6 +89,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
 
     setFormProgress(Math.round((completedSections / totalSections) * 100));
   }, [product]);
+
   const {
     handleSubmit,
     handleSubmitProduct,
@@ -86,10 +105,12 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     setCategory,
     setParent,
     setChildren,
-    setImg,
-    img,
+    setImage,
+    image,
     imageURLs,
     setImageURLs,
+    imageURLsWithMeta,
+    setImageURLsWithMeta,
     offerDate,
     setOfferDate,
     options,
@@ -100,7 +121,61 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     setIsSubmitted,
     handleEditProduct,
     editLoading,
+    publishStatusRef,
+    setPublishStatus,
   } = useProductSubmit();
+
+  const handleSubmitWithStatus = (status: 'draft' | 'published') => {
+    publishStatusRef.current = status;
+    formRef.current?.requestSubmit();
+  };
+
+  const handleDeleteProduct = async () => {
+    try {
+      const res = await deleteProduct(id);
+      if ('error' in res && res.error) {
+        const err = res.error as { data?: { message?: string } };
+        notifyError(err.data?.message || 'Failed to delete product');
+      } else {
+        setDeleteDialogOpen(false);
+        notifySuccess('Product deleted successfully');
+        router.push('/dashboard/super-admin/product');
+      }
+    } catch {
+      notifyError('Failed to delete product');
+    }
+  };
+
+  // Load publishStatus when product data is available
+  useEffect(() => {
+    if (product?.publishStatus) {
+      setPublishStatus(product.publishStatus as 'draft' | 'published');
+    } else if (product) {
+      setPublishStatus('published'); // backwards compat for products without the field
+    }
+  }, [product?._id, product?.publishStatus, setPublishStatus]);
+
+  // Load main product image when product data is available
+  useEffect(() => {
+    if (!product) return;
+    if (product.image?.url) {
+      setImage({
+        url: product.image.url,
+        fileName: product.image.fileName ?? '',
+        title: product.image.title ?? '',
+        altText: product.image.altText ?? '',
+      });
+    } else if (product.img) {
+      setImage({
+        url: product.img,
+        fileName: '',
+        title: '',
+        altText: '',
+      });
+    } else {
+      setImage(null);
+    }
+  }, [product?._id, product?.img, product?.image?.url, setImage]);
 
   // decide what to render
   let content = null;
@@ -153,17 +228,39 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     content = (
       <div className="space-y-6">
         <form
+          ref={formRef}
           onSubmit={handleSubmit(data => handleEditProduct(data, id))}
           noValidate
           aria-labelledby="edit-product-form"
         >
-          <div
-            className="grid grid-cols-1 lg:grid-cols-12 gap-6"
-            role="main"
-            aria-label="Product editing form"
-          >
-            {/* left side */}
-            <div className="col-span-1 lg:col-span-8 xl:col-span-9 space-y-6">
+          <Tabs defaultValue="basic" className="w-full">
+            <div className="overflow-x-auto pb-2 -mx-1 px-1">
+              <TabsList className="inline-flex h-10 min-w-max justify-start rounded-lg bg-muted p-1 text-muted-foreground lg:w-full lg:justify-center">
+                <TabsTrigger value="basic" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                  <FileText className="h-4 w-4" />
+                  Basic Info
+                </TabsTrigger>
+                <TabsTrigger value="media" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                  <ImageIcon className="h-4 w-4" />
+                  Media & Organization
+                </TabsTrigger>
+                <TabsTrigger value="pricing" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                  <DollarSign className="h-4 w-4" />
+                  Pricing & Shipping
+                </TabsTrigger>
+                <TabsTrigger value="options" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                  <Package className="h-4 w-4" />
+                  Options & Variants
+                </TabsTrigger>
+                <TabsTrigger value="seo" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                  <Search className="h-4 w-4" />
+                  SEO
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="basic" className="mt-6 focus-visible:outline-none">
+              <div className="space-y-6" role="main" aria-label="Product editing form">
               <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-3">
@@ -249,7 +346,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                     {errors?.description && (
                       <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                         <svg
-                          className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0"
+                          className="w-4 h-4 text-destructive mt-0.5 shrink-0"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
@@ -342,7 +439,84 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                   </div>
                 </CardContent>
               </Card>
+              </div>
+            </TabsContent>
 
+            <TabsContent value="media" className="mt-6 focus-visible:outline-none">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <Card className="md:col-span-2 shadow-card">
+                    <CardHeader className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-md bg-cyan-50 flex items-center justify-center shrink-0">
+                          <ImageIcon className="h-3.5 w-3.5 text-cyan-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <CardTitle className="text-base font-semibold">Main Product Image</CardTitle>
+                          <p className="text-xs text-muted-foreground">Filename, title, alt text for SEO</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="px-4 pb-4 pt-0">
+                      <ImageUploadWithMeta value={image} onChange={setImage} folder="ewo-assets/products" />
+                    </CardContent>
+                  </Card>
+                  <Card className="md:col-span-3 shadow-card">
+                    <CardHeader className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-md bg-amber-50 flex items-center justify-center shrink-0">
+                          <Settings className="h-3.5 w-3.5 text-amber-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <CardTitle className="text-base font-semibold">Category, Tags & Badges</CardTitle>
+                          <p className="text-xs text-muted-foreground">Organize and label your product</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="px-4 pb-4 pt-0 space-y-4">
+                      <div className="space-y-3">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">Product Category</label>
+                          <ProductCategory
+                            setCategory={setCategory}
+                            setParent={setParent}
+                            setChildren={setChildren}
+                            default_value={{
+                              parent: product.category?.name ?? '',
+                              id: product.category?.id ?? '',
+                              children: product.children ?? [],
+                            }}
+                          />
+                        </div>
+                        <Separator />
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">Product Tags</label>
+                          <Tags tags={tags} setTags={setTags} default_value={defaultTags} className="mb-0" />
+                        </div>
+                        <Separator />
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">Product Badges</label>
+                          <Badges badges={badges} setBadges={setBadges} default_value={product.badges} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                <ProductVariants
+                  isSubmitted={isSubmitted}
+                  imageURLsWithMeta={imageURLsWithMeta}
+                  setImageURLsWithMeta={setImageURLsWithMeta}
+                  default_value={
+                    product.imageURLsWithMeta?.length
+                      ? (product.imageURLsWithMeta as ImageWithMeta[])
+                      : product.imageURLs
+                  }
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="pricing" className="mt-6 focus-visible:outline-none">
+              <div className="space-y-6">
               {/* Pricing & Inventory */}
               <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
                 <CardHeader className="pb-4">
@@ -522,194 +696,87 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                 </CardContent>
               </Card>
 
-              {/* additional information page start */}
-              {/* <AdditionalInformation
-                setAdditionalInformation={setAdditionalInformation}
-                default_value={product.additionalInformation}
-              /> */}
-              {/* additional information page end */}
+              </div>
+            </TabsContent>
 
-              {/* Product Options */}
-              <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                      <Package className="h-4 w-4 text-purple-600" />
+            <TabsContent value="options" className="mt-6 focus-visible:outline-none">
+              <div className="space-y-6">
+                <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                        <Package className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-semibold">Product Options</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Add customizable options like size, color, or material for this product.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg font-semibold">
-                        Product Options
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Add customizable options like size, color, or material
-                        for this product.
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ProductOptions
-                    setOptions={setOptions}
-                    default_value={product.options}
-                    isSubmitted={isSubmitted}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Product Configurations */}
-              <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                      <Settings className="h-4 w-4 text-indigo-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg font-semibold">
-                        Product Configurations
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Add product configurations with multiple options (e.g.,
-                        Bore Misalignment, Thread Direction). Each option can
-                        have its own price.
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ProductConfigurations
-                    setConfigurations={setProductConfigurations}
-                    default_value={product.productConfigurations}
-                    isSubmitted={isSubmitted}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* product variations start */}
-              <ProductVariants
-                isSubmitted={isSubmitted}
-                setImageURLs={setImageURLs}
-                default_value={product.imageURLs}
-              />
-              {/* product variations end */}
-
-              {/* SEO fields start */}
-              <SEOFields
-                register={register}
-                errors={errors}
-                defaultValues={{
-                  metaTitle: product.seo?.metaTitle || '',
-                  metaDescription: product.seo?.metaDescription || '',
-                  metaKeywords: product.seo?.metaKeywords || '',
-                }}
-              />
-              {/* SEO fields end */}
-            </div>
-
-            {/* right side */}
-            <div className="col-span-1 lg:col-span-4 xl:col-span-3 space-y-6">
-              {/* Product Image */}
-              <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-cyan-50 flex items-center justify-center">
-                      <ImageIcon className="h-4 w-4 text-cyan-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg font-semibold">
-                        Product Image
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Upload a high-quality product image. Supports drag &
-                        drop.
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <ProductImgUpload
-                    imgUrl={img}
-                    setImgUrl={setImg}
-                    default_img={product.img}
-                    isSubmitted={isSubmitted}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Product Category & Tags */}
-              <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                      <Settings className="h-4 w-4 text-amber-600" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg font-semibold">
-                        Category & Tags
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Categorize and tag your product
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Product Category
-                    </label>
-                    <ProductCategory
-                      setCategory={setCategory}
-                      setParent={setParent}
-                      setChildren={setChildren}
-                      default_value={{
-                        parent: product.category.name,
-                        id: product.category.id,
-                        children: product.children,
-                      }}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <ProductOptions
+                      setOptions={setOptions}
+                      default_value={product.options}
+                      isSubmitted={isSubmitted}
                     />
-                  </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Product Tags
-                    </label>
-                    <Tags
-                      tags={tags}
-                      setTags={setTags}
-                      default_value={defaultTags}
+                  </CardContent>
+                </Card>
+                <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                        <Settings className="h-4 w-4 text-indigo-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-semibold">Product Configurations</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Add product configurations with multiple options (e.g., Bore Misalignment, Thread Direction).
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <ProductConfigurations
+                      setConfigurations={setProductConfigurations}
+                      default_value={product.productConfigurations}
+                      isSubmitted={isSubmitted}
                     />
-                  </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Product Badges
-                    </label>
-                    <Badges
-                      badges={badges}
-                      setBadges={setBadges}
-                      default_value={product.badges}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="seo" className="mt-6 focus-visible:outline-none">
+              <div className="w-full">
+                <SEOFields
+                  register={register}
+                  errors={errors}
+                  defaultValues={{
+                    metaTitle: product.seo?.metaTitle || '',
+                    metaDescription: product.seo?.metaDescription || '',
+                    metaKeywords: product.seo?.metaKeywords || '',
+                  }}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {/* Action Buttons */}
-          <Card className="shadow-card">
+          <Card className="mt-8 shadow-card">
             <CardContent className="pt-6">
               <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
                 <div className="space-y-1">
                   <h3 className="text-sm font-medium text-foreground">
-                    Ready to publish changes?
+                    Ready to save changes?
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Your changes will be saved and the product will be updated
-                    immediately.
+                    Save as draft to continue later, or publish to make it visible on the store.
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto flex-wrap">
                   <Button
                     type="button"
                     variant="outline"
@@ -721,23 +788,77 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                     Cancel Changes
                   </Button>
                   <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSubmitWithStatus('draft')}
+                    disabled={editLoading}
+                    className="gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>Save as Draft</span>
+                  </Button>
+                  <Button
+                    type="button"
                     variant="default"
-                    type="submit"
+                    onClick={() => handleSubmitWithStatus('published')}
                     disabled={editLoading}
                     className="gap-2"
                   >
                     {editLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Updating Product...</span>
+                        <span>Updating...</span>
                       </>
                     ) : (
                       <>
                         <Save className="h-4 w-4" />
-                        <span>Update Product</span>
+                        <span>Publish Changes</span>
                       </>
                     )}
                   </Button>
+                  <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        disabled={editLoading || isDeleting}
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        <span>Delete Product</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete product?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the product
+                          and remove it from the catalog.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <Button
+                          variant="destructive"
+                          onClick={handleDeleteProduct}
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Deleting...
+                            </>
+                          ) : (
+                            'Delete'
+                          )}
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
 

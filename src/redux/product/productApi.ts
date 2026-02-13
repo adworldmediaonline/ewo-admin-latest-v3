@@ -23,15 +23,16 @@ export const authApi = apiSlice.injectEndpoints({
     // getUserOrders - Optimized with pagination
     getAllProducts: builder.query<
       ProductResponse,
-      { page?: number; limit?: number; search?: string; status?: string } | void
+      { page?: number; limit?: number; search?: string; status?: string; publishStatus?: string } | void
     >({
       query: (params) => {
-        const { page = 1, limit = 10, search = '', status = '' } = params || {};
+        const { page = 1, limit = 10, search = '', status = '', publishStatus = '' } = params || {};
         const queryParams = new URLSearchParams();
         if (page) queryParams.append('page', page.toString());
         if (limit) queryParams.append('limit', limit.toString());
         if (search) queryParams.append('search', search);
         if (status) queryParams.append('status', status);
+        if (publishStatus) queryParams.append('publishStatus', publishStatus);
         return `/api/product/all?${queryParams.toString()}`;
       },
       providesTags: ['AllProducts'],
@@ -88,12 +89,26 @@ export const authApi = apiSlice.injectEndpoints({
       query: () => `/api/product/stock-out`,
       providesTags: ['StockOutProducts'],
     }),
-    // delete category
+    // delete product
     deleteProduct: builder.mutation<{ message: string }, string>({
       query(id: string) {
         return {
           url: `/api/product/${id}`,
           method: 'DELETE',
+        };
+      },
+      invalidatesTags: ['AllProducts'],
+    }),
+    // update product publish status only (for quick toggle from table)
+    updateProductPublishStatus: builder.mutation<
+      { success: boolean; message: string; data?: unknown },
+      { id: string; publishStatus: 'draft' | 'published' }
+    >({
+      query({ id, publishStatus }) {
+        return {
+          url: `/api/product/${id}/publish-status`,
+          method: 'PATCH',
+          body: { publishStatus },
         };
       },
       invalidatesTags: ['AllProducts'],
@@ -109,4 +124,5 @@ export const {
   useGetReviewProductsQuery,
   useGetStockOutProductsQuery,
   useDeleteProductMutation,
+  useUpdateProductPublishStatusMutation,
 } = authApi;

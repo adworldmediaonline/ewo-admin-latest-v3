@@ -25,7 +25,7 @@ const ThumbItems = ({ uploadItems }: IPropType) => {
       });
       // Handle the response if needed
       setItems((prevItems) => prevItems.filter((item) => item.id !== id));
-      if (delData?.data?.result === "ok") {
+      if ((delData as { data?: { result?: string } })?.data?.result === "ok") {
         notifySuccess("Image deleted successfully");
       }
     } catch (error) {

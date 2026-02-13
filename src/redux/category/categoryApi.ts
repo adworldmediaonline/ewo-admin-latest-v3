@@ -66,11 +66,17 @@ export const authApi = apiSlice.injectEndpoints({
       query: id => `/api/category/get/${id}`,
       providesTags: ['getCategory'],
     }),
+    // get show categories (for Category Showcase – status Show only)
+    getShowCategories: builder.query<{ success: boolean; result: unknown[] }, void>({
+      query: () => '/api/category/show',
+      providesTags: ['AllCategory'],
+    }),
   }),
 });
 
 export const {
   useGetAllCategoriesQuery,
+  useGetShowCategoriesQuery,
   useAddCategoryMutation,
   useDeleteCategoryMutation,
   useEditCategoryMutation,

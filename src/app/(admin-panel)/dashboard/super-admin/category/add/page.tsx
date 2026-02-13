@@ -13,28 +13,30 @@ import AddCategory from '@/app/components/category/add-category';
 const AddCategoryPage = () => {
   return (
     <Wrapper>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Folder className="h-5 w-5" />
-                Add Category
-              </CardTitle>
+      <div className="min-h-0 w-full max-w-7xl mx-auto overflow-hidden flex flex-col">
+        <Card className="flex flex-col min-h-0 overflow-hidden">
+          <CardHeader className="shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2 truncate">
+                  <Folder className="h-5 w-5 shrink-0" />
+                  Add Category
+                </CardTitle>
+              </div>
+              <Button variant="outline" asChild className="shrink-0">
+                <Link href="/dashboard/super-admin/category">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Categories
+                </Link>
+              </Button>
             </div>
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/super-admin/category">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Categories
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
+          </CardHeader>
 
-        <CardContent>
-          <AddCategory showTable={false} />
-        </CardContent>
-      </Card>
+          <CardContent className="flex-1 min-h-0 overflow-y-auto pb-6">
+            <AddCategory showTable={false} />
+          </CardContent>
+        </Card>
+      </div>
     </Wrapper>
   );
 };

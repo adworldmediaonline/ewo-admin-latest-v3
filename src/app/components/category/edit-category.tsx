@@ -2,15 +2,16 @@
 import React, { useEffect, useMemo } from 'react';
 import type { Tag } from 'react-tag-input';
 import useCategorySubmit from '@/hooks/useCategorySubmit';
-import CategoryImgUpload from './global-img-upload';
+import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
 import CategoryChildren from './category-children';
+import CategoryBannerDisplaySettings from './category-banner-display-settings';
+import CategoryBannerContent from './category-banner-content';
 import { useGetCategoryQuery } from '@/redux/category/categoryApi';
 import CategoryParent from './category-parent';
 import CategoryDescription from './category-description';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Folder, Image as ImageIcon, FileText, Loader2, Save } from 'lucide-react';
+import { Folder, Image as ImageIcon, FileText, Loader2, Save, Layout } from 'lucide-react';
 
 const EditCategory = ({ id }: { id: string }) => {
   const { data: categoryData, isError, isLoading } = useGetCategoryQuery(id);
@@ -23,10 +24,116 @@ const EditCategory = ({ id }: { id: string }) => {
     handleSubmit,
     setCategoryImg,
     categoryImg,
+    categoryBanner,
+    setCategoryBanner,
+    bannerDisplayScope,
+    setBannerDisplayScope,
+    bannerDisplayChildren,
+    setBannerDisplayChildren,
+    bannerContentActive,
+    setBannerContentActive,
+    bannerContentDisplayScope,
+    setBannerContentDisplayScope,
+    bannerContentDisplayChildren,
+    setBannerContentDisplayChildren,
+    bannerTitle,
+    setBannerTitle,
+    bannerDescription,
+    setBannerDescription,
+    bannerContentClassesByScope,
+    setBannerContentClassesByScope,
     error,
     isSubmitted,
     handleSubmitEditCategory,
   } = useCategorySubmit();
+
+  // Load image when category data is available (supports legacy img string)
+  useEffect(() => {
+    if (!categoryData) return;
+    if (categoryData.image?.url) {
+      setCategoryImg(categoryData.image);
+    } else if (categoryData.img) {
+      setCategoryImg({
+        url: categoryData.img,
+        fileName: '',
+        title: '',
+        altText: '',
+      });
+    } else {
+      setCategoryImg(null);
+    }
+  }, [categoryData?._id, categoryData?.img, categoryData?.image?.url, setCategoryImg]);
+
+  // Load banner and display settings when category data is available
+  useEffect(() => {
+    if (!categoryData) return;
+    if (categoryData.banner?.url) {
+      setCategoryBanner(categoryData.banner);
+    } else {
+      setCategoryBanner(null);
+    }
+    setBannerDisplayScope(
+      categoryData.bannerDisplayScope || 'all'
+    );
+    setBannerDisplayChildren(
+      Array.isArray(categoryData.bannerDisplayChildren)
+        ? categoryData.bannerDisplayChildren
+        : []
+    );
+    setBannerContentActive(!!categoryData.bannerContentActive);
+    setBannerContentDisplayScope(
+      categoryData.bannerContentDisplayScope || 'all'
+    );
+    setBannerContentDisplayChildren(
+      Array.isArray(categoryData.bannerContentDisplayChildren)
+        ? categoryData.bannerContentDisplayChildren
+        : []
+    );
+    setBannerTitle(categoryData.bannerTitle || '');
+    setBannerDescription(categoryData.bannerDescription || '');
+    const byScope = categoryData.bannerContentClassesByScope;
+    const hasByScope =
+      byScope &&
+      (byScope.parent ||
+        (byScope.children && Object.keys(byScope.children).length > 0));
+    if (hasByScope) {
+      setBannerContentClassesByScope(byScope);
+    } else if (
+      categoryData.bannerTitleClasses ||
+      categoryData.bannerDescriptionClasses
+    ) {
+      setBannerContentClassesByScope({
+        parent: {
+          titleClasses: categoryData.bannerTitleClasses?.trim() || undefined,
+          descriptionClasses:
+            categoryData.bannerDescriptionClasses?.trim() || undefined,
+        },
+        children: {},
+      });
+    } else {
+      setBannerContentClassesByScope({ parent: null, children: {} });
+    }
+  }, [
+    categoryData?._id,
+    categoryData?.banner?.url,
+    categoryData?.bannerDisplayScope,
+    categoryData?.bannerDisplayChildren,
+    categoryData?.bannerContentActive,
+    categoryData?.bannerContentDisplayScope,
+    categoryData?.bannerContentDisplayChildren,
+    categoryData?.bannerTitle,
+    categoryData?.bannerDescription,
+    categoryData?.bannerContentClassesByScope,
+    setCategoryBanner,
+    setBannerDisplayScope,
+    setBannerDisplayChildren,
+    setBannerContentActive,
+    setBannerContentDisplayScope,
+    setBannerContentDisplayChildren,
+    setBannerTitle,
+    setBannerDescription,
+    setBannerContentClassesByScope,
+  ]);
 
   // Convert children array (string[]) to Tag[] format
   const defaultChildrenTags = useMemo(() => {
@@ -100,109 +207,104 @@ const EditCategory = ({ id }: { id: string }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <form
         onSubmit={handleSubmit(data => handleSubmitEditCategory(data, id))}
         noValidate
         aria-labelledby="edit-category-form"
+        className="min-w-0"
       >
         <div
-          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+          className="flex flex-col gap-6 min-w-0"
           role="main"
           aria-label="Category edit form"
         >
-          {/* Left side - Main content */}
-          <div className="col-span-1 lg:col-span-8 xl:col-span-9 space-y-6">
-            {/* General Information */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <FileText className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold">
-                      General Information
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Basic category details and description
-                    </p>
-                  </div>
+          {/* General Information */}
+          <Card className="shadow-card hover:shadow-card-lg transition-all duration-300 overflow-hidden">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <FileText className="h-4 w-4 text-blue-600" />
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Category Parent Name */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Category Name <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    {...register('parent', {
-                      required: 'Category name is required',
-                    })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    type="text"
-                    placeholder="Enter category name"
-                    defaultValue={categoryData.parent}
-                  />
-                  {errors?.parent && (
-                    <p className="text-sm text-destructive">
-                      {errors.parent.message as string}
-                    </p>
-                  )}
+                <div>
+                  <CardTitle className="text-lg font-semibold">
+                    General Information
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Basic category details and description
+                  </p>
                 </div>
-
-                {/* Category Description */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Description
-                  </label>
-                  <CategoryDescription
-                    register={register}
-                    default_value={categoryData.description}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Sub-Categories */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                    <Folder className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold">
-                      Sub-Categories
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Add sub-categories for better organization
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CategoryChildren
-                  categoryChildren={categoryChildren}
-                  setCategoryChildren={setCategoryChildren}
-                  error={error}
-                  default_value={defaultChildrenTags}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Category Name <span className="text-destructive">*</span>
+                </label>
+                <input
+                  {...register('parent', {
+                    required: 'Category name is required',
+                  })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  type="text"
+                  placeholder="Enter category name"
+                  defaultValue={categoryData.parent}
                 />
-              </CardContent>
-            </Card>
-          </div>
+                {errors?.parent && (
+                  <p className="text-sm text-destructive">
+                    {errors.parent.message as string}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Description
+                </label>
+                <CategoryDescription
+                  register={register}
+                  default_value={categoryData.description}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Right side - Sidebar */}
-          <div className="col-span-1 lg:col-span-4 xl:col-span-3 space-y-6">
+          {/* Sub-Categories */}
+          <Card className="shadow-card hover:shadow-card-lg transition-all duration-300 overflow-hidden">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                  <Folder className="h-4 w-4 text-purple-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold">
+                    Sub-Categories
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Add sub-categories for better organization
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CategoryChildren
+                categoryChildren={categoryChildren}
+                setCategoryChildren={setCategoryChildren}
+                error={error}
+                default_value={defaultChildrenTags}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Media section - Image and Banner side by side on desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
             {/* Category Image */}
-            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300 overflow-hidden">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-cyan-50 flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-lg bg-cyan-50 flex items-center justify-center shrink-0">
                     <ImageIcon className="h-4 w-4 text-cyan-600" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <CardTitle className="text-lg font-semibold">
                       Category Image
                     </CardTitle>
@@ -212,13 +314,68 @@ const EditCategory = ({ id }: { id: string }) => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-6">
-                <CategoryImgUpload
-                  isSubmitted={isSubmitted}
-                  setImage={setCategoryImg}
-                  default_img={categoryData.img}
-                  image={categoryImg}
+              <CardContent className="p-4 sm:p-6">
+                <ImageUploadWithMeta
+                  value={categoryImg}
+                  onChange={setCategoryImg}
+                  folder="ewo-assets/categories"
                 />
+              </CardContent>
+            </Card>
+
+            {/* Category Banner */}
+            <Card className="shadow-card hover:shadow-card-lg transition-all duration-300 overflow-hidden">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                    <Layout className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <CardTitle className="text-lg font-semibold">
+                      Category Banner
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Banner for shop page (filename, title, alt text)
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 p-4 sm:p-6">
+                <ImageUploadWithMeta
+                  value={categoryBanner}
+                  onChange={setCategoryBanner}
+                  folder="ewo-assets/categories/banners"
+                />
+                {categoryBanner?.url && (
+                  <>
+                    <CategoryBannerDisplaySettings
+                      scope={bannerDisplayScope}
+                      onScopeChange={setBannerDisplayScope}
+                      selectedChildren={bannerDisplayChildren}
+                      onSelectedChildrenChange={setBannerDisplayChildren}
+                      categoryChildren={categoryChildren}
+                    />
+                    <CategoryBannerContent
+                      bannerContentActive={bannerContentActive}
+                      onBannerContentActiveChange={setBannerContentActive}
+                      bannerTitle={bannerTitle}
+                      onBannerTitleChange={setBannerTitle}
+                      bannerDescription={bannerDescription}
+                      onBannerDescriptionChange={setBannerDescription}
+                      bannerContentClassesByScope={bannerContentClassesByScope}
+                      onBannerContentClassesByScopeChange={
+                        setBannerContentClassesByScope
+                      }
+                      bannerContentDisplayScope={bannerContentDisplayScope}
+                      onBannerContentDisplayScopeChange={setBannerContentDisplayScope}
+                      bannerContentDisplayChildren={bannerContentDisplayChildren}
+                      onBannerContentDisplayChildrenChange={setBannerContentDisplayChildren}
+                      categoryChildren={categoryChildren}
+                      parentName={categoryData.parent || ''}
+                      productCount={categoryData.products?.length ?? 0}
+                    />
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -228,7 +385,7 @@ const EditCategory = ({ id }: { id: string }) => {
         <Card className="shadow-card">
           <CardContent className="pt-6">
             <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <h3 className="text-sm font-medium text-foreground">
                   Ready to update your category?
                 </h3>
@@ -238,7 +395,7 @@ const EditCategory = ({ id }: { id: string }) => {
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto shrink-0">
                 <Button
                   type="button"
                   variant="outline"

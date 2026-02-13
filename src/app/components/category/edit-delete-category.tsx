@@ -42,7 +42,7 @@ const CategoryEditDelete = ({ id }: IPropType) => {
             }
           } else {
             Swal.fire("Deleted!", `Your category has been deleted.`, "success");
-            router.push('/category')
+            router.push('/dashboard/super-admin/category')
           }
         } catch (error) {
           // Handle error or show error message
@@ -54,7 +54,7 @@ const CategoryEditDelete = ({ id }: IPropType) => {
   return (
     <>
       <div className="relative">
-        <Link href={`/category/${id}`}>
+        <Link href={`/dashboard/super-admin/category/${id}`}>
           <button
             onMouseEnter={() => setShowEdit(true)}
             onMouseLeave={() => setShowEdit(false)}

@@ -1,0 +1,569 @@
+'use client';
+
+import React, { useState, useCallback } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
+import { useGetAllPageMetadataQuery } from '@/redux/page-metadata/pageMetadataApi';
+import {
+  useGetSectionsByPageQuery,
+  useUpsertSectionMutation,
+  useDeleteSectionMutation,
+} from '@/redux/page-section/pageSectionApi';
+import type { PageSection } from '@/types/page-section-type';
+import type {
+  HeroSectionContent,
+  CustomSectionContent,
+  CategoryShowcaseContent,
+} from '@/types/page-section-type';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Plus, Trash2, Layout } from 'lucide-react';
+import { SortableSectionCard, SectionCardPreview } from './sortable-section-card';
+import { HeroSectionEditor } from './hero-section-editor';
+import { CustomSectionEditor } from './custom-section-editor';
+import { CategoryShowcaseEditor } from './category-showcase-editor';
+import { notifyError, notifySuccess } from '@/utils/toast';
+
+const COMMON_PAGE_SLUGS = ['home', 'shop', 'about', 'contact'];
+
+const SECTION_TYPE_LABELS: Record<string, string> = {
+  hero: 'Hero Banner',
+  category_showcase: 'Category Showcase',
+  text_block: 'Text Block',
+  features: 'Features',
+  cta: 'Call to Action',
+  gallery: 'Gallery',
+  custom: 'Custom',
+};
+
+const PageSectionListArea = () => {
+  const { data: metadataData } = useGetAllPageMetadataQuery();
+  const [selectedPageSlug, setSelectedPageSlug] = useState<string>('');
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newSectionKey, setNewSectionKey] = useState('');
+  const [newSectionType, setNewSectionType] = useState<string>('hero');
+  const [editSection, setEditSection] = useState<PageSection | null>(null);
+  const [deleteSection, setDeleteSection] = useState<PageSection | null>(null);
+  const [activeSection, setActiveSection] = useState<PageSection | null>(null);
+
+  const pages = metadataData?.data ?? [];
+  const pageSlugs = Array.from(
+    new Set([
+      ...COMMON_PAGE_SLUGS,
+      ...pages.map((p) => p.slug).filter(Boolean),
+    ])
+  ).sort();
+
+  const effectiveSlug = selectedPageSlug || pageSlugs[0] || '';
+
+  const { data: sectionsData, isLoading } = useGetSectionsByPageQuery(
+    effectiveSlug,
+    { skip: !effectiveSlug }
+  );
+
+  const [upsertSection, { isLoading: isUpserting }] = useUpsertSectionMutation();
+  const [deleteSectionMutation, { isLoading: isDeleting }] =
+    useDeleteSectionMutation();
+
+  const sections = [...(sectionsData?.data ?? [])].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0)
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const section = sections.find((s) => s._id === event.active.id);
+    setActiveSection(section ?? null);
+  }, [sections]);
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      setActiveSection(null);
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = sections.findIndex((s) => s._id === active.id);
+      const newIndex = sections.findIndex((s) => s._id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const reordered = arrayMove(sections, oldIndex, newIndex);
+
+      const toUpdate = reordered.filter(
+        (s, i) => s.order !== i
+      );
+
+      if (toUpdate.length === 0) return;
+
+      try {
+        await Promise.all(
+          toUpdate.map((section) =>
+            upsertSection({
+              pageSlug: section.pageSlug,
+              sectionKey: section.sectionKey,
+              data: {
+                sectionType: section.sectionType,
+                content: section.content,
+                config: section.config,
+                order: reordered.indexOf(section),
+                isActive: section.isActive,
+              },
+            })
+          )
+        );
+        notifySuccess('Sections reordered');
+      } catch {
+        notifyError('Failed to reorder sections');
+      }
+    },
+    [sections, upsertSection]
+  );
+
+  const handleAddSection = async () => {
+    const key = newSectionKey.trim().toLowerCase().replace(/\s+/g, '_');
+    if (!key || !effectiveSlug) return;
+
+    try {
+      const res = await upsertSection({
+        pageSlug: effectiveSlug,
+        sectionKey: key,
+        data: {
+          sectionType: newSectionType,
+          content:
+            newSectionType === 'hero'
+              ? { variant: 'image_content' }
+              : newSectionType === 'category_showcase'
+                ? {
+                    heading: 'Shop by Category',
+                    showExploreAll: true,
+                    exploreAllLink: '/shop',
+                    exploreAllLabel: 'Explore all',
+                  }
+                : newSectionType === 'custom'
+                  ? { layout: { width: 'contained' }, blocks: [] }
+                  : {},
+          order: sections.length,
+          isActive: true,
+        },
+      });
+
+      if ('data' in res && res.data?.success) {
+        notifySuccess('Section added');
+        setAddDialogOpen(false);
+        setNewSectionKey('');
+        setNewSectionType('hero');
+        setEditSection(res.data.data as PageSection);
+      } else {
+        notifyError('Failed to add section');
+      }
+    } catch {
+      notifyError('Failed to add section');
+    }
+  };
+
+  const handleSaveCustom = async (
+    content: CustomSectionContent,
+    isActive?: boolean
+  ) => {
+    if (!editSection) return;
+
+    try {
+      const res = await upsertSection({
+        pageSlug: editSection.pageSlug,
+        sectionKey: editSection.sectionKey,
+        data: {
+          sectionType: 'custom',
+          content: content as unknown as Record<string, unknown>,
+          order: editSection.order,
+          isActive: isActive ?? editSection.isActive,
+        },
+      });
+
+      if ('data' in res && res.data?.success) {
+        notifySuccess('Section updated');
+        setEditSection(res.data.data as PageSection);
+      } else {
+        notifyError('Failed to update section');
+      }
+    } catch {
+      notifyError('Failed to update section');
+    }
+  };
+
+  const handleSaveCategoryShowcase = async (
+    content: CategoryShowcaseContent,
+    isActive?: boolean
+  ) => {
+    if (!editSection) return;
+
+    try {
+      const res = await upsertSection({
+        pageSlug: editSection.pageSlug,
+        sectionKey: editSection.sectionKey,
+        data: {
+          sectionType: 'category_showcase',
+          content: content as unknown as Record<string, unknown>,
+          order: editSection.order,
+          isActive: isActive ?? editSection.isActive,
+        },
+      });
+
+      if ('data' in res && res.data?.success) {
+        notifySuccess('Section updated');
+        setEditSection(res.data.data as PageSection);
+      } else {
+        notifyError('Failed to update section');
+      }
+    } catch {
+      notifyError('Failed to update section');
+    }
+  };
+
+  const handleSaveHero = async (
+    content: HeroSectionContent,
+    isActive?: boolean
+  ) => {
+    if (!editSection) return;
+
+    try {
+      const res = await upsertSection({
+        pageSlug: editSection.pageSlug,
+        sectionKey: editSection.sectionKey,
+        data: {
+          sectionType: 'hero',
+          content: content as unknown as Record<string, unknown>,
+          order: editSection.order,
+          isActive: isActive ?? editSection.isActive,
+        },
+      });
+
+      if ('data' in res && res.data?.success) {
+        notifySuccess('Section updated');
+        setEditSection(res.data.data as PageSection);
+      } else {
+        notifyError('Failed to update section');
+      }
+    } catch {
+      notifyError('Failed to update section');
+    }
+  };
+
+  const handleDeleteSection = async () => {
+    if (!deleteSection) return;
+
+    try {
+      const res = await deleteSectionMutation({
+        pageSlug: deleteSection.pageSlug,
+        sectionKey: deleteSection.sectionKey,
+      });
+
+      if ('data' in res && res.data?.success) {
+        notifySuccess('Section deleted');
+        setDeleteSection(null);
+        if (editSection?._id === deleteSection._id) {
+          setEditSection(null);
+        }
+      } else {
+        notifyError('Failed to delete section');
+      }
+    } catch {
+      notifyError('Failed to delete section');
+    }
+  };
+
+  const heroContent = (editSection?.content || {}) as unknown as HeroSectionContent;
+  const customContent = (editSection?.content || {}) as unknown as CustomSectionContent;
+  const categoryShowcaseContent = (editSection?.content || {}) as unknown as CategoryShowcaseContent;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-foreground">Page Sections</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Manage hero banners, content blocks, and more per page
+        </p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="space-y-2 min-w-[200px]">
+          <Label htmlFor="page-select">Page</Label>
+          <Select
+            value={effectiveSlug}
+            onValueChange={setSelectedPageSlug}
+          >
+            <SelectTrigger id="page-select">
+              <SelectValue placeholder="Select page" />
+            </SelectTrigger>
+            <SelectContent>
+              {pageSlugs.map((slug) => (
+                <SelectItem key={slug} value={slug}>
+                  {slug}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          onClick={() => setAddDialogOpen(true)}
+          disabled={!effectiveSlug}
+          className="mt-6 sm:mt-0"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add section
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      ) : sections.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Layout className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              No sections yet
+            </h3>
+            <p className="text-sm text-muted-foreground text-center">
+              Add a hero banner or other section to get started
+            </p>
+            <Button
+              onClick={() => setAddDialogOpen(true)}
+              className="mt-4"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add section
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sections.map((s) => s._id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-4">
+              {sections.map((section) => (
+                <SortableSectionCard
+                  key={section._id}
+                  section={section}
+                  onEdit={setEditSection}
+                  onDelete={setDeleteSection}
+                />
+              ))}
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeSection ? (
+              <SectionCardPreview section={activeSection} />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      )}
+
+      {/* Add section dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add section</DialogTitle>
+            <DialogDescription>
+              Add a new section to {effectiveSlug || 'the selected page'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="section-key">Section key</Label>
+              <Input
+                id="section-key"
+                value={newSectionKey}
+                onChange={(e) => setNewSectionKey(e.target.value)}
+                placeholder="e.g. hero, main_banner"
+              />
+              <p className="text-xs text-muted-foreground">
+                Used for storage (e.g. hero, main_banner)
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="section-type">Section type</Label>
+              <Select value={newSectionType} onValueChange={setNewSectionType}>
+                <SelectTrigger id="section-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(SECTION_TYPE_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAddDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddSection}
+              disabled={!newSectionKey.trim() || isUpserting}
+            >
+              {isUpserting ? 'Adding...' : 'Add'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit section sheet */}
+      <Sheet open={!!editSection} onOpenChange={(open) => !open && setEditSection(null)}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-lg overflow-y-auto"
+          aria-label={editSection ? `Edit ${editSection.sectionKey}` : undefined}
+        >
+          <SheetHeader className="px-6 pt-6 pb-2">
+            <SheetTitle>
+              Edit — {editSection?.sectionKey?.replace(/_/g, ' ')}
+            </SheetTitle>
+            <p className="text-sm text-muted-foreground">
+              Page: {editSection?.pageSlug}
+            </p>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-6 pr-12 py-4 pb-8">
+            {editSection?.sectionType === 'hero' && (
+              <HeroSectionEditor
+                content={heroContent}
+                onSave={async (content) => {
+                  await handleSaveHero(content, editSection.isActive);
+                }}
+                onCancel={() => setEditSection(null)}
+                isActive={editSection.isActive}
+                onActiveChange={async (active, getCurrentContent) => {
+                  await handleSaveHero(getCurrentContent(), active);
+                }}
+              />
+            )}
+            {editSection?.sectionType === 'custom' && (
+              <CustomSectionEditor
+                content={customContent}
+                onSave={async (content) => {
+                  await handleSaveCustom(content, editSection.isActive);
+                }}
+                onCancel={() => setEditSection(null)}
+                isActive={editSection.isActive}
+                onActiveChange={async (active, getCurrentContent) => {
+                  await handleSaveCustom(getCurrentContent(), active);
+                }}
+              />
+            )}
+            {editSection?.sectionType === 'category_showcase' && (
+              <CategoryShowcaseEditor
+                content={categoryShowcaseContent}
+                onSave={async (content) => {
+                  await handleSaveCategoryShowcase(content, editSection.isActive);
+                }}
+                onCancel={() => setEditSection(null)}
+                isActive={editSection.isActive}
+                onActiveChange={async (active, getCurrentContent) => {
+                  await handleSaveCategoryShowcase(getCurrentContent(), active);
+                }}
+              />
+            )}
+            {editSection?.sectionType !== 'hero' &&
+              editSection?.sectionType !== 'custom' &&
+              editSection?.sectionType !== 'category_showcase' && (
+                <p className="text-muted-foreground">
+                  Editor for {editSection?.sectionType} coming soon...
+                </p>
+              )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteSection} onOpenChange={(open) => !open && setDeleteSection(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete section</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{deleteSection?.sectionKey}&quot;? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSection}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default PageSectionListArea;

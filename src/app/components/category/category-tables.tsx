@@ -79,11 +79,11 @@ const CategoryTables = () => {
                     </td>
                     <td className="pr-8 py-5 whitespace-nowrap">
                       <a href="#" className="flex items-center space-x-5">
-                        {item.img && (
+                        {(item.image?.url || item.img) && (
                           <Image
                             className="w-10 h-10 rounded-full shrink shrink-0 object-cover"
-                            src={item.img}
-                            alt="image"
+                            src={item.image?.url || item.img || '/placeholder.svg'}
+                            alt={item.image?.altText || item.image?.title || item.parent}
                             width={40}
                             height={40}
                           />
