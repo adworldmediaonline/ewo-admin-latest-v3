@@ -1,6 +1,7 @@
 'use client';
 import Tiptap from '@/components/tipTap/Tiptap';
 import useProductSubmit from '@/hooks/useProductSubmit';
+import React, { useRef } from 'react';
 import { Controller } from 'react-hook-form';
 import ProductCategory from '../../category/product-category';
 import FormField from '../form-field';
@@ -33,10 +34,12 @@ import {
 } from 'lucide-react';
 
 const ProductSubmit = () => {
+  const formRef = useRef<HTMLFormElement>(null);
   const {
     handleSubmit,
     handleSubmitProduct,
     register,
+    publishStatusRef,
     setValue,
     errors,
     tags,
@@ -64,9 +67,15 @@ const ProductSubmit = () => {
     imageURLs,
   } = useProductSubmit();
 
+  const handleSubmitWithStatus = (status: 'draft' | 'published') => {
+    publishStatusRef.current = status;
+    formRef.current?.requestSubmit();
+  };
+
   return (
     <div className="space-y-6">
       <form
+        ref={formRef}
         onSubmit={handleSubmit(handleSubmitProduct)}
         noValidate
         aria-labelledby="add-product-form"
@@ -583,8 +592,7 @@ const ProductSubmit = () => {
                   Ready to create your product?
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Your product will be added to the catalog and become available
-                  for purchase immediately.
+                  Save as draft to continue later, or publish to make it visible on the store.
                 </p>
               </div>
 
@@ -597,9 +605,23 @@ const ProductSubmit = () => {
                 >
                   Cancel
                 </Button>
-                <Button variant="default" type="submit" className="gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => handleSubmitWithStatus('draft')}
+                >
                   <Save className="h-4 w-4" />
-                  <span>Create Product</span>
+                  <span>Save as Draft</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  className="gap-2"
+                  onClick={() => handleSubmitWithStatus('published')}
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Publish Product</span>
                 </Button>
               </div>
             </div>

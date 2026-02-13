@@ -57,6 +57,7 @@ export interface IProduct {
   brand?: string;
   category: Category;
   status: string;
+  publishStatus?: 'draft' | 'published';
   reviews: IReview[];
   description: string;
   faqs?: string;

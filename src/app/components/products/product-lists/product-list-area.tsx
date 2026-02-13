@@ -3,6 +3,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -28,10 +37,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useGetAllProductsQuery, authApi } from '@/redux/product/productApi';
+import { useGetAllProductsQuery, useDeleteProductMutation, useUpdateProductPublishStatusMutation, authApi } from '@/redux/product/productApi';
 import { store } from '@/redux/store';
 import { IProduct } from '@/types/product';
 import { exportProductsToCSV } from '@/utils/export-products';
+import { notifyError, notifySuccess } from '@/utils/toast';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -50,6 +60,7 @@ import {
   Download,
   Edit,
   Eye,
+  EyeOff,
   MoreHorizontal,
   Package,
   RefreshCw,
@@ -59,7 +70,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
 // Custom Star Rating Component
 const StarRating = ({
@@ -121,6 +132,11 @@ export default function ProductListArea() {
     pageSize: 10,
   });
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
+  const [publishStatusFilter, setPublishStatusFilter] = useState<string>('');
+  const [deleteDialogProductId, setDeleteDialogProductId] = useState<string | null>(null);
+
+  const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+  const [updatePublishStatus] = useUpdateProductPublishStatusMutation();
 
   // Debounce search to avoid too many API calls
   React.useEffect(() => {
@@ -147,9 +163,48 @@ export default function ProductListArea() {
     limit: pagination.pageSize,
     search: debouncedSearch,
     status: statusFilter === 'all' ? '' : statusFilter,
+    publishStatus: publishStatusFilter === 'all' ? '' : publishStatusFilter,
   });
 
-  // Define columns with advanced features
+  const handleTogglePublishStatus = useCallback(
+    async (product: IProduct, newStatus: 'draft' | 'published') => {
+      try {
+        const res = await updatePublishStatus({
+          id: product._id,
+          publishStatus: newStatus,
+        });
+        if ('error' in res && res.error) {
+          const err = res.error as { data?: { message?: string } };
+          notifyError(err.data?.message || 'Failed to update product');
+        } else {
+          notifySuccess(`Product ${newStatus === 'published' ? 'published' : 'unpublished'} successfully`);
+        }
+      } catch {
+        notifyError('Failed to update product');
+      }
+    },
+    [updatePublishStatus]
+  );
+
+  const handleDeleteProduct = useCallback(
+    async (productId: string) => {
+      try {
+        const res = await deleteProduct(productId);
+        if ('error' in res && res.error) {
+          const err = res.error as { data?: { message?: string } };
+          notifyError(err.data?.message || 'Failed to delete product');
+        } else {
+          setDeleteDialogProductId(null);
+          notifySuccess('Product deleted successfully');
+        }
+      } catch {
+        notifyError('Failed to delete product');
+      }
+    },
+    [deleteProduct]
+  );
+
+  // Define columns with advanced features - handleDeleteProduct and setDeleteDialogProductId in closure
   const columns: ColumnDef<IProduct>[] = useMemo(
     () => [
       {
@@ -294,7 +349,7 @@ export default function ProductListArea() {
       },
       {
         accessorKey: 'status',
-        header: 'Status',
+        header: 'Stock',
         cell: ({ row }) => {
           const status = row.getValue('status') as string;
           return (
@@ -313,6 +368,26 @@ export default function ProductListArea() {
               ) : (
                 'Out of Stock'
               )}
+            </Badge>
+          );
+        },
+        enableHiding: true,
+      },
+      {
+        accessorKey: 'publishStatus',
+        header: 'Visibility',
+        cell: ({ row }) => {
+          const publishStatus = (row.original as IProduct & { publishStatus?: string }).publishStatus || 'published';
+          return (
+            <Badge
+              variant="secondary"
+              className={`text-xs ${
+                publishStatus === 'published'
+                  ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
+                  : 'bg-amber-100 text-amber-800 hover:bg-amber-100'
+              }`}
+            >
+              {publishStatus === 'published' ? 'Published' : 'Draft'}
             </Badge>
           );
         },
@@ -351,12 +426,25 @@ export default function ProductListArea() {
                     Edit Product
                   </Link>
                 </DropdownMenuItem>
+                {(row.original as IProduct & { publishStatus?: string }).publishStatus === 'draft' ? (
+                  <DropdownMenuItem
+                    onClick={() => handleTogglePublishStatus(product, 'published')}
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Publish
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => handleTogglePublishStatus(product, 'draft')}
+                  >
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    Unpublish
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => {
-                    // Handle delete - you can implement this
-                    console.log('Delete product:', product._id);
-                  }}
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setDeleteDialogProductId(product._id)}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Product
@@ -367,7 +455,7 @@ export default function ProductListArea() {
         },
       },
     ],
-    []
+    [setDeleteDialogProductId, handleTogglePublishStatus]
   );
 
   const productData = products?.data || [];
@@ -558,7 +646,7 @@ export default function ProductListArea() {
               />
             </div>
 
-            {/* Status Filter */}
+            {/* Stock Status Filter */}
             <Select
               value={
                 (table.getColumn('status')?.getFilterValue() as string) ?? ''
@@ -570,12 +658,30 @@ export default function ProductListArea() {
               }
             >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder="Filter by stock" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="all">All Stock</SelectItem>
                 <SelectItem value="in-stock">In Stock</SelectItem>
                 <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Publish Status Filter */}
+            <Select
+              value={publishStatusFilter || 'all'}
+              onValueChange={value => {
+                setPublishStatusFilter(value === 'all' ? '' : value);
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Visibility</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
               </SelectContent>
             </Select>
 
@@ -759,6 +865,41 @@ export default function ProductListArea() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={!!deleteDialogProductId}
+        onOpenChange={open => !open && setDeleteDialogProductId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the product
+              and remove it from the catalog.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={() =>
+                deleteDialogProductId && handleDeleteProduct(deleteDialogProductId)
+              }
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

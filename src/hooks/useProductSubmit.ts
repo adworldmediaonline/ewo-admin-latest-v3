@@ -5,7 +5,7 @@ import {
 } from '@/redux/product/productApi';
 import { notifyError, notifySuccess } from '@/utils/toast';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { Tag } from 'react-tag-input';
 import slugify from 'slugify';
@@ -69,8 +69,14 @@ const useProductSubmit = () => {
   const [tags, setTags] = useState<Tag[]>([]);
   const [badges, setBadges] = useState<string[]>([]);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [publishStatus, setPublishStatus] = useState<'draft' | 'published'>('draft');
+  const publishStatusRef = useRef<'draft' | 'published'>('draft');
 
   const router = useRouter();
+
+  useEffect(() => {
+    publishStatusRef.current = publishStatus;
+  }, [publishStatus]);
 
   // Keep imageURLs in sync with imageURLsWithMeta for form progress and legacy consumers
   useEffect(() => {
@@ -125,6 +131,7 @@ const useProductSubmit = () => {
     setAdditionalInformation([]);
     setTags([]);
     setBadges([]);
+    setPublishStatus('draft');
     reset();
   };
 
@@ -185,6 +192,7 @@ const useProductSubmit = () => {
         metaDescription: data.metaDescription || '',
         metaKeywords: data.metaKeywords || '',
       },
+      publishStatus: publishStatusRef.current,
     };
 
     // Debug: Log product data being sent
@@ -356,6 +364,9 @@ const useProductSubmit = () => {
     setValue,
     handleSubmitProduct,
     errors,
+    publishStatus,
+    setPublishStatus,
+    publishStatusRef,
     tags,
     setTags,
     badges,

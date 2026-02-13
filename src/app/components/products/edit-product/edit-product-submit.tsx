@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import useProductSubmit from '@/hooks/useProductSubmit';
-import { useGetProductQuery } from '@/redux/product/productApi';
+import { useGetProductQuery, useDeleteProductMutation } from '@/redux/product/productApi';
 import {
   ArrowLeft,
   DollarSign,
@@ -16,9 +16,10 @@ import {
   Save,
   Search,
   Settings,
+  Trash2,
   Truck,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import ProductCategory from '../../category/product-category';
 // import AdditionalInformation from '../add-product/additional-information';
@@ -34,11 +35,25 @@ import Badges from '../add-product/badges';
 import YouTubeVideoInput from '../add-product/youtube-video-input';
 import FormField from '../form-field';
 import ShippingPrice from '../shipping-price';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { notifyError, notifySuccess } from '@/utils/toast';
 
 const EditProductSubmit = ({ id }: { id: string }) => {
   const { data: product, isError, isLoading } = useGetProductQuery(id);
+  const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [formProgress, setFormProgress] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Memoize the default tags value to prevent infinite re-renders
   const defaultTags = useMemo(() => {
@@ -105,7 +120,39 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     setIsSubmitted,
     handleEditProduct,
     editLoading,
+    publishStatusRef,
+    setPublishStatus,
   } = useProductSubmit();
+
+  const handleSubmitWithStatus = (status: 'draft' | 'published') => {
+    publishStatusRef.current = status;
+    formRef.current?.requestSubmit();
+  };
+
+  const handleDeleteProduct = async () => {
+    try {
+      const res = await deleteProduct(id);
+      if ('error' in res && res.error) {
+        const err = res.error as { data?: { message?: string } };
+        notifyError(err.data?.message || 'Failed to delete product');
+      } else {
+        setDeleteDialogOpen(false);
+        notifySuccess('Product deleted successfully');
+        router.push('/dashboard/super-admin/product');
+      }
+    } catch {
+      notifyError('Failed to delete product');
+    }
+  };
+
+  // Load publishStatus when product data is available
+  useEffect(() => {
+    if (product?.publishStatus) {
+      setPublishStatus(product.publishStatus as 'draft' | 'published');
+    } else if (product) {
+      setPublishStatus('published'); // backwards compat for products without the field
+    }
+  }, [product?._id, product?.publishStatus, setPublishStatus]);
 
   // Load main product image when product data is available
   useEffect(() => {
@@ -175,6 +222,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     content = (
       <div className="space-y-6">
         <form
+          ref={formRef}
           onSubmit={handleSubmit(data => handleEditProduct(data, id))}
           noValidate
           aria-labelledby="edit-product-form"
@@ -715,15 +763,14 @@ const EditProductSubmit = ({ id }: { id: string }) => {
               <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
                 <div className="space-y-1">
                   <h3 className="text-sm font-medium text-foreground">
-                    Ready to publish changes?
+                    Ready to save changes?
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Your changes will be saved and the product will be updated
-                    immediately.
+                    Save as draft to continue later, or publish to make it visible on the store.
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto flex-wrap">
                   <Button
                     type="button"
                     variant="outline"
@@ -735,23 +782,77 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                     Cancel Changes
                   </Button>
                   <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSubmitWithStatus('draft')}
+                    disabled={editLoading}
+                    className="gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>Save as Draft</span>
+                  </Button>
+                  <Button
+                    type="button"
                     variant="default"
-                    type="submit"
+                    onClick={() => handleSubmitWithStatus('published')}
                     disabled={editLoading}
                     className="gap-2"
                   >
                     {editLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Updating Product...</span>
+                        <span>Updating...</span>
                       </>
                     ) : (
                       <>
                         <Save className="h-4 w-4" />
-                        <span>Update Product</span>
+                        <span>Publish Changes</span>
                       </>
                     )}
                   </Button>
+                  <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        disabled={editLoading || isDeleting}
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        <span>Delete Product</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete product?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the product
+                          and remove it from the catalog.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <Button
+                          variant="destructive"
+                          onClick={handleDeleteProduct}
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Deleting...
+                            </>
+                          ) : (
+                            'Delete'
+                          )}
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
 
