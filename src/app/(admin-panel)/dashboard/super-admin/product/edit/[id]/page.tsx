@@ -1,7 +1,7 @@
 import EditProductSubmit from '@/app/components/products/edit-product/edit-product-submit';
 import Wrapper from '@/layout/wrapper';
 import Link from 'next/link';
-import { Package } from 'lucide-react';
+import { Eye, Package } from 'lucide-react';
 import { Button } from '../../../../../../../components/ui/button';
 import {
   Card,
@@ -44,12 +44,20 @@ const EditProduct = async ({ params }: { params: Promise<{ id: string }> }) => {
               Update product details and settings
             </p>
           </div>
-          <Button variant="outline" asChild>
-            <Link href="/dashboard/super-admin/product">
-              <Package className="mr-2 h-4 w-4" />
-              Back to Products
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link href={`/dashboard/super-admin/product/preview/${id}`}>
+                <Eye className="mr-2 h-4 w-4" />
+                Preview
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/super-admin/product">
+                <Package className="mr-2 h-4 w-4" />
+                Back to Products
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <Card>
