@@ -175,35 +175,33 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
                   folder="ewo-assets/categories/banners"
                 />
                 {categoryBanner?.url && (
-                  <>
-                    <CategoryBannerDisplaySettings
-                      scope={bannerDisplayScope}
-                      onScopeChange={setBannerDisplayScope}
-                      selectedChildren={bannerDisplayChildren}
-                      onSelectedChildrenChange={setBannerDisplayChildren}
-                      categoryChildren={categoryChildren}
-                    />
-                    <CategoryBannerContent
-                      bannerContentActive={bannerContentActive}
-                      onBannerContentActiveChange={setBannerContentActive}
-                      bannerTitle={bannerTitle}
-                      onBannerTitleChange={setBannerTitle}
-                      bannerDescription={bannerDescription}
-                      onBannerDescriptionChange={setBannerDescription}
-                      bannerContentClassesByScope={bannerContentClassesByScope}
-                      onBannerContentClassesByScopeChange={
-                        setBannerContentClassesByScope
-                      }
-                      bannerContentDisplayScope={bannerContentDisplayScope}
-                      onBannerContentDisplayScopeChange={setBannerContentDisplayScope}
-                      bannerContentDisplayChildren={bannerContentDisplayChildren}
-                      onBannerContentDisplayChildrenChange={setBannerContentDisplayChildren}
-                      categoryChildren={categoryChildren}
-                      parentName={parentName}
-                      productCount={0}
-                    />
-                  </>
+                  <CategoryBannerDisplaySettings
+                    scope={bannerDisplayScope}
+                    onScopeChange={setBannerDisplayScope}
+                    selectedChildren={bannerDisplayChildren}
+                    onSelectedChildrenChange={setBannerDisplayChildren}
+                    categoryChildren={categoryChildren}
+                  />
                 )}
+                <CategoryBannerContent
+                  bannerContentActive={bannerContentActive}
+                  onBannerContentActiveChange={setBannerContentActive}
+                  bannerTitle={bannerTitle}
+                  onBannerTitleChange={setBannerTitle}
+                  bannerDescription={bannerDescription}
+                  onBannerDescriptionChange={setBannerDescription}
+                  bannerContentClassesByScope={bannerContentClassesByScope}
+                  onBannerContentClassesByScopeChange={
+                    setBannerContentClassesByScope
+                  }
+                  bannerContentDisplayScope={bannerContentDisplayScope}
+                  onBannerContentDisplayScopeChange={setBannerContentDisplayScope}
+                  bannerContentDisplayChildren={bannerContentDisplayChildren}
+                  onBannerContentDisplayChildrenChange={setBannerContentDisplayChildren}
+                  categoryChildren={categoryChildren}
+                  parentName={parentName}
+                  productCount={0}
+                />
               </CardContent>
             </Card>
           </div>
