@@ -143,10 +143,14 @@ const EditCategory = ({ id }: { id: string }) => {
     if (!categoryData?.showcaseGroups || !Array.isArray(categoryData.showcaseGroups)) {
       return;
     }
-    const groups = categoryData.showcaseGroups.map((g: { children?: string[]; image?: unknown }) => ({
-      children: g.children || [],
-      image: g.image ?? null,
-    }));
+    const groups = categoryData.showcaseGroups.map((g: { children?: string[]; image?: { url?: string } | null }) => {
+      const img = g.image;
+      const image =
+        img && typeof img === 'object' && img.url
+          ? { url: img.url, fileName: (img as { fileName?: string }).fileName ?? '', title: (img as { title?: string }).title ?? '', altText: (img as { altText?: string }).altText ?? '' }
+          : null;
+      return { children: g.children || [], image };
+    });
     setShowcaseGroups(groups);
   }, [categoryData?._id, categoryData?.showcaseGroups, setShowcaseGroups]);
 
