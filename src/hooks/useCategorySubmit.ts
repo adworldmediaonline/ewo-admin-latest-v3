@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { Tag } from 'react-tag-input';
 import type { ImageWithMeta } from '@/types/image-with-meta';
+import type { ShowcaseGroup } from '@/app/components/category/category-showcase-groups';
 import type { BannerDisplayScope } from '@/app/components/category/category-banner-display-settings';
 import type { BannerContentClassesByScope } from '@/types/category-type';
 
@@ -28,6 +29,7 @@ const useCategorySubmit = () => {
   const [bannerDescription, setBannerDescription] = useState<string>('');
   const [bannerContentClassesByScope, setBannerContentClassesByScope] =
     useState<BannerContentClassesByScope>({ parent: null, children: {} });
+  const [showcaseGroups, setShowcaseGroups] = useState<ShowcaseGroup[]>([]);
   const [parent, setParent] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -76,6 +78,9 @@ const useCategorySubmit = () => {
         bannerTitle: bannerTitle.trim() || '',
         bannerDescription: bannerDescription.trim() || '',
         bannerContentClassesByScope: bannerContentClassesByScope,
+        showcaseGroups: showcaseGroups.filter(
+          (g) => g.children && g.children.length > 0
+        ),
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -103,6 +108,7 @@ const useCategorySubmit = () => {
         setBannerTitle('');
         setBannerDescription('');
         setBannerContentClassesByScope({ parent: null, children: {} });
+        setShowcaseGroups([]);
         router.push('/dashboard/super-admin/category');
       }
     } catch (error) {
@@ -125,6 +131,9 @@ const useCategorySubmit = () => {
         bannerTitle: bannerTitle.trim() || '',
         bannerDescription: bannerDescription.trim() || '',
         bannerContentClassesByScope: bannerContentClassesByScope,
+        showcaseGroups: showcaseGroups.filter(
+          (g) => g.children && g.children.length > 0
+        ),
         parent: data?.parent,
         description: data?.description,
         children: categoryChildren.map(tag => tag.text),
@@ -176,6 +185,8 @@ const useCategorySubmit = () => {
     setBannerDescription,
     bannerContentClassesByScope,
     setBannerContentClassesByScope,
+    showcaseGroups,
+    setShowcaseGroups,
     parent,
     setParent,
     description,

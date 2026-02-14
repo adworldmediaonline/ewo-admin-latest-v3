@@ -6,6 +6,7 @@ import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-u
 import CategoryChildren from './category-children';
 import CategoryBannerDisplaySettings from './category-banner-display-settings';
 import CategoryBannerContent from './category-banner-content';
+import { CategoryShowcaseGroups } from './category-showcase-groups';
 import { useGetCategoryQuery } from '@/redux/category/categoryApi';
 import CategoryParent from './category-parent';
 import CategoryDescription from './category-description';
@@ -20,6 +21,8 @@ const EditCategory = ({ id }: { id: string }) => {
     control,
     categoryChildren,
     setCategoryChildren,
+    showcaseGroups,
+    setShowcaseGroups,
     register,
     handleSubmit,
     setCategoryImg,
@@ -134,6 +137,22 @@ const EditCategory = ({ id }: { id: string }) => {
     setBannerDescription,
     setBannerContentClassesByScope,
   ]);
+
+  // Load showcase groups when category data is available
+  useEffect(() => {
+    if (!categoryData?.showcaseGroups || !Array.isArray(categoryData.showcaseGroups)) {
+      return;
+    }
+    const groups = categoryData.showcaseGroups.map((g: { children?: string[]; image?: { url?: string } | null }) => {
+      const img = g.image;
+      const image =
+        img && typeof img === 'object' && img.url
+          ? { url: img.url, fileName: (img as { fileName?: string }).fileName ?? '', title: (img as { title?: string }).title ?? '', altText: (img as { altText?: string }).altText ?? '' }
+          : null;
+      return { children: g.children || [], image };
+    });
+    setShowcaseGroups(groups);
+  }, [categoryData?._id, categoryData?.showcaseGroups, setShowcaseGroups]);
 
   // Convert children array (string[]) to Tag[] format
   const defaultChildrenTags = useMemo(() => {
@@ -347,39 +366,44 @@ const EditCategory = ({ id }: { id: string }) => {
                   folder="ewo-assets/categories/banners"
                 />
                 {categoryBanner?.url && (
-                  <>
-                    <CategoryBannerDisplaySettings
-                      scope={bannerDisplayScope}
-                      onScopeChange={setBannerDisplayScope}
-                      selectedChildren={bannerDisplayChildren}
-                      onSelectedChildrenChange={setBannerDisplayChildren}
-                      categoryChildren={categoryChildren}
-                    />
-                    <CategoryBannerContent
-                      bannerContentActive={bannerContentActive}
-                      onBannerContentActiveChange={setBannerContentActive}
-                      bannerTitle={bannerTitle}
-                      onBannerTitleChange={setBannerTitle}
-                      bannerDescription={bannerDescription}
-                      onBannerDescriptionChange={setBannerDescription}
-                      bannerContentClassesByScope={bannerContentClassesByScope}
-                      onBannerContentClassesByScopeChange={
-                        setBannerContentClassesByScope
-                      }
-                      bannerContentDisplayScope={bannerContentDisplayScope}
-                      onBannerContentDisplayScopeChange={setBannerContentDisplayScope}
-                      bannerContentDisplayChildren={bannerContentDisplayChildren}
-                      onBannerContentDisplayChildrenChange={setBannerContentDisplayChildren}
-                      categoryChildren={categoryChildren}
-                      parentName={categoryData.parent || ''}
-                      productCount={categoryData.products?.length ?? 0}
-                    />
-                  </>
+                  <CategoryBannerDisplaySettings
+                    scope={bannerDisplayScope}
+                    onScopeChange={setBannerDisplayScope}
+                    selectedChildren={bannerDisplayChildren}
+                    onSelectedChildrenChange={setBannerDisplayChildren}
+                    categoryChildren={categoryChildren}
+                  />
                 )}
+                <CategoryBannerContent
+                  bannerContentActive={bannerContentActive}
+                  onBannerContentActiveChange={setBannerContentActive}
+                  bannerTitle={bannerTitle}
+                  onBannerTitleChange={setBannerTitle}
+                  bannerDescription={bannerDescription}
+                  onBannerDescriptionChange={setBannerDescription}
+                  bannerContentClassesByScope={bannerContentClassesByScope}
+                  onBannerContentClassesByScopeChange={
+                    setBannerContentClassesByScope
+                  }
+                  bannerContentDisplayScope={bannerContentDisplayScope}
+                  onBannerContentDisplayScopeChange={setBannerContentDisplayScope}
+                  bannerContentDisplayChildren={bannerContentDisplayChildren}
+                  onBannerContentDisplayChildrenChange={setBannerContentDisplayChildren}
+                  categoryChildren={categoryChildren}
+                  parentName={categoryData.parent || ''}
+                  productCount={categoryData.products?.length ?? 0}
+                />
               </CardContent>
             </Card>
           </div>
         </div>
+
+        {/* Category Showcase */}
+        <CategoryShowcaseGroups
+          categoryChildren={categoryChildren}
+          showcaseGroups={showcaseGroups}
+          onChange={setShowcaseGroups}
+        />
 
         {/* Action Buttons */}
         <Card className="shadow-card">

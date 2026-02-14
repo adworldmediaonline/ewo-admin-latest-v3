@@ -139,8 +139,9 @@ const CategoryBannerContent = ({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        When active, the title appears above the banner image and the
-        description below it.
+        When active, the title and description appear on the shop page. With a
+        banner image, they show above and below it; without an image, they
+        display on their own.
       </p>
 
       {bannerContentActive && (
@@ -171,9 +172,10 @@ const CategoryBannerContent = ({
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              On the shop page, the title is dynamic: it shows the current
-              category (parent or child) + product count based on the content
-              display scope. Use auto-fill here as a preview.
+              On the shop page, the title is always dynamic: category name +
+              live product count. The count updates automatically when products
+              are added or removed—no manual regeneration needed. Use auto-fill
+              here as a preview only.
             </p>
           </div>
 

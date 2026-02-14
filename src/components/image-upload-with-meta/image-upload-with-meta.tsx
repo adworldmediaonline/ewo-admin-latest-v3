@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, Loader2, Pencil } from 'lucide-react';
+import { Upload, Loader2, Pencil, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface ImageUploadWithMetaProps {
@@ -179,6 +179,17 @@ export const ImageUploadWithMeta = ({
             >
               <Pencil className="h-4 w-4 mr-1.5" />
               Edit metadata
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onChange(null)}
+              className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              aria-label="Remove image"
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              Remove
             </Button>
           </div>
         </div>
