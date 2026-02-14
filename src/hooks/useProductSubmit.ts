@@ -193,7 +193,6 @@ const useProductSubmit = () => {
         metaDescription: data.metaDescription || '',
         metaKeywords: data.metaKeywords || '',
       },
-      publishStatus: publishStatusRef.current,
     };
 
     // Debug: Log product data being sent
@@ -398,6 +397,7 @@ const useProductSubmit = () => {
     editLoading,
     faqs,
     setFaqs,
+    setStatus,
   };
 };
 

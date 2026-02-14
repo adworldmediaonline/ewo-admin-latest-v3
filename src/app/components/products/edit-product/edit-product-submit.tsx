@@ -124,6 +124,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     editLoading,
     publishStatusRef,
     setPublishStatus,
+    setStatus,
   } = useProductSubmit();
 
   const handleSubmitWithStatus = (status: 'draft' | 'published') => {
@@ -177,6 +178,131 @@ const EditProductSubmit = ({ id }: { id: string }) => {
       setImage(null);
     }
   }, [product?._id, product?.img, product?.image?.url, setImage]);
+
+  // Set category, parent, children when product loads - ProductCategory is in Media tab and may not mount if user never switches tabs, so we must set these here
+  useEffect(() => {
+    if (!product?.category) return;
+    const cat = product.category;
+    const catId = typeof cat.id === 'string' ? cat.id : cat.id?.toString?.() ?? '';
+    if (cat.name && catId) {
+      setCategory({ name: cat.name, id: catId });
+      setParent(product.parent ?? cat.name);
+      setChildren(product.children ?? '');
+    }
+  }, [product?._id, product?.category, product?.parent, product?.children, setCategory, setParent, setChildren]);
+
+  // Initialize moreDetails form field when product loads
+  useEffect(() => {
+    if (!product) return;
+    setValue('moreDetails', product.moreDetails ?? '');
+  }, [product?._id, product?.moreDetails, setValue]);
+
+  // Initialize all tab-dependent state and form fields when product loads - Radix Tabs does not
+  // render inactive tab content by default, so components in Media/Pricing/Options tabs never
+  // mount until the user switches tabs. Without this, submitting without opening those tabs
+  // would use empty state and trigger validation errors (e.g. "Category name and id are required").
+  // Form fields in unmounted tabs also need setValue since they are not in the DOM.
+  useEffect(() => {
+    if (!product) return;
+
+    // Form fields in tabs that may not render - setValue ensures form state has values on submit
+    setValue('price', product.price ?? 0);
+    setValue('SKU', product.sku ?? '');
+    setValue('quantity', product.quantity ?? 0);
+    setValue('discount', product.discount ?? 0);
+    setValue('finalPriceDiscount', product.finalPriceDiscount ?? 0);
+    setValue('updatedPrice', product.updatedPrice ?? '');
+    setValue('faqs', product.faqs ?? '');
+    setValue('videoId', product.videoId ?? '');
+    if (product.shipping) {
+      setValue('shipping', {
+        price: product.shipping.price ?? '',
+        description: product.shipping.description ?? '',
+      });
+    }
+    if (product.seo) {
+      setValue('metaTitle', product.seo.metaTitle ?? '');
+      setValue('metaDescription', product.seo.metaDescription ?? '');
+      setValue('metaKeywords', product.seo.metaKeywords ?? '');
+    }
+
+    if (product.tags?.length) {
+      setTags(
+        product.tags.map((tag: string) => ({
+          id: tag,
+          text: tag,
+          className: '',
+        }))
+      );
+    }
+    if (product.badges?.length) {
+      setBadges(product.badges);
+    }
+    if (product.options?.length) {
+      setOptions(
+        product.options.map((o: { title: string; price: number }) => ({
+          title: o.title ?? '',
+          price: o.price ?? 0,
+        }))
+      );
+    }
+    if (product.productConfigurations?.length) {
+      setProductConfigurations(
+        product.productConfigurations.map(
+          (config: { title: string; options: Array<{ name?: string; price?: number; isSelected?: boolean }> }) => ({
+            title: config.title ?? '',
+            options: (config.options ?? []).map((opt) => ({
+              name: opt.name ?? '',
+              price: opt.price ?? 0,
+              isSelected: opt.isSelected ?? false,
+            })),
+          })
+        )
+      );
+    }
+    if (product.offerDate?.startDate != null || product.offerDate?.endDate != null) {
+      setOfferDate({
+        startDate: product.offerDate.startDate ?? null,
+        endDate: product.offerDate.endDate ?? null,
+      });
+    }
+    if (product.status && ['in-stock', 'out-of-stock', 'discontinued'].includes(product.status)) {
+      setStatus(product.status as 'in-stock' | 'out-of-stock' | 'discontinued');
+    }
+    const variantImages = product.imageURLsWithMeta?.length
+      ? (product.imageURLsWithMeta as ImageWithMeta[])
+      : product.imageURLs?.length
+        ? (product.imageURLs as string[]).map((url) => ({
+            url,
+            fileName: '',
+            title: '',
+            altText: '',
+          }))
+        : [];
+    if (variantImages.length) {
+      setImageURLsWithMeta(variantImages);
+    }
+    const addlInfo = product.additionalInformation ?? product.additionalInfo ?? [];
+    if (addlInfo.length) {
+      setAdditionalInformation(
+        addlInfo.map((item: { key: string; value: string }) => ({
+          key: item.key ?? '',
+          value: item.value ?? '',
+        }))
+      );
+    }
+  }, [
+    product,
+    setValue,
+    setTags,
+    setBadges,
+    setOptions,
+    setProductConfigurations,
+    setOfferDate,
+    setStatus,
+    setImageURLsWithMeta,
+    setAdditionalInformation,
+  ]);
 
   // decide what to render
   let content = null;
