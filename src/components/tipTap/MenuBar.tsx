@@ -206,7 +206,13 @@ const HeadingIcon = () => (
   </svg>
 );
 
-const MenuBar: React.FC<{ editor: TiptapEditor | null }> = ({ editor }) => {
+interface MenuBarProps {
+  editor: TiptapEditor | null;
+  /** Optional extra buttons to render at the end of the toolbar (e.g. Insert Image) */
+  extraButtons?: React.ReactNode;
+}
+
+const MenuBar: React.FC<MenuBarProps> = ({ editor, extraButtons }) => {
   const setLink = useCallback(() => {
     if (!editor) {
       return;
@@ -470,6 +476,9 @@ const MenuBar: React.FC<{ editor: TiptapEditor | null }> = ({ editor }) => {
 
         {/* Separator */}
         <div className="w-px h-6 bg-border mx-1"></div>
+
+        {/* Extra buttons (e.g. Insert Image) */}
+        {extraButtons}
 
         {/* Undo/Redo Group */}
         <div className="flex items-center gap-1">

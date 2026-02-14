@@ -1,5 +1,6 @@
 'use client';
 import Tiptap from '@/components/tipTap/Tiptap';
+import TiptapWithImages from '@/components/tipTap/TiptapWithImages';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -432,6 +433,54 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                             placeholder="Add frequently asked questions and answers for your product..."
                             limit={50000}
                             showCharacterCount={true}
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* More Details Section */}
+              <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-teal-50 flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-teal-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold">
+                        More Details About the Product
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Rich content with images (filename, alt text, title). Renders above Related Products on the product page.
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        More Details Content
+                      </label>
+                      <span className="text-xs text-muted-foreground">
+                        Optional • Supports images
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Controller
+                        name="moreDetails"
+                        control={control}
+                        defaultValue={product.moreDetails || ''}
+                        render={({ field }) => (
+                          <TiptapWithImages
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Add specifications, installation notes, diagrams, or any additional product information. Use the image button to insert images with filename, alt text, and title..."
+                            limit={50000}
+                            showCharacterCount={true}
+                            imageFolder="ewo-assets/products"
                           />
                         )}
                       />
