@@ -1,7 +1,6 @@
 'use client';
 
 import { Color } from '@tiptap/extension-color';
-import { Image } from '@tiptap/extension-image';
 import { Link } from '@tiptap/extension-link';
 import { Table } from '@tiptap/extension-table';
 import { TableCell } from '@tiptap/extension-table-cell';
@@ -11,6 +10,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import MenuBarWithImages from './MenuBarWithImages';
+import { Column, ColumnsBlock, ImageWithFloat } from './extensions';
 
 import { useEffect, useState } from 'react';
 
@@ -76,7 +76,9 @@ const TiptapWithImages = ({
         defaultProtocol: 'https',
         validate: (href) => /^https?:\/\//.test(href),
       }),
-      Image.configure({
+      Column,
+      ColumnsBlock,
+      ImageWithFloat.configure({
         inline: false,
         allowBase64: false,
         HTMLAttributes: {
@@ -134,7 +136,7 @@ const TiptapWithImages = ({
     <div className="relative group">
       <div className="border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all duration-200">
         <MenuBarWithImages editor={editor} folder={imageFolder} />
-        <div className="relative px-3 pb-3 prose prose-sm max-w-none [&_.ProseMirror]:outline-none [&_.ProseMirror_img]:rounded-lg [&_.ProseMirror_img]:max-w-full [&_.ProseMirror_img]:h-auto">
+        <div className="relative px-3 pb-3 prose prose-sm max-w-none [&_.ProseMirror]:outline-none [&_.ProseMirror_img]:rounded-lg [&_.ProseMirror_img]:max-w-full [&_.ProseMirror_img]:h-auto more-details-editor">
           <EditorContent
             editor={editor}
             className={

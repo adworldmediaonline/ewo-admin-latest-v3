@@ -6,10 +6,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Editor as TiptapEditor } from '@tiptap/react';
 import { useCallback, useState } from 'react';
 import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-upload-with-meta';
 import type { ImageWithMeta } from '@/types/image-with-meta';
+import { Columns2, Columns3, ImageIcon as LayoutIcon, AlignHorizontalSpaceAround } from 'lucide-react';
 import MenuBar from './MenuBar';
 
 const ImageIcon = () => (
@@ -57,6 +65,28 @@ export const MenuBarWithImages = ({ editor, folder = 'ewo-assets/products' }: Me
     [editor]
   );
 
+  const selection = editor?.state?.selection;
+  const isImageSelected =
+    editor &&
+    selection &&
+    'node' in selection &&
+    (selection as { node?: { type?: { name?: string } } }).node?.type?.name === 'image';
+
+  const handleSetImageFloat = useCallback(
+    (float: 'left' | 'right' | null) => {
+      if (!editor) return;
+      editor
+        .chain()
+        .focus()
+        .updateAttributes('image', {
+          float,
+          floatWidth: float ? '40%' : undefined,
+        })
+        .run();
+    },
+    [editor]
+  );
+
   const imageButton = (
     <>
       <div className="w-px h-6 bg-border mx-1" />
@@ -69,6 +99,48 @@ export const MenuBarWithImages = ({ editor, folder = 'ewo-assets/products' }: Me
       >
         <ImageIcon />
       </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+            title="Layout options"
+            aria-label="Layout options"
+          >
+            <LayoutIcon className="w-4 h-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().insertColumns(2).run()}
+          >
+            <Columns2 className="w-4 h-4 mr-2" />
+            2 columns
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => editor?.chain().focus().insertColumns(3).run()}
+          >
+            <Columns3 className="w-4 h-4 mr-2" />
+            3 columns
+          </DropdownMenuItem>
+          {isImageSelected && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleSetImageFloat('left')}>
+                <AlignHorizontalSpaceAround className="w-4 h-4 mr-2" />
+                Image float left (text wrap)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSetImageFloat('right')}>
+                <AlignHorizontalSpaceAround className="w-4 h-4 mr-2 rotate-180" />
+                Image float right (text wrap)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSetImageFloat(null)}>
+                Remove float
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </>
   );
 

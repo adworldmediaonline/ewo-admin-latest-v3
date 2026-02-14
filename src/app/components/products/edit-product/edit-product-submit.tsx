@@ -183,7 +183,12 @@ const EditProductSubmit = ({ id }: { id: string }) => {
   useEffect(() => {
     if (!product?.category) return;
     const cat = product.category;
-    const catId = typeof cat.id === 'string' ? cat.id : cat.id?.toString?.() ?? '';
+    const catId =
+      typeof cat.id === 'string'
+        ? cat.id
+        : cat.id != null
+          ? String(cat.id)
+          : '';
     if (cat.name && catId) {
       setCategory({ name: cat.name, id: catId });
       setParent(product.parent ?? cat.name);
@@ -249,7 +254,14 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     if (product.productConfigurations?.length) {
       setProductConfigurations(
         product.productConfigurations.map(
-          (config: { title: string; options: Array<{ name?: string; price?: number; isSelected?: boolean }> }) => ({
+          (config: {
+            title?: string;
+            options?: Array<{
+              name?: string;
+              price?: number | string;
+              isSelected?: boolean;
+            }>;
+          }) => ({
             title: config.title ?? '',
             options: (config.options ?? []).map((opt) => ({
               name: opt.name ?? '',
@@ -261,10 +273,24 @@ const EditProductSubmit = ({ id }: { id: string }) => {
       );
     }
     if (product.offerDate?.startDate != null || product.offerDate?.endDate != null) {
+      const rawStart = product.offerDate.startDate;
+      const rawEnd = product.offerDate.endDate;
+      const start =
+        typeof rawStart === 'string'
+          ? rawStart
+          : rawStart && typeof rawStart === 'object' && 'toISOString' in rawStart
+            ? (rawStart as Date).toISOString().split('T')[0]
+            : rawStart ?? null;
+      const end =
+        typeof rawEnd === 'string'
+          ? rawEnd
+          : rawEnd && typeof rawEnd === 'object' && 'toISOString' in rawEnd
+            ? (rawEnd as Date).toISOString().split('T')[0]
+            : rawEnd ?? null;
       setOfferDate({
-        startDate: product.offerDate.startDate ?? null,
-        endDate: product.offerDate.endDate ?? null,
-      });
+        startDate: start,
+        endDate: end,
+      } as { startDate: null; endDate: null });
     }
     if (product.status && ['in-stock', 'out-of-stock', 'discontinued'].includes(product.status)) {
       setStatus(product.status as 'in-stock' | 'out-of-stock' | 'discontinued');
@@ -282,7 +308,10 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     if (variantImages.length) {
       setImageURLsWithMeta(variantImages);
     }
-    const addlInfo = product.additionalInformation ?? product.additionalInfo ?? [];
+    const addlInfo =
+      product.additionalInformation ??
+      (product as { additionalInfo?: { key: string; value: string }[] }).additionalInfo ??
+      [];
     if (addlInfo.length) {
       setAdditionalInformation(
         addlInfo.map((item: { key: string; value: string }) => ({
