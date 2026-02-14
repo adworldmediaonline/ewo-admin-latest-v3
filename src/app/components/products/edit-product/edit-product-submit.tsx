@@ -1,5 +1,6 @@
 'use client';
 import Tiptap from '@/components/tipTap/Tiptap';
+import TiptapWithImages from '@/components/tipTap/TiptapWithImages';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -123,6 +124,7 @@ const EditProductSubmit = ({ id }: { id: string }) => {
     editLoading,
     publishStatusRef,
     setPublishStatus,
+    setStatus,
   } = useProductSubmit();
 
   const handleSubmitWithStatus = (status: 'draft' | 'published') => {
@@ -176,6 +178,160 @@ const EditProductSubmit = ({ id }: { id: string }) => {
       setImage(null);
     }
   }, [product?._id, product?.img, product?.image?.url, setImage]);
+
+  // Set category, parent, children when product loads - ProductCategory is in Media tab and may not mount if user never switches tabs, so we must set these here
+  useEffect(() => {
+    if (!product?.category) return;
+    const cat = product.category;
+    const catId =
+      typeof cat.id === 'string'
+        ? cat.id
+        : cat.id != null
+          ? String(cat.id)
+          : '';
+    if (cat.name && catId) {
+      setCategory({ name: cat.name, id: catId });
+      setParent(product.parent ?? cat.name);
+      setChildren(product.children ?? '');
+    }
+  }, [product?._id, product?.category, product?.parent, product?.children, setCategory, setParent, setChildren]);
+
+  // Initialize moreDetails form field when product loads
+  useEffect(() => {
+    if (!product) return;
+    setValue('moreDetails', product.moreDetails ?? '');
+  }, [product?._id, product?.moreDetails, setValue]);
+
+  // Initialize all tab-dependent state and form fields when product loads - Radix Tabs does not
+  // render inactive tab content by default, so components in Media/Pricing/Options tabs never
+  // mount until the user switches tabs. Without this, submitting without opening those tabs
+  // would use empty state and trigger validation errors (e.g. "Category name and id are required").
+  // Form fields in unmounted tabs also need setValue since they are not in the DOM.
+  useEffect(() => {
+    if (!product) return;
+
+    // Form fields in tabs that may not render - setValue ensures form state has values on submit
+    setValue('price', product.price ?? 0);
+    setValue('SKU', product.sku ?? '');
+    setValue('quantity', product.quantity ?? 0);
+    setValue('discount', product.discount ?? 0);
+    setValue('finalPriceDiscount', product.finalPriceDiscount ?? 0);
+    setValue('updatedPrice', product.updatedPrice ?? '');
+    setValue('faqs', product.faqs ?? '');
+    setValue('videoId', product.videoId ?? '');
+    if (product.shipping) {
+      setValue('shipping', {
+        price: product.shipping.price ?? '',
+        description: product.shipping.description ?? '',
+      });
+    }
+    if (product.seo) {
+      setValue('metaTitle', product.seo.metaTitle ?? '');
+      setValue('metaDescription', product.seo.metaDescription ?? '');
+      setValue('metaKeywords', product.seo.metaKeywords ?? '');
+    }
+
+    if (product.tags?.length) {
+      setTags(
+        product.tags.map((tag: string) => ({
+          id: tag,
+          text: tag,
+          className: '',
+        }))
+      );
+    }
+    if (product.badges?.length) {
+      setBadges(product.badges);
+    }
+    if (product.options?.length) {
+      setOptions(
+        product.options.map((o: { title: string; price: number }) => ({
+          title: o.title ?? '',
+          price: o.price ?? 0,
+        }))
+      );
+    }
+    if (product.productConfigurations?.length) {
+      setProductConfigurations(
+        product.productConfigurations.map(
+          (config: {
+            title?: string;
+            options?: Array<{
+              name?: string;
+              price?: number | string;
+              isSelected?: boolean;
+            }>;
+          }) => ({
+            title: config.title ?? '',
+            options: (config.options ?? []).map((opt) => ({
+              name: opt.name ?? '',
+              price: opt.price ?? 0,
+              isSelected: opt.isSelected ?? false,
+            })),
+          })
+        )
+      );
+    }
+    if (product.offerDate?.startDate != null || product.offerDate?.endDate != null) {
+      const rawStart = product.offerDate.startDate;
+      const rawEnd = product.offerDate.endDate;
+      const start =
+        typeof rawStart === 'string'
+          ? rawStart
+          : rawStart && typeof rawStart === 'object' && 'toISOString' in rawStart
+            ? (rawStart as Date).toISOString().split('T')[0]
+            : rawStart ?? null;
+      const end =
+        typeof rawEnd === 'string'
+          ? rawEnd
+          : rawEnd && typeof rawEnd === 'object' && 'toISOString' in rawEnd
+            ? (rawEnd as Date).toISOString().split('T')[0]
+            : rawEnd ?? null;
+      setOfferDate({
+        startDate: start,
+        endDate: end,
+      } as { startDate: null; endDate: null });
+    }
+    if (product.status && ['in-stock', 'out-of-stock', 'discontinued'].includes(product.status)) {
+      setStatus(product.status as 'in-stock' | 'out-of-stock' | 'discontinued');
+    }
+    const variantImages = product.imageURLsWithMeta?.length
+      ? (product.imageURLsWithMeta as ImageWithMeta[])
+      : product.imageURLs?.length
+        ? (product.imageURLs as string[]).map((url) => ({
+            url,
+            fileName: '',
+            title: '',
+            altText: '',
+          }))
+        : [];
+    if (variantImages.length) {
+      setImageURLsWithMeta(variantImages);
+    }
+    const addlInfo =
+      product.additionalInformation ??
+      (product as { additionalInfo?: { key: string; value: string }[] }).additionalInfo ??
+      [];
+    if (addlInfo.length) {
+      setAdditionalInformation(
+        addlInfo.map((item: { key: string; value: string }) => ({
+          key: item.key ?? '',
+          value: item.value ?? '',
+        }))
+      );
+    }
+  }, [
+    product,
+    setValue,
+    setTags,
+    setBadges,
+    setOptions,
+    setProductConfigurations,
+    setOfferDate,
+    setStatus,
+    setImageURLsWithMeta,
+    setAdditionalInformation,
+  ]);
 
   // decide what to render
   let content = null;
@@ -432,6 +588,54 @@ const EditProductSubmit = ({ id }: { id: string }) => {
                             placeholder="Add frequently asked questions and answers for your product..."
                             limit={50000}
                             showCharacterCount={true}
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* More Details Section */}
+              <Card className="shadow-card hover:shadow-card-lg transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-teal-50 flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-teal-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold">
+                        More Details About the Product
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Rich content with images (filename, alt text, title). Renders above Related Products on the product page.
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        More Details Content
+                      </label>
+                      <span className="text-xs text-muted-foreground">
+                        Optional • Supports images
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Controller
+                        name="moreDetails"
+                        control={control}
+                        defaultValue={product.moreDetails || ''}
+                        render={({ field }) => (
+                          <TiptapWithImages
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Add specifications, installation notes, diagrams, or any additional product information. Use the image button to insert images with filename, alt text, and title..."
+                            limit={50000}
+                            showCharacterCount={true}
+                            imageFolder="ewo-assets/products"
                           />
                         )}
                       />

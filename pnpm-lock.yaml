@@ -95,6 +95,9 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tiptap/core':
+        specifier: ^3.4.1
+        version: 3.10.1(@tiptap/pm@3.10.1)
       '@tiptap/extension-color':
         specifier: ^3.4.1
         version: 3.10.1(@tiptap/extension-text-style@3.10.1(@tiptap/core@3.10.1(@tiptap/pm@3.10.1)))

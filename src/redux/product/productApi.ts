@@ -61,11 +61,15 @@ export const authApi = apiSlice.injectEndpoints({
           body: data,
         };
       },
-      invalidatesTags: ['AllProducts'],
+      invalidatesTags: (_result, _error, { id }) => [
+        'AllProducts',
+        { type: 'Product', id },
+      ],
     }),
     // get single product
     getProduct: builder.query<IAddProduct, string>({
       query: id => `/api/product/single-product/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'Product', id }],
     }),
     // get single product - Optimized with pagination
     getReviewProducts: builder.query<
@@ -97,7 +101,10 @@ export const authApi = apiSlice.injectEndpoints({
           method: 'DELETE',
         };
       },
-      invalidatesTags: ['AllProducts'],
+      invalidatesTags: (_result, _error, id) => [
+        'AllProducts',
+        { type: 'Product', id },
+      ],
     }),
     // update product publish status only (for quick toggle from table)
     updateProductPublishStatus: builder.mutation<
@@ -111,7 +118,10 @@ export const authApi = apiSlice.injectEndpoints({
           body: { publishStatus },
         };
       },
-      invalidatesTags: ['AllProducts'],
+      invalidatesTags: (_result, _error, { id }) => [
+        'AllProducts',
+        { type: 'Product', id },
+      ],
     }),
   }),
 });

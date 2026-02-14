@@ -183,6 +183,7 @@ const useProductSubmit = () => {
       },
       description: data.description,
       faqs: data.faqs || '',
+      moreDetails: data.moreDetails || '',
       videoId: data.videoId || '',
       additionalInformation: additionalInformation,
       tags: tags.map(tag => tag.text),
@@ -192,7 +193,6 @@ const useProductSubmit = () => {
         metaDescription: data.metaDescription || '',
         metaKeywords: data.metaKeywords || '',
       },
-      publishStatus: publishStatusRef.current,
     };
 
     // Debug: Log product data being sent
@@ -290,6 +290,7 @@ const useProductSubmit = () => {
         },
         description: data.description,
         faqs: data.faqs || '',
+        moreDetails: data.moreDetails || '',
         videoId: data.videoId || '',
         additionalInformation: additionalInformation,
         tags: tags.map(tag => tag.text),
@@ -396,6 +397,7 @@ const useProductSubmit = () => {
     editLoading,
     faqs,
     setFaqs,
+    setStatus,
   };
 };
 
