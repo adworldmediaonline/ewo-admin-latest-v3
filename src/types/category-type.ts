@@ -82,6 +82,11 @@ export interface IAddCategory {
   parent: string;
   children?: string[];
   description?: string;
+  /** Category Showcase display config – how child categories are grouped/split into cards */
+  showcaseGroups?: Array<{
+    children?: string[];
+    image?: ImageWithMeta;
+  }>;
 }
 
 export interface IAddCategoryResponse {

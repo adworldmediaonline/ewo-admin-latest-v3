@@ -6,6 +6,7 @@ import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-u
 import CategoryChildren from './category-children';
 import CategoryBannerDisplaySettings from './category-banner-display-settings';
 import CategoryBannerContent from './category-banner-content';
+import { CategoryShowcaseGroups } from './category-showcase-groups';
 import { useGetCategoryQuery } from '@/redux/category/categoryApi';
 import CategoryParent from './category-parent';
 import CategoryDescription from './category-description';
@@ -20,6 +21,8 @@ const EditCategory = ({ id }: { id: string }) => {
     control,
     categoryChildren,
     setCategoryChildren,
+    showcaseGroups,
+    setShowcaseGroups,
     register,
     handleSubmit,
     setCategoryImg,
@@ -134,6 +137,18 @@ const EditCategory = ({ id }: { id: string }) => {
     setBannerDescription,
     setBannerContentClassesByScope,
   ]);
+
+  // Load showcase groups when category data is available
+  useEffect(() => {
+    if (!categoryData?.showcaseGroups || !Array.isArray(categoryData.showcaseGroups)) {
+      return;
+    }
+    const groups = categoryData.showcaseGroups.map((g: { children?: string[]; image?: unknown }) => ({
+      children: g.children || [],
+      image: g.image ?? null,
+    }));
+    setShowcaseGroups(groups);
+  }, [categoryData?._id, categoryData?.showcaseGroups, setShowcaseGroups]);
 
   // Convert children array (string[]) to Tag[] format
   const defaultChildrenTags = useMemo(() => {
@@ -380,6 +395,13 @@ const EditCategory = ({ id }: { id: string }) => {
             </Card>
           </div>
         </div>
+
+        {/* Category Showcase */}
+        <CategoryShowcaseGroups
+          categoryChildren={categoryChildren}
+          showcaseGroups={showcaseGroups}
+          onChange={setShowcaseGroups}
+        />
 
         {/* Action Buttons */}
         <Card className="shadow-card">

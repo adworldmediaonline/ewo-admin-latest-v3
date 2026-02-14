@@ -183,7 +183,10 @@ export const CategoryShowcaseEditor = ({
                       className="flex items-center gap-2 rounded bg-muted/50 px-3 py-2 text-sm"
                     >
                       <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="flex-1 truncate font-medium">{cat.parent}</span>
+                      <span className="flex-1 truncate font-medium">
+                        {cat.parent}
+                        {cat.children?.length ? ` (${cat.children.join(', ')})` : ''}
+                      </span>
                       <div className="flex shrink-0 gap-1">
                         <Button
                           type="button"

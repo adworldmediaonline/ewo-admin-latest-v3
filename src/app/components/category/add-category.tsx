@@ -6,6 +6,7 @@ import { ImageUploadWithMeta } from '@/components/image-upload-with-meta/image-u
 import CategoryChildren from './category-children';
 import CategoryBannerDisplaySettings from './category-banner-display-settings';
 import CategoryBannerContent from './category-banner-content';
+import { CategoryShowcaseGroups } from './category-showcase-groups';
 import CategoryParent from './category-parent';
 import CategoryDescription from './category-description';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,8 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
     setBannerDescription,
     bannerContentClassesByScope,
     setBannerContentClassesByScope,
+    showcaseGroups,
+    setShowcaseGroups,
     error,
     isSubmitted,
     watch,
@@ -205,6 +208,13 @@ const AddCategory = ({ showTable = true }: { showTable?: boolean }) => {
             </Card>
           </div>
         </div>
+
+        {/* Category Showcase */}
+        <CategoryShowcaseGroups
+          categoryChildren={categoryChildren}
+          showcaseGroups={showcaseGroups}
+          onChange={setShowcaseGroups}
+        />
 
         {/* Action Buttons */}
         <Card className="shadow-card">
