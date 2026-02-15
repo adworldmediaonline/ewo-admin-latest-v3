@@ -61,6 +61,7 @@ import {
   Edit,
   Eye,
   EyeOff,
+  GripVertical,
   MoreHorizontal,
   Package,
   RefreshCw,
@@ -71,6 +72,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useCallback, useMemo, useState } from 'react';
+import { ProductReorderSheet } from './product-reorder-sheet';
 
 // Custom Star Rating Component
 const StarRating = ({
@@ -134,6 +136,7 @@ export default function ProductListArea() {
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
   const [publishStatusFilter, setPublishStatusFilter] = useState<string>('');
   const [deleteDialogProductId, setDeleteDialogProductId] = useState<string | null>(null);
+  const [reorderSheetOpen, setReorderSheetOpen] = useState(false);
 
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
   const [updatePublishStatus] = useUpdateProductPublishStatusMutation();
@@ -573,6 +576,10 @@ export default function ProductListArea() {
 
   return (
     <div className="space-y-4">
+      <ProductReorderSheet
+        open={reorderSheetOpen}
+        onOpenChange={setReorderSheetOpen}
+      />
       {/* Header with Search and Filters */}
       <Card>
         <CardHeader>
@@ -617,6 +624,14 @@ export default function ProductListArea() {
                     Download All
                   </>
                 )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setReorderSheetOpen(true)}
+                aria-label="Reorder products"
+              >
+                <GripVertical className="mr-2 h-4 w-4" />
+                Reorder
               </Button>
               <Button asChild>
                 <Link href="/dashboard/super-admin/product/add">
