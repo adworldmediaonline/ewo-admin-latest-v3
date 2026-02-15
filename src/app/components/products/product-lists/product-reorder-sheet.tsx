@@ -220,7 +220,7 @@ export const ProductReorderSheet = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col sm:max-w-xl">
+      <SheetContent className="flex w-full flex-col px-6 sm:max-w-xl">
         <SheetHeader>
           <SheetTitle>Reorder Products</SheetTitle>
           <SheetDescription>
@@ -228,7 +228,7 @@ export const ProductReorderSheet = ({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-4 flex flex-col gap-4">
+        <div className="mt-4 flex flex-1 flex-col gap-4 overflow-hidden">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium">Category filter</label>
             <Select
@@ -258,7 +258,7 @@ export const ProductReorderSheet = ({
               ))}
             </div>
           ) : (
-            <ScrollArea className="h-[calc(100vh-280px)] pr-4">
+            <ScrollArea className="h-[calc(100vh-280px)] pr-2">
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
