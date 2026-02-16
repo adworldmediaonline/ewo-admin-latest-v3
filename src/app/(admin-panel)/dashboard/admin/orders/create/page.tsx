@@ -11,7 +11,11 @@ import { toast } from 'sonner';
 import ProductSelection from '@/app/components/orders/create-order/product-selection';
 import CustomerForm from '@/app/components/orders/create-order/customer-form';
 import OrderSummary from '@/app/components/orders/create-order/order-summary';
-import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import {
+  CardNumberElement,
+  useElements,
+  useStripe,
+} from '@stripe/react-stripe-js';
 
 interface CartItem extends IProduct {
   orderQuantity: number;
@@ -299,7 +303,7 @@ export default function CreateOrderPage() {
         return;
       }
 
-      const cardElement = elements.getElement(CardElement);
+      const cardElement = elements.getElement(CardNumberElement);
       if (!cardElement) {
         toast.error('Please enter your card information');
         return;
