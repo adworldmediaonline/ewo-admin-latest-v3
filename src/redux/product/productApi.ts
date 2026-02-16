@@ -123,6 +123,33 @@ export const authApi = apiSlice.injectEndpoints({
         { type: 'Product', id },
       ],
     }),
+    // get products for reorder UI (full list, optional category filter)
+    getProductsForReorder: builder.query<
+      { success: boolean; data: Array<{ _id: string; title: string; sku: string; sortKey?: string; category?: { name: string }; img?: string }> },
+      { category?: string } | void
+    >({
+      query: (params) => {
+        const { category = '' } = params || {};
+        const queryParams = new URLSearchParams();
+        if (category) queryParams.append('category', category);
+        return `/api/product/for-reorder?${queryParams.toString()}`;
+      },
+      providesTags: ['AllProducts'],
+    }),
+    // reorder a single product (fractional indexing - auto-save on drop)
+    reorderProduct: builder.mutation<
+      { success: boolean; message: string; data?: unknown },
+      { productId: string; prevProductId?: string | null; nextProductId?: string | null }
+    >({
+      query({ productId, prevProductId, nextProductId }) {
+        return {
+          url: `/api/product/reorder`,
+          method: 'PATCH',
+          body: { productId, prevProductId: prevProductId ?? undefined, nextProductId: nextProductId ?? undefined },
+        };
+      },
+      invalidatesTags: ['AllProducts'],
+    }),
   }),
 });
 
@@ -135,4 +162,6 @@ export const {
   useGetStockOutProductsQuery,
   useDeleteProductMutation,
   useUpdateProductPublishStatusMutation,
+  useGetProductsForReorderQuery,
+  useReorderProductMutation,
 } = authApi;
