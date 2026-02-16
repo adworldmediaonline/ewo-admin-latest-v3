@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sheet';
 import { Loader2, Save } from 'lucide-react';
 import { notifyError, notifySuccess } from '@/utils/toast';
+import { revalidateFrontend } from '@/lib/revalidate-frontend';
 
 const META_TITLE_MAX = 70;
 const META_DESC_MAX = 320;
@@ -69,6 +70,7 @@ export const PageMetadataEditForm = ({
       if ('data' in res && res.data?.success) {
         notifySuccess('Page metadata updated successfully');
         onOpenChange(false);
+        await revalidateFrontend();
       } else {
         notifyError('Failed to update metadata');
       }
