@@ -71,6 +71,7 @@ import { HeroSectionEditor } from './hero-section-editor';
 import { CustomSectionEditor } from './custom-section-editor';
 import { CategoryShowcaseEditor } from './category-showcase-editor';
 import { notifyError, notifySuccess } from '@/utils/toast';
+import { revalidateFrontend } from '@/lib/revalidate-frontend';
 
 const COMMON_PAGE_SLUGS = ['home', 'shop', 'about', 'contact'];
 
@@ -166,6 +167,7 @@ const PageSectionListArea = () => {
           )
         );
         notifySuccess('Sections reordered');
+        await revalidateFrontend();
       } catch {
         notifyError('Failed to reorder sections');
       }
@@ -207,6 +209,7 @@ const PageSectionListArea = () => {
         setNewSectionKey('');
         setNewSectionType('hero');
         setEditSection(res.data.data as PageSection);
+        await revalidateFrontend();
       } else {
         notifyError('Failed to add section');
       }
@@ -236,6 +239,7 @@ const PageSectionListArea = () => {
       if ('data' in res && res.data?.success) {
         notifySuccess('Section updated');
         setEditSection(res.data.data as PageSection);
+        await revalidateFrontend();
       } else {
         notifyError('Failed to update section');
       }
@@ -265,6 +269,7 @@ const PageSectionListArea = () => {
       if ('data' in res && res.data?.success) {
         notifySuccess('Section updated');
         setEditSection(res.data.data as PageSection);
+        await revalidateFrontend();
       } else {
         notifyError('Failed to update section');
       }
@@ -294,6 +299,7 @@ const PageSectionListArea = () => {
       if ('data' in res && res.data?.success) {
         notifySuccess('Section updated');
         setEditSection(res.data.data as PageSection);
+        await revalidateFrontend();
       } else {
         notifyError('Failed to update section');
       }
@@ -317,6 +323,7 @@ const PageSectionListArea = () => {
         if (editSection?._id === deleteSection._id) {
           setEditSection(null);
         }
+        await revalidateFrontend();
       } else {
         notifyError('Failed to delete section');
       }

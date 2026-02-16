@@ -6,7 +6,13 @@ import { Input } from '@/components/ui/input';
 import { IProduct } from '@/types/product';
 import { useMemo } from 'react';
 import Image from 'next/image';
-import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import {
+  CardNumberElement,
+  CardExpiryElement,
+  CardCvcElement,
+  useElements,
+  useStripe,
+} from '@stripe/react-stripe-js';
 
 interface CartItem extends IProduct {
   orderQuantity: number;
@@ -296,20 +302,54 @@ export default function OrderSummary({
               </div>
 
               {stripe && elements ? (
-                <div className="bg-background border border-border rounded-md p-3">
-                  <CardElement
-                    options={{
-                      style: {
-                        base: {
-                          fontSize: '16px',
-                          color: '#374151',
-                          '::placeholder': {
-                            color: '#9CA3AF',
+                <div className="bg-background border border-border rounded-md p-3 space-y-3">
+                  <div className="min-w-0 w-full">
+                    <CardNumberElement
+                      options={{
+                        style: {
+                          base: {
+                            fontSize: '16px',
+                            color: '#374151',
+                            '::placeholder': {
+                              color: '#9CA3AF',
+                            },
                           },
                         },
-                      },
-                    }}
-                  />
+                      }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="min-w-0">
+                      <CardExpiryElement
+                        options={{
+                          style: {
+                            base: {
+                              fontSize: '16px',
+                              color: '#374151',
+                              '::placeholder': {
+                                color: '#9CA3AF',
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <CardCvcElement
+                        options={{
+                          style: {
+                            base: {
+                              fontSize: '16px',
+                              color: '#374151',
+                              '::placeholder': {
+                                color: '#9CA3AF',
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-background border border-border rounded-md p-3">
