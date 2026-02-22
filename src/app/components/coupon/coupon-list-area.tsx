@@ -2,6 +2,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import CouponSheet from './coupon-sheet';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -53,7 +54,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useMemo, useState, useCallback } from 'react';
 import dayjs from 'dayjs';
 import Swal from 'sweetalert2';
@@ -64,6 +64,8 @@ import { toZonedTime } from 'date-fns-tz';
 export default function CouponListArea() {
   const { data: coupons = [], isError, isLoading } = useGetAllCouponsQuery();
   const [deleteCoupon] = useDeleteCouponMutation();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<ICoupon | null>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -309,13 +311,16 @@ export default function CouponListArea() {
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <Link href={`/dashboard/super-admin/coupon/${coupon._id}`}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Coupon
-                  </Link>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setEditingCoupon(coupon);
+                    setSheetOpen(true);
+                  }}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Coupon
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -431,11 +436,14 @@ export default function CouponListArea() {
                 Manage and track discount coupons
               </p>
             </div>
-            <Button asChild>
-              <Link href="/dashboard/super-admin/coupon/add">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Coupon
-              </Link>
+            <Button
+              onClick={() => {
+                setEditingCoupon(null);
+                setSheetOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Coupon
             </Button>
           </div>
         </CardHeader>
@@ -668,6 +676,13 @@ export default function CouponListArea() {
           </div>
         </CardContent>
       </Card>
+
+      <CouponSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        editingCoupon={editingCoupon}
+        onSuccess={() => {}}
+      />
     </div>
   );
 }

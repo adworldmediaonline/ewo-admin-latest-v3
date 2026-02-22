@@ -97,6 +97,8 @@ export default function EnhancedCouponForm({
       stackable: defaultValues?.stackable || false,
       status: defaultValues?.status || 'active',
       isPublic: defaultValues?.isPublic !== false,
+      allowAutoApply: (defaultValues as ICoupon & { allowAutoApply?: boolean })?.allowAutoApply ?? true,
+      referralCode: (defaultValues as ICoupon & { referralCode?: string })?.referralCode ?? '',
       userRestrictions: {
         newUsersOnly: defaultValues?.userRestrictions?.newUsersOnly || false,
       },
@@ -201,6 +203,11 @@ export default function EnhancedCouponForm({
         setValue('userRestrictions.newUsersOnly', defaultValues.userRestrictions.newUsersOnly);
       }
 
+      // Set allowAutoApply and referralCode
+      const dv = defaultValues as ICoupon & { allowAutoApply?: boolean; referralCode?: string };
+      if (dv.allowAutoApply !== undefined) setValue('allowAutoApply', dv.allowAutoApply);
+      if (dv.referralCode !== undefined) setValue('referralCode', dv.referralCode);
+
       // Set dates (already in ISO format from backend)
       if (defaultValues.startTime) {
         setValue('startTime', defaultValues.startTime);
@@ -282,6 +289,8 @@ export default function EnhancedCouponForm({
       // Explicitly include status to ensure it's always sent
       status: data.status || 'active',
       isPublic: data.isPublic !== false,
+      allowAutoApply: (data as IAddCoupon & { allowAutoApply?: boolean }).allowAutoApply ?? true,
+      referralCode: (data as IAddCoupon & { referralCode?: string }).referralCode || undefined,
     };
 
     onSubmit(formData);
@@ -721,6 +730,31 @@ export default function EnhancedCouponForm({
             />
             <span className="text-sm text-gray-700">New users only</span>
           </label>
+
+          <label className="flex items-center">
+            <input
+              {...register('allowAutoApply')}
+              type="checkbox"
+              defaultChecked
+              className="mr-2"
+            />
+            <span className="text-sm text-gray-700">
+              Allow auto-apply (storefront can auto-apply this coupon)
+            </span>
+          </label>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Referral code
+            </label>
+            <input
+              {...register('referralCode')}
+              type="text"
+              maxLength={50}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Optional - requires matching ref param"
+            />
+          </div>
         </div>
       </div>
 

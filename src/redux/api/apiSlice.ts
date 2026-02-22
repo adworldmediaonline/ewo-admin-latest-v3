@@ -64,5 +64,6 @@ export const apiSlice = createApi({
     'AllPageMetadata',
     'PageMetadata',
     'PageSections',
+    'Settings',
   ],
 });

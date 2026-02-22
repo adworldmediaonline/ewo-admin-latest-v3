@@ -39,6 +39,8 @@ export interface ICoupon {
   // Advanced Settings
   stackable: boolean;
   priority: number;
+  allowAutoApply?: boolean;
+  referralCode?: string;
 
   // Status and Metadata
   status: 'active' | 'inactive' | 'expired' | 'exhausted';
@@ -96,6 +98,8 @@ export interface IAddCoupon {
   // Advanced Settings
   stackable?: boolean;
   priority?: number;
+  allowAutoApply?: boolean;
+  referralCode?: string;
 
   // Status
   status?: 'active' | 'inactive' | 'expired' | 'exhausted';
