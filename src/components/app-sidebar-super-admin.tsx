@@ -13,6 +13,7 @@ import {
   IconSpeakerphone,
   IconMail,
   IconWorld,
+  IconSettings,
 } from '@tabler/icons-react';
 import * as React from 'react';
 
@@ -90,7 +91,11 @@ const data = {
       url: '/dashboard/super-admin/promotional-emails',
       icon: IconMail,
     },
-
+    {
+      title: 'Settings',
+      url: '/dashboard/super-admin/settings',
+      icon: IconSettings,
+    },
   ],
   // navClouds: [
   //   {
