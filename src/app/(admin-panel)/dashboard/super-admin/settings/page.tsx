@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2Icon } from 'lucide-react';
+import { Loader2Icon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 import Wrapper from '@/layout/wrapper';
 
@@ -34,6 +34,7 @@ export default function SuperAdminSettingsPage() {
   });
   const [shippingSettings, setShippingSettings] = useState<ShippingSettings>({
     freeShippingThreshold: null,
+    shippingDiscountTiers: [],
   });
 
   const {
@@ -60,7 +61,10 @@ export default function SuperAdminSettingsPage() {
 
   useEffect(() => {
     if (shippingLoaded && shippingData) {
-      setShippingSettings(shippingData);
+      setShippingSettings({
+        freeShippingThreshold: shippingData.freeShippingThreshold ?? null,
+        shippingDiscountTiers: shippingData.shippingDiscountTiers ?? [],
+      });
     }
   }, [shippingLoaded, shippingData]);
 
@@ -254,6 +258,135 @@ export default function SuperAdminSettingsPage() {
                   Leave empty to disable. Subtotal must meet this amount for free
                   shipping.
                 </p>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <div>
+                  <Label className="mb-2 block">
+                    Shipping discount tiers
+                  </Label>
+                  <p className="text-muted-foreground mb-3 text-xs">
+                    When cart has at least X items, apply Y% off shipping.
+                    Higher minItems tiers take precedence. Free shipping
+                    threshold overrides all tiers.
+                  </p>
+                  <div className="space-y-3">
+                    {(shippingSettings.shippingDiscountTiers ?? []).map(
+                      (tier, idx) => (
+                        <div
+                          key={idx}
+                          className="flex flex-wrap items-center gap-3 rounded-md border p-3"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Label
+                              htmlFor={`tier-minItems-${idx}`}
+                              className="text-muted-foreground shrink-0 text-xs"
+                            >
+                              Min items
+                            </Label>
+                            <Input
+                              id={`tier-minItems-${idx}`}
+                              type="number"
+                              min={1}
+                              className="w-20"
+                              value={tier.minItems}
+                              onChange={e => {
+                                const v = parseInt(e.target.value, 10);
+                                if (!Number.isNaN(v)) {
+                                  const next = [
+                                    ...(shippingSettings.shippingDiscountTiers ??
+                                      []),
+                                  ];
+                                  next[idx] = {
+                                    ...tier,
+                                    minItems: v,
+                                  };
+                                  setShippingSettings(s => ({
+                                    ...s,
+                                    shippingDiscountTiers: next,
+                                  }));
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label
+                              htmlFor={`tier-discountPercent-${idx}`}
+                              className="text-muted-foreground shrink-0 text-xs"
+                            >
+                              Discount %
+                            </Label>
+                            <Input
+                              id={`tier-discountPercent-${idx}`}
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={1}
+                              className="w-20"
+                              value={tier.discountPercent}
+                              onChange={e => {
+                                const v = parseInt(e.target.value, 10);
+                                if (!Number.isNaN(v)) {
+                                  const next = [
+                                    ...(shippingSettings.shippingDiscountTiers ??
+                                      []),
+                                  ];
+                                  next[idx] = {
+                                    ...tier,
+                                    discountPercent: Math.min(
+                                      100,
+                                      Math.max(0, v)
+                                    ),
+                                  };
+                                  setShippingSettings(s => ({
+                                    ...s,
+                                    shippingDiscountTiers: next,
+                                  }));
+                                }
+                              }}
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => {
+                              const next = (
+                                shippingSettings.shippingDiscountTiers ?? []
+                              ).filter((_, i) => i !== idx);
+                              setShippingSettings(s => ({
+                                ...s,
+                                shippingDiscountTiers: next,
+                              }));
+                            }}
+                            aria-label="Remove tier"
+                          >
+                            <Trash2Icon className="size-4" />
+                          </Button>
+                        </div>
+                      )
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const next = [
+                          ...(shippingSettings.shippingDiscountTiers ?? []),
+                          { minItems: 1, discountPercent: 0 },
+                        ];
+                        setShippingSettings(s => ({
+                          ...s,
+                          shippingDiscountTiers: next,
+                        }));
+                      }}
+                    >
+                      <PlusIcon className="mr-2 size-4" />
+                      Add tier
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-6">

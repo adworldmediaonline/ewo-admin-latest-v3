@@ -8,6 +8,12 @@ export interface CouponBehaviorSettings {
   showToastOnApply: boolean;
 }
 
+export interface ShippingDiscountTier {
+  minItems: number;
+  discountPercent: number;
+}
+
 export interface ShippingSettings {
   freeShippingThreshold: number | null;
+  shippingDiscountTiers?: ShippingDiscountTier[];
 }
