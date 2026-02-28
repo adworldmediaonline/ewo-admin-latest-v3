@@ -63,6 +63,21 @@ export const authApi = apiSlice.injectEndpoints({
       providesTags: ['AllOrders'],
       keepUnusedDataFor: 60, // Keep unused data for 60 seconds only
     }),
+    // Get orders filtered by parent category (for CSV download)
+    getOrdersByCategory: builder.query<
+      { success: boolean; data: { category: string; totalOrders: number }[]; isAllCategories: boolean; parentCategory: string | null; dateRange: { startDate: string; endDate: string } | null },
+      { parentCategory?: string; allCategories?: boolean; startDate?: string; endDate?: string }
+    >({
+      query: (params) => {
+        const queryParams = new URLSearchParams();
+        if (params.parentCategory) queryParams.append('parentCategory', params.parentCategory);
+        if (params.allCategories) queryParams.append('allCategories', 'true');
+        if (params.startDate) queryParams.append('startDate', params.startDate);
+        if (params.endDate) queryParams.append('endDate', params.endDate);
+        return `/api/order/orders-by-category?${queryParams.toString()}`;
+      },
+      keepUnusedDataFor: 30,
+    }),
     // get chart data (optimized)
     getChartData: builder.query<IChartDataRes, number | void>({
       query: (days = 90) => `/api/user-order/chart-data?days=${days}`,
@@ -287,66 +302,66 @@ export const authApi = apiSlice.injectEndpoints({
       }),
     }),
     // Trigger feedback email for a single order
-      triggerFeedbackEmail: builder.mutation<
-        {
-          success: boolean;
-          message: string;
-          scheduledAt?: Date;
-        },
-        string
-      >({
-        query: (orderId) => ({
-          url: `/api/order/trigger-feedback/${orderId}`,
-          method: 'POST',
-        }),
-        invalidatesTags: ['AllOrders'],
+    triggerFeedbackEmail: builder.mutation<
+      {
+        success: boolean;
+        message: string;
+        scheduledAt?: Date;
+      },
+      string
+    >({
+      query: (orderId) => ({
+        url: `/api/order/trigger-feedback/${orderId}`,
+        method: 'POST',
       }),
-      // Get order email addresses by date range
-      getOrderEmails: builder.query<
-        {
-          success: boolean;
-          emails: string[];
-          totalOrders: number;
-        },
-        {
-          startDate?: string;
-          endDate?: string;
-          selectAll?: boolean;
-        }
-      >({
-        query: (params) => {
-          const queryParams = new URLSearchParams();
-          if (params.startDate) queryParams.append('startDate', params.startDate);
-          if (params.endDate) queryParams.append('endDate', params.endDate);
-          if (params.selectAll) queryParams.append('selectAll', 'true');
-          return `/api/order/emails?${queryParams.toString()}`;
-        },
-      }),
-      // Send promotional email
-      sendPromotionalEmail: builder.mutation<
-        {
-          success: boolean;
-          message: string;
-          emailsSent: number;
-          emailsFailed: number;
-        },
-        {
-          subject: string;
-          recipients: string[];
-          emailBody: string;
-          startDate?: string;
-          endDate?: string;
-          selectAll?: boolean;
-        }
-      >({
-        query: (data) => ({
-          url: `/api/order/send-promotional-email`,
-          method: 'POST',
-          body: data,
-        }),
+      invalidatesTags: ['AllOrders'],
+    }),
+    // Get order email addresses by date range
+    getOrderEmails: builder.query<
+      {
+        success: boolean;
+        emails: string[];
+        totalOrders: number;
+      },
+      {
+        startDate?: string;
+        endDate?: string;
+        selectAll?: boolean;
+      }
+    >({
+      query: (params) => {
+        const queryParams = new URLSearchParams();
+        if (params.startDate) queryParams.append('startDate', params.startDate);
+        if (params.endDate) queryParams.append('endDate', params.endDate);
+        if (params.selectAll) queryParams.append('selectAll', 'true');
+        return `/api/order/emails?${queryParams.toString()}`;
+      },
+    }),
+    // Send promotional email
+    sendPromotionalEmail: builder.mutation<
+      {
+        success: boolean;
+        message: string;
+        emailsSent: number;
+        emailsFailed: number;
+      },
+      {
+        subject: string;
+        recipients: string[];
+        emailBody: string;
+        startDate?: string;
+        endDate?: string;
+        selectAll?: boolean;
+      }
+    >({
+      query: (data) => ({
+        url: `/api/order/send-promotional-email`,
+        method: 'POST',
+        body: data,
       }),
     }),
-  });
+  }),
+});
 
 export const {
   useGetDashboardAmountQuery,
@@ -372,4 +387,5 @@ export const {
   useTriggerFeedbackEmailMutation,
   useGetOrderEmailsQuery,
   useSendPromotionalEmailMutation,
+  useGetOrdersByCategoryQuery,
 } = authApi;

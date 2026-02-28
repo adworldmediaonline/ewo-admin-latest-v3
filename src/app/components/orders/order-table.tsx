@@ -9,6 +9,7 @@ import ErrorMsg from '../common/error-msg';
 import ShippingActions from './shipping-actions';
 // import OrderStatusChange from './status-change';
 import { useGetAllOrdersQuery, authApi, useSendBulkReviewRequestEmailsMutation, useTriggerFeedbackEmailMutation } from '@/redux/order/orderApi';
+import { authApi as categoryAuthApi } from '@/redux/category/categoryApi';
 import { store } from '@/redux/store';
 import {
   ColumnDef,
@@ -29,6 +30,7 @@ import {
   Clock,
   Download,
   Eye,
+  Filter,
   Mail,
   Package,
   Plus,
@@ -69,16 +71,21 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   });
   const [isDownloadingAll, setIsDownloadingAll] = useState<boolean>(false);
   const [isDownloadingByDateRange, setIsDownloadingByDateRange] = useState<boolean>(false);
+  const [isDownloadingByCategory, setIsDownloadingByCategory] = useState<boolean>(false);
   const [isSendingReviewEmails, setIsSendingReviewEmails] = useState<boolean>(false);
   const [sendingReviewForOrderId, setSendingReviewForOrderId] = useState<string | null>(null);
-  
+  const [showCategoryDialog, setShowCategoryDialog] = useState<boolean>(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all'); // default to all
+  const [categoryList, setCategoryList] = useState<string[]>([]);
+  const [isFetchingCategories, setIsFetchingCategories] = useState<boolean>(false);
+
   // Alert Dialog states
   const [showSingleOrderDialog, setShowSingleOrderDialog] = useState<boolean>(false);
   const [showAllOrdersDialog, setShowAllOrdersDialog] = useState<boolean>(false);
   const [showDateRangeDialog, setShowDateRangeDialog] = useState<boolean>(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [pendingOrderNumber, setPendingOrderNumber] = useState<string | null>(null);
-  
+
   const [sendBulkReviewRequestEmails] = useSendBulkReviewRequestEmailsMutation();
   const [triggerFeedbackEmail] = useTriggerFeedbackEmailMutation();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -267,7 +274,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     setSendingReviewForOrderId(pendingOrderId);
     try {
       const result = await triggerFeedbackEmail(pendingOrderId).unwrap();
-      
+
       if (result.success) {
         alert(`Review request email sent successfully for order ${pendingOrderNumber}`);
         // Refresh orders to show updated feedbackEmailSent status
@@ -277,10 +284,10 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       }
     } catch (error: any) {
       console.error('Error sending review request email:', error);
-      
+
       // Extract error message from RTK Query error structure
       let errorMessage = 'Unknown error occurred';
-      
+
       if (error?.data?.message) {
         errorMessage = error.data.message;
       } else if (error?.data?.error) {
@@ -296,7 +303,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           errorMessage = `Error: ${errorStr}`;
         }
       }
-      
+
       alert(`Failed to send review request email: ${errorMessage}`);
     } finally {
       setSendingReviewForOrderId(null);
@@ -416,7 +423,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           // Button is enabled if order is delivered, has email, and customer hasn't submitted a review yet
           // Note: feedbackEmailSent doesn't matter - manual button is independent of automated emails
           const canSendReview = order.status === 'delivered' && order.email && !order.hasReview;
-          
+
           return (
             <div className="flex items-center space-x-2">
               <Link
@@ -493,7 +500,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     };
 
     const csvRows: string[] = [];
-    
+
     // CSV Header
     csvRows.push([
       'Order Object ID',
@@ -556,7 +563,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           const productTitle = escapeCsvValue(cartItem.title || cartItem.name || '');
           const quantity = escapeCsvValue(cartItem.orderQuantity || cartItem.quantity || 1);
           const productPrice = escapeCsvValue(cartItem.price || cartItem.finalPriceDiscount || 0);
-          
+
           csvRows.push([
             orderId,
             orderNumber,
@@ -646,7 +653,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
 
         if (result.data?.data) {
           allOrders.push(...result.data.data);
-          
+
           // Check if there are more pages
           const totalPages = result.data.pagination?.pages || 0;
           hasMorePages = currentPage < totalPages;
@@ -667,7 +674,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       };
 
       const csvRows: string[] = [];
-      
+
       // CSV Header
       csvRows.push([
         'Order Object ID',
@@ -759,23 +766,23 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     setIsSendingReviewEmails(true);
     try {
       const result = await sendBulkReviewRequestEmails({}).unwrap();
-      
+
       if (result.success) {
         let message = `Review request emails processed!\n\n` +
           `Total Orders: ${result.totalOrders}\n` +
           `Emails Sent: ${result.emailsSent}\n` +
           `Failed: ${result.emailsFailed}\n` +
           `Skipped (already reviewed): ${result.skipped}`;
-        
+
         if (result.failedOrders && result.failedOrders.length > 0) {
           message += `\n\nFailed Orders: ${result.failedOrders.length}`;
           if (result.failedOrders.length <= 5) {
             message += '\n' + result.failedOrders.map((o: any) => `- Order ${o.orderId}: ${o.error || 'Unknown error'}`).join('\n');
           }
         }
-        
+
         alert(message);
-        
+
         // Refresh orders to show updated feedbackEmailSent status
         refetch();
       } else {
@@ -783,10 +790,10 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       }
     } catch (error: any) {
       console.error('Error sending review request emails:', error);
-      
+
       // Extract error message from RTK Query error structure
       let errorMessage = 'Unknown error occurred';
-      
+
       if (error?.data?.message) {
         errorMessage = error.data.message;
       } else if (error?.data?.error) {
@@ -802,7 +809,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           errorMessage = `Error: ${errorStr}`;
         }
       }
-      
+
       alert(`Failed to send review request emails: ${errorMessage}`);
     } finally {
       setIsSendingReviewEmails(false);
@@ -826,7 +833,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         startDate,
         endDate,
       }).unwrap();
-      
+
       if (result.success) {
         let message = `Review request emails processed!\n\n` +
           `Date Range: ${startDate} to ${endDate}\n` +
@@ -834,16 +841,16 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           `Emails Sent: ${result.emailsSent}\n` +
           `Failed: ${result.emailsFailed}\n` +
           `Skipped (already reviewed): ${result.skipped}`;
-        
+
         if (result.failedOrders && result.failedOrders.length > 0) {
           message += `\n\nFailed Orders: ${result.failedOrders.length}`;
           if (result.failedOrders.length <= 5) {
             message += '\n' + result.failedOrders.map((o: any) => `- Order ${o.orderId}: ${o.error || 'Unknown error'}`).join('\n');
           }
         }
-        
+
         alert(message);
-        
+
         // Refresh orders to show updated feedbackEmailSent status
         refetch();
       } else {
@@ -851,10 +858,10 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       }
     } catch (error: any) {
       console.error('Error sending review request emails:', error);
-      
+
       // Extract error message from RTK Query error structure
       let errorMessage = 'Unknown error occurred';
-      
+
       if (error?.data?.message) {
         errorMessage = error.data.message;
       } else if (error?.data?.error) {
@@ -870,10 +877,134 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           errorMessage = `Error: ${errorStr}`;
         }
       }
-      
+
       alert(`Failed to send review request emails: ${errorMessage}`);
     } finally {
       setIsSendingReviewEmails(false);
+    }
+  };
+
+  // Open category dialog and fetch categories
+  const handleOpenCategoryDialog = async () => {
+    setShowCategoryDialog(true);
+    setSelectedCategory('all');
+    setIsFetchingCategories(true);
+    try {
+      // Fetch all categories to populate the dropdown
+      const result = await store.dispatch(
+        categoryAuthApi.endpoints.getAllCategories.initiate({ page: 1, limit: 500, search: '', status: '' })
+      );
+      if (result.data) {
+        // Extract parent category names from the result
+        const categories: string[] = [];
+        const data = result.data as any;
+        const items = data?.result || data?.data || data?.categories || [];
+        items.forEach((cat: any) => {
+          if (cat.parent) {
+            categories.push(cat.parent);
+          }
+        });
+        setCategoryList(categories.sort());
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    } finally {
+      setIsFetchingCategories(false);
+    }
+  };
+
+  // Download orders filtered by parent category (or all categories)
+  const handleDownloadByCategory = async () => {
+    if (!selectedCategory) {
+      alert('Please select a parent category or All Categories');
+      return;
+    }
+
+    setShowCategoryDialog(false);
+    setIsDownloadingByCategory(true);
+    try {
+      // The backend now handles the aggregation, so we don't need to manually paginate through all orders.
+      // We just make one request and it returns exactly what we need for the CSV.
+      const isAllCategories = selectedCategory === 'all';
+
+      const payload: any = {
+        allCategories: isAllCategories,
+      };
+
+      if (!isAllCategories) {
+        payload.parentCategory = selectedCategory;
+      }
+
+      // Add date range if selected
+      if (dateRange?.from) {
+        payload.startDate = dateRange.from.toISOString();
+      }
+      if (dateRange?.to) {
+        payload.endDate = dateRange.to.toISOString();
+      }
+
+      const result = await store.dispatch(
+        authApi.endpoints.getOrdersByCategory.initiate(payload)
+      );
+
+      const categoryData = result.data?.data || [];
+
+      if (categoryData.length === 0) {
+        const title = isAllCategories ? 'any categories' : selectedCategory;
+        let alertMsg = `No orders found for ${title}`;
+        if (dateRange?.from && dateRange?.to) {
+          alertMsg += ` in the selected date range.`;
+        }
+        alert(alertMsg);
+        return;
+      }
+
+      // Generate CSV
+      const escapeCsvValue = (value: any): string => {
+        if (value === null || value === undefined) return '';
+        const stringValue = String(value);
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      };
+
+      const csvRows: string[] = [];
+
+      // Optional metadata header rows based on filters
+      if (dateRange?.from && dateRange?.to) {
+        csvRows.push(`Date Range:,${format(dateRange.from, 'MMM dd yyyy')} - ${format(dateRange.to, 'MMM dd yyyy')}`);
+        csvRows.push('');
+      }
+
+      // CSV Column Header
+      csvRows.push(['Parent Category', 'Total Orders'].join(','));
+
+      // CSV Rows
+      categoryData.forEach(item => {
+        csvRows.push([
+          escapeCsvValue(item.category),
+          escapeCsvValue(item.totalOrders),
+        ].join(','));
+      });
+
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      const slug = isAllCategories ? 'all-categories' : selectedCategory.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const dateStr = dayjs().format('YYYY-MM-DD');
+      a.download = `orders-by-category-${slug}-${dateStr}.csv`;
+
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading orders by category:', error);
+      alert('Failed to download orders by category. Please try again.');
+    } finally {
+      setIsDownloadingByCategory(false);
     }
   };
 
@@ -901,7 +1032,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
 
         if (result.data?.data) {
           allOrders.push(...result.data.data);
-          
+
           // Check if there are more pages
           const totalPages = result.data.pagination?.pages || 0;
           hasMorePages = currentPage < totalPages;
@@ -922,7 +1053,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       };
 
       const csvRows: string[] = [];
-      
+
       // CSV Header
       csvRows.push([
         'Order Object ID',
@@ -984,7 +1115,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             const productTitle = escapeCsvValue(cartItem.title || cartItem.name || '');
             const quantity = escapeCsvValue(cartItem.orderQuantity || cartItem.quantity || 1);
             const productPrice = escapeCsvValue(cartItem.price || cartItem.finalPriceDiscount || 0);
-            
+
             csvRows.push([
               orderId,
               orderNumber,
@@ -1286,6 +1417,24 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                         </>
                       )}
                     </button>
+                    <button
+                      onClick={handleOpenCategoryDialog}
+                      disabled={isDownloadingByCategory}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Download orders filtered by parent category"
+                    >
+                      {isDownloadingByCategory ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <Filter className="w-4 h-4 mr-2" />
+                          Download by Category
+                        </>
+                      )}
+                    </button>
                   </>
                 )}
               </div>
@@ -1295,7 +1444,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                 <>
                   {/* Visual Separator */}
                   <div className="h-6 w-px bg-border" />
-                  
+
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Reviews:</span>
                     <button
@@ -1517,6 +1666,24 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                       </>
                     )}
                   </button>
+                  <button
+                    onClick={handleOpenCategoryDialog}
+                    disabled={isDownloadingByCategory}
+                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Download orders filtered by parent category"
+                  >
+                    {isDownloadingByCategory ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <Filter className="w-4 h-4 mr-2" />
+                        Download by Category
+                      </>
+                    )}
+                  </button>
                 </div>
 
                 {/* Visual Separator */}
@@ -1650,6 +1817,69 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleSendReviewEmailsByDateRange}>
               Send Emails
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Category Download Dialog */}
+      <AlertDialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Download Orders by Category</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p className="mb-4">Select a category to download the total order count. This will export a CSV with Category Name and Total Orders.</p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 border-b border-border pb-1">Select Category</label>
+                    {isFetchingCategories ? (
+                      <div className="flex items-center gap-2 py-2">
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">Loading categories...</span>
+                      </div>
+                    ) : (
+                      <select
+                        className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                        value={selectedCategory}
+                        onChange={e => setSelectedCategory(e.target.value)}
+                      >
+                        <option value="all">All Categories</option>
+                        {categoryList.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1 border-b border-border pb-1">Date Range (Optional)</label>
+                    {dateRange?.from && dateRange?.to ? (
+                      <div className="text-sm py-1">
+                        Currently filtering from <strong>{format(dateRange.from, 'MMM dd, yyyy')}</strong> to <strong>{format(dateRange.to, 'MMM dd, yyyy')}</strong>.
+                        <br />
+                        <span className="text-muted-foreground">(Uses the main table's Date filter)</span>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground py-1">
+                        No date range selected. All time data will be exported.<br />
+                        (Use the main table's Date filter to restrict this download)
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDownloadByCategory}
+              disabled={!selectedCategory || isFetchingCategories}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download CSV
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
