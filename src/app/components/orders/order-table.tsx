@@ -978,13 +978,15 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
       }
 
       // CSV Column Header
-      csvRows.push(['Parent Category', 'Total Orders'].join(','));
+      csvRows.push(['Parent Category', 'Total Orders', 'Total Order Amount'].join(','));
 
       // CSV Rows
       categoryData.forEach(item => {
         csvRows.push([
           escapeCsvValue(item.category),
           escapeCsvValue(item.totalOrders),
+          // Format as $4000.00
+          escapeCsvValue(item.totalOrderAmount ? `$${Number(item.totalOrderAmount).toFixed(2)}` : '$0.00'),
         ].join(','));
       });
 

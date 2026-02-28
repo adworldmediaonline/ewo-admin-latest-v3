@@ -65,7 +65,7 @@ export const authApi = apiSlice.injectEndpoints({
     }),
     // Get orders filtered by parent category (for CSV download)
     getOrdersByCategory: builder.query<
-      { success: boolean; data: { category: string; totalOrders: number }[]; isAllCategories: boolean; parentCategory: string | null; dateRange: { startDate: string; endDate: string } | null },
+      { success: boolean; data: { category: string; totalOrders: number; totalOrderAmount: number }[]; isAllCategories: boolean; parentCategory: string | null; dateRange: { startDate: string; endDate: string } | null },
       { parentCategory?: string; allCategories?: boolean; startDate?: string; endDate?: string }
     >({
       query: (params) => {
