@@ -59,7 +59,116 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+
+// Shared CSV helpers for order exports
+const escapeCsvValue = (value: unknown): string => {
+  if (value === null || value === undefined) return '';
+  const stringValue = String(value);
+  if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+};
+
+const buildOrderCsvRows = (orders: any[]): string[] => {
+  const header = [
+    '_id',
+    'orderId',
+    'name',
+    'email',
+    'productSkus',
+    'productTitles',
+    'subTotal',
+    'shippingCost',
+    'taxAmount',
+    'discount',
+    'totalAmount',
+    'carrierTracking',
+  ].join(',');
+
+  let subTotalSum = 0;
+  let shippingCostSum = 0;
+  let taxAmountSum = 0;
+  let discountSum = 0;
+  let totalAmountSum = 0;
+
+  const rows = orders.map(order => {
+    const subTotal = Number(order.subTotal ?? 0);
+    const shippingCost = Number(order.shippingCost ?? 0);
+    const taxAmount = Number(order.taxAmount ?? order.tax ?? 0);
+    const discount = Number(order.discount ?? 0);
+    const totalAmount = Number(order.totalAmount ?? 0);
+
+    subTotalSum += subTotal;
+    shippingCostSum += shippingCost;
+    taxAmountSum += taxAmount;
+    discountSum += discount;
+    totalAmountSum += totalAmount;
+
+    const carriers =
+      order.shippingDetails?.carriers?.length
+        ? order.shippingDetails.carriers
+        : order.shippingDetails?.carrier
+          ? [
+            {
+              carrier: order.shippingDetails.carrier,
+              trackingNumber: order.shippingDetails.trackingNumber,
+            },
+          ]
+          : [];
+    const carrierTracking = carriers
+      .map((c: any) => `${c.carrier || ''}: ${c.trackingNumber || 'N/A'}`)
+      .join(', ');
+    const productSkus = (order.cart || [])
+      .map((i: any) => i.sku || i.SKU || '')
+      .join(', ');
+    const productTitles = (order.cart || [])
+      .map((i: any) => i.title || i.name || '')
+      .join(', ');
+    return [
+      escapeCsvValue(order._id),
+      escapeCsvValue(order.orderId || ''),
+      escapeCsvValue(order.name || ''),
+      escapeCsvValue(order.email || ''),
+      escapeCsvValue(productSkus),
+      escapeCsvValue(productTitles),
+      escapeCsvValue(subTotal),
+      escapeCsvValue(shippingCost),
+      escapeCsvValue(taxAmount),
+      escapeCsvValue(discount),
+      escapeCsvValue(totalAmount),
+      escapeCsvValue(carrierTracking),
+    ].join(',');
+  });
+
+  // Add totals row at the end
+  const totalsRow = [
+    escapeCsvValue('TOTALS'),
+    '',
+    '',
+    '',
+    '',
+    '',
+    escapeCsvValue(subTotalSum.toFixed(2)),
+    escapeCsvValue(shippingCostSum.toFixed(2)),
+    escapeCsvValue(taxAmountSum.toFixed(2)),
+    escapeCsvValue(discountSum.toFixed(2)),
+    escapeCsvValue(totalAmountSum.toFixed(2)),
+    '',
+  ].join(',');
+
+  return [header, ...rows, totalsRow];
+};
 
 const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   const [searchVal, setSearchVal] = useState<string>('');
@@ -370,11 +479,12 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             <div className="text-sm font-semibold text-foreground">
               ${info.row.original.totalAmount.toFixed(2)}
             </div>
-            {info.row.original.discount > 0 && (
+            {/* TODO: uncomment Add discount back in lATER*/}
+            {/* {info.row.original.discount > 0 && (
               <div className="text-xs text-red-600 dark:text-red-400 font-medium">
                 -${info.row.original.discount.toFixed(2)}
               </div>
-            )}
+            )} */}
           </div>
         ),
       },
@@ -488,128 +598,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
 
   // Export functionality
   const handleExport = () => {
-    // Helper function to escape CSV values
-    const escapeCsvValue = (value: any): string => {
-      if (value === null || value === undefined) return '';
-      const stringValue = String(value);
-      // If value contains comma, quote, or newline, wrap in quotes and escape quotes
-      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    };
-
-    const csvRows: string[] = [];
-
-    // CSV Header
-    csvRows.push([
-      'Order Object ID',
-      'Order ID',
-      'Invoice',
-      'Customer',
-      'Email',
-      'Product SKU',
-      'Product Title',
-      'Quantity',
-      'Product Price',
-      'Subtotal',
-      'Shipping Cost',
-      'Discount',
-      'Total',
-      'Status',
-      'Payment Method',
-      'Date',
-      'Shipping Status',
-      'Carriers & Tracking Numbers',
-    ].join(','));
-
-    // Process each order and create rows for each cart item
-    filteredOrders.forEach(order => {
-      // Support both new (multiple carriers) and legacy (single carrier) formats
-      const shippingCarriers = order.shippingDetails?.carriers && Array.isArray(order.shippingDetails.carriers) && order.shippingDetails.carriers.length > 0
-        ? order.shippingDetails.carriers
-        : order.shippingDetails?.carrier
-          ? [{
-            carrier: order.shippingDetails.carrier,
-            trackingNumber: order.shippingDetails.trackingNumber,
-            trackingUrl: order.shippingDetails.trackingUrl,
-          }]
-          : [];
-
-      const carriersInfo = shippingCarriers.length > 0
-        ? shippingCarriers.map((c: any) => `${c.carrier || ''}: ${c.trackingNumber || 'N/A'}`).join('; ')
-        : '';
-
-      // Common order fields
-      const orderId = escapeCsvValue(order._id);
-      const orderNumber = escapeCsvValue(order.orderId || '');
-      const invoice = escapeCsvValue(order.invoice);
-      const customer = escapeCsvValue(order.name);
-      const email = escapeCsvValue(order.email);
-      const total = escapeCsvValue(order.totalAmount);
-      const status = escapeCsvValue(order.status);
-      const paymentMethod = escapeCsvValue(order.paymentMethod);
-      const date = escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm'));
-      const shippingStatus = escapeCsvValue(order.status === 'shipped' ? 'Shipped' : 'Not Shipped');
-      const carriers = escapeCsvValue(carriersInfo);
-      const subtotal = escapeCsvValue(order.subTotal || 0);
-      const shippingCost = escapeCsvValue(order.shippingCost || 0);
-      const discount = escapeCsvValue(order.discount || 0);
-
-      // If order has cart items, create a row for each product
-      if (order.cart && Array.isArray(order.cart) && order.cart.length > 0) {
-        order.cart.forEach((cartItem: any) => {
-          const sku = escapeCsvValue(cartItem.sku || cartItem.SKU || '');
-          const productTitle = escapeCsvValue(cartItem.title || cartItem.name || '');
-          const quantity = escapeCsvValue(cartItem.orderQuantity || cartItem.quantity || 1);
-          const productPrice = escapeCsvValue(cartItem.price || cartItem.finalPriceDiscount || 0);
-
-          csvRows.push([
-            orderId,
-            orderNumber,
-            invoice,
-            customer,
-            email,
-            sku,
-            productTitle,
-            quantity,
-            productPrice,
-            subtotal,
-            shippingCost,
-            discount,
-            total,
-            status,
-            paymentMethod,
-            date,
-            shippingStatus,
-            carriers,
-          ].join(','));
-        });
-      } else {
-        // If no cart items, still create one row with order info
-        csvRows.push([
-          orderId,
-          orderNumber,
-          invoice,
-          customer,
-          email,
-          '', // SKU
-          '', // Product Title
-          '', // Quantity
-          '', // Product Price
-          subtotal,
-          shippingCost,
-          discount,
-          total,
-          status,
-          paymentMethod,
-          date,
-          shippingStatus,
-          carriers,
-        ].join(','));
-      }
-    });
-
+    const csvRows = buildOrderCsvRows(filteredOrders);
     const csvContent = csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -663,86 +652,8 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         }
       }
 
-      // Generate CSV from all orders
-      const escapeCsvValue = (value: any): string => {
-        if (value === null || value === undefined) return '';
-        const stringValue = String(value);
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-      };
-
-      const csvRows: string[] = [];
-
-      // CSV Header
-      csvRows.push([
-        'Order Object ID',
-        'Order ID',
-        'Invoice',
-        'Customer',
-        'Email',
-        'Product SKU',
-        'Product Title',
-        'Quantity',
-        'Product Price',
-        'Subtotal',
-        'Shipping Cost',
-        'Tax',
-        'Discount',
-        'Total Amount',
-        'Status',
-        'Payment Method',
-        'Created At',
-      ].join(','));
-
-      // CSV Rows - Expand cart items
-      allOrders.forEach(order => {
-        if (order.cart && Array.isArray(order.cart) && order.cart.length > 0) {
-          order.cart.forEach((item: any) => {
-            csvRows.push([
-              escapeCsvValue(order._id),
-              escapeCsvValue(order.orderId),
-              escapeCsvValue(order.invoice),
-              escapeCsvValue(order.name),
-              escapeCsvValue(order.email),
-              escapeCsvValue(item.sku || ''),
-              escapeCsvValue(item.title || ''),
-              escapeCsvValue(item.orderQuantity || 1),
-              escapeCsvValue(item.finalPriceDiscount || item.price || 0),
-              escapeCsvValue(order.subTotal || 0),
-              escapeCsvValue(order.shippingCost || 0),
-              escapeCsvValue(order.discount || 0),
-              escapeCsvValue(order.totalAmount || 0),
-              escapeCsvValue(order.status),
-              escapeCsvValue(order.paymentMethod),
-              escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss')),
-            ].join(','));
-          });
-        } else {
-          // If no cart items, still add a row with order info
-          csvRows.push([
-            escapeCsvValue(order._id),
-            escapeCsvValue(order.orderId),
-            escapeCsvValue(order.invoice),
-            escapeCsvValue(order.name),
-            escapeCsvValue(order.email),
-            '',
-            '',
-            '',
-            '',
-            escapeCsvValue(order.subTotal || 0),
-            escapeCsvValue(order.shippingCost || 0),
-            escapeCsvValue(order.tax || 0),
-            escapeCsvValue(order.discount || 0),
-            escapeCsvValue(order.totalAmount || 0),
-            escapeCsvValue(order.status),
-            escapeCsvValue(order.paymentMethod),
-            escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss')),
-          ].join(','));
-        }
-      });
-
+      // Generate CSV from all orders (one row per order, standardized format)
+      const csvRows = buildOrderCsvRows(allOrders);
       const csvContent = csvRows.join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
@@ -1044,126 +955,8 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         }
       }
 
-      // Generate CSV from all orders
-      const escapeCsvValue = (value: any): string => {
-        if (value === null || value === undefined) return '';
-        const stringValue = String(value);
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-      };
-
-      const csvRows: string[] = [];
-
-      // CSV Header
-      csvRows.push([
-        'Order Object ID',
-        'Order ID',
-        'Invoice',
-        'Customer',
-        'Email',
-        'Product SKU',
-        'Product Title',
-        'Quantity',
-        'Product Price',
-        'Subtotal',
-        'Shipping Cost',
-        'Tax',
-        'Discount',
-        'Total',
-        'Status',
-        'Payment Method',
-        'Date',
-        'Shipping Status',
-        'Carriers & Tracking Numbers',
-      ].join(','));
-
-      // Process each order and create rows for each cart item
-      allOrders.forEach(order => {
-        const shippingCarriers = order.shippingDetails?.carriers && Array.isArray(order.shippingDetails.carriers) && order.shippingDetails.carriers.length > 0
-          ? order.shippingDetails.carriers
-          : order.shippingDetails?.carrier
-            ? [{
-              carrier: order.shippingDetails.carrier,
-              trackingNumber: order.shippingDetails.trackingNumber,
-              trackingUrl: order.shippingDetails.trackingUrl,
-            }]
-            : [];
-
-        const carriersInfo = shippingCarriers.length > 0
-          ? shippingCarriers.map((c: any) => `${c.carrier || ''}: ${c.trackingNumber || 'N/A'}`).join('; ')
-          : '';
-
-        const orderId = escapeCsvValue(order._id);
-        const orderNumber = escapeCsvValue(order.orderId || '');
-        const invoice = escapeCsvValue(order.invoice);
-        const customer = escapeCsvValue(order.name);
-        const email = escapeCsvValue(order.email);
-        const total = escapeCsvValue(order.totalAmount);
-        const status = escapeCsvValue(order.status);
-        const paymentMethod = escapeCsvValue(order.paymentMethod);
-        const date = escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm'));
-        const shippingStatus = escapeCsvValue(order.status === 'shipped' ? 'Shipped' : 'Not Shipped');
-        const carriers = escapeCsvValue(carriersInfo);
-        const subtotal = escapeCsvValue(order.subTotal || 0);
-        const shippingCost = escapeCsvValue(order.shippingCost || 0);
-        const tax = escapeCsvValue(order.tax || 0);
-        const discount = escapeCsvValue(order.discount || 0);
-
-        if (order.cart && Array.isArray(order.cart) && order.cart.length > 0) {
-          order.cart.forEach((cartItem: any) => {
-            const sku = escapeCsvValue(cartItem.sku || cartItem.SKU || '');
-            const productTitle = escapeCsvValue(cartItem.title || cartItem.name || '');
-            const quantity = escapeCsvValue(cartItem.orderQuantity || cartItem.quantity || 1);
-            const productPrice = escapeCsvValue(cartItem.price || cartItem.finalPriceDiscount || 0);
-
-            csvRows.push([
-              orderId,
-              orderNumber,
-              invoice,
-              customer,
-              email,
-              sku,
-              productTitle,
-              quantity,
-              productPrice,
-              subtotal,
-              shippingCost,
-              tax,
-              discount,
-              total,
-              status,
-              paymentMethod,
-              date,
-              shippingStatus,
-              carriers,
-            ].join(','));
-          });
-        } else {
-          csvRows.push([
-            orderId,
-            orderNumber,
-            invoice,
-            customer,
-            email,
-            '',
-            '',
-            '',
-            '',
-            subtotal,
-            shippingCost,
-            discount,
-            total,
-            status,
-            paymentMethod,
-            date,
-            shippingStatus,
-            carriers,
-          ].join(','));
-        }
-      });
-
+      // Generate CSV from all orders (one row per order, standardized format)
+      const csvRows = buildOrderCsvRows(allOrders);
       const csvContent = csvRows.join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
@@ -1236,257 +1029,295 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Bar, Refresh, and Export */}
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
-          <div className="flex flex-col gap-4">
-            {/* Top Row: Search and Date Range */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              <div className="relative flex-1 max-w-md">
-                <input
-                  className="w-full px-4 py-2 pr-10 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  type="text"
-                  placeholder="Search by order ID, customer name, email, or phone..."
-                  value={searchVal}
-                  onChange={e => {
-                    setSearchVal(e.target.value);
-                    // Reset to first page when searching
-                    setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                  }}
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <Search className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </div>
-
-
-              {/* Date Range Picker - Super Admin Only */}
-              {role === 'super-admin' && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-[300px] justify-start text-left font-normal',
-                          !dateRange && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, 'LLL dd, y')} -{' '}
-                              {format(dateRange.to, 'LLL dd, y')}
-                            </>
-                          ) : (
-                            format(dateRange.from, 'LLL dd, y')
-                          )
-                        ) : (
-                          <span>Pick a date range</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={2}
-                      />
-                    </PopoverContent>
-                  </Popover>
-
-                  {/* Quick Date Filters */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const today = new Date();
-                        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                        setDateRange({
-                          from: firstDayOfMonth,
-                          to: today,
-                        });
-                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                      }}
-                    >
-                      This Month
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const today = new Date();
-                        const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                        const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-                        setDateRange({
-                          from: firstDayOfLastMonth,
-                          to: lastDayOfLastMonth,
-                        });
-                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                      }}
-                    >
-                      Last Month
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setDateRange(undefined);
-                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                      }}
-                    >
-                      Clear
-                    </Button>
+        {/* Orders Management Header */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Orders Management</CardTitle>
+            <CardDescription>
+              Manage orders, export data, and send review requests
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-6">
+              {/* Search and Date Range Row */}
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="relative flex-1 w-full sm:max-w-md">
+                  <input
+                    className="w-full px-4 py-2 pr-10 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    type="text"
+                    placeholder="Search by order ID, customer name, email, or phone..."
+                    value={searchVal}
+                    onChange={e => {
+                      setSearchVal(e.target.value);
+                      setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                    }}
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <Search className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Bottom Row: Action Buttons - Grouped by Function */}
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Primary Actions Group */}
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/dashboard/admin/orders/create"
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Order
-                </Link>
-                <button
-                  onClick={() => refetch()}
-                  disabled={isFetching}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Refresh orders"
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
+                {/* Date Range Picker - Super Admin Only */}
+                {role === 'super-admin' && (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full sm:w-[300px] justify-start text-left font-normal',
+                            !dateRange && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateRange?.from ? (
+                            dateRange.to ? (
+                              <>
+                                {format(dateRange.from, 'LLL dd, y')} -{' '}
+                                {format(dateRange.to, 'LLL dd, y')}
+                              </>
+                            ) : (
+                              format(dateRange.from, 'LLL dd, y')
+                            )
+                          ) : (
+                            <span>Pick a date range</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          initialFocus
+                          mode="range"
+                          defaultMonth={dateRange?.from}
+                          selected={dateRange}
+                          onSelect={setDateRange}
+                          numberOfMonths={2}
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                    {/* Quick Date Filters */}
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const today = new Date();
+                          const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                          setDateRange({
+                            from: firstDayOfMonth,
+                            to: today,
+                          });
+                          setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                        }}
+                      >
+                        This Month
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const today = new Date();
+                          const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                          const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                          setDateRange({
+                            from: firstDayOfLastMonth,
+                            to: lastDayOfLastMonth,
+                          });
+                          setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                        }}
+                      >
+                        Last Month
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDateRange(undefined);
+                          setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Visual Separator */}
-              <div className="h-6 w-px bg-border" />
+              {/* Actions Row */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+                {/* Primary Actions */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    href="/dashboard/admin/orders/create"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Order
+                  </Link>
+                  <Button
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                    variant="secondary"
+                    className="inline-flex items-center"
+                    title="Refresh orders"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
 
-              {/* Export Actions Group */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Export:</span>
-                <button
-                  onClick={handleExport}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export CSV
-                </button>
-                {role === 'super-admin' && (
-                  <>
-                    <button
-                      onClick={handleDownloadByDateRange}
-                      disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
+                {/* Export Actions Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={isDownloadingAll || isDownloadingByDateRange || isDownloadingByCategory}
+                      className="inline-flex items-center"
                     >
-                      {isDownloadingByDateRange ? (
+                      {isDownloadingAll || isDownloadingByDateRange || isDownloadingByCategory ? (
                         <>
                           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <CalendarIcon className="w-4 h-4 mr-2" />
-                          Download by Date Range
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleDownloadAll}
-                      disabled={isDownloadingAll}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Download all orders (ignores all filters)"
-                    >
-                      {isDownloadingAll ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Downloading...
+                          Exporting...
                         </>
                       ) : (
                         <>
                           <Download className="w-4 h-4 mr-2" />
-                          Download All
+                          Export
                         </>
                       )}
-                    </button>
-                    <button
-                      onClick={handleOpenCategoryDialog}
-                      disabled={isDownloadingByCategory}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Download orders filtered by parent category"
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleExport}
+                      className="cursor-pointer"
                     >
-                      {isDownloadingByCategory ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <Filter className="w-4 h-4 mr-2" />
-                          Download by Category
-                        </>
-                      )}
-                    </button>
-                  </>
+                      <Download className="w-4 h-4 mr-2" />
+                      Export CSV (Current View)
+                    </DropdownMenuItem>
+                    {role === 'super-admin' && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={handleDownloadByDateRange}
+                          disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
+                          className="cursor-pointer"
+                        >
+                          {isDownloadingByDateRange ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <CalendarIcon className="w-4 h-4 mr-2" />
+                              Download by Date Range
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleDownloadAll}
+                          disabled={isDownloadingAll}
+                          className="cursor-pointer"
+                        >
+                          {isDownloadingAll ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-4 h-4 mr-2" />
+                              Download All Orders
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleOpenCategoryDialog}
+                          disabled={isDownloadingByCategory}
+                          className="cursor-pointer"
+                        >
+                          {isDownloadingByCategory ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <Filter className="w-4 h-4 mr-2" />
+                              Download by Category
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Review Actions Dropdown - Super Admin Only */}
+                {role === 'super-admin' && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        disabled={isSendingReviewEmails}
+                        className="inline-flex items-center"
+                      >
+                        {isSendingReviewEmails ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-4 h-4 mr-2" />
+                            Send Reviews
+                          </>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64">
+                      <DropdownMenuLabel>Review Requests</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (!dateRange?.from || !dateRange?.to) {
+                            alert('Please select a date range first');
+                            return;
+                          }
+                          setShowDateRangeDialog(true);
+                        }}
+                        disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
+                        className="cursor-pointer"
+                      >
+                        <CalendarIcon className="w-4 h-4 mr-2" />
+                        Send Reviews (Date Range)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setShowAllOrdersDialog(true)}
+                        disabled={isSendingReviewEmails}
+                        className="cursor-pointer"
+                      >
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Reviews (All Orders)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
 
-              {/* Review Actions Group (Super Admin Only) */}
-              {role === 'super-admin' && (
-                <>
-                  {/* Visual Separator */}
-                  <div className="h-6 w-px bg-border" />
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Reviews:</span>
-                    <button
-                      onClick={() => {
-                        if (!dateRange?.from || !dateRange?.to) {
-                          alert('Please select a date range first');
-                          return;
-                        }
-                        setShowDateRangeDialog(true);
-                      }}
-                      disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Send review request emails to all delivered orders within the selected date range'}
-                    >
-                      <Mail className="w-4 h-4 mr-2" />
-                      Send Reviews (Date Range)
-                    </button>
-                    <button
-                      onClick={() => setShowAllOrdersDialog(true)}
-                      disabled={isSendingReviewEmails}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Send review request emails to all delivered orders"
-                    >
-                      <Mail className="w-4 h-4 mr-2" />
-                      Send Reviews (All Orders)
-                    </button>
-                  </div>
-                </>
+              {/* Auto-refresh indicator */}
+              {isFetching && !isLoading && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <span>Updating orders...</span>
+                </div>
               )}
             </div>
-          </div>
-
-          {/* Auto-refresh indicator */}
-          {isFetching && !isLoading && (
-            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-              <RefreshCw className="w-3 h-3 animate-spin" />
-              <span>Updating orders...</span>
-            </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Table Container */}
         <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
@@ -1620,122 +1451,6 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                       table.setPageIndex(page);
                     }}
                   />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Download and Review Request Buttons at Bottom - Super Admin Only */}
-          {role === 'super-admin' && (
-            <div className="px-6 py-4 border-t border-border bg-muted/20">
-              <div className="flex justify-center items-center gap-4 flex-wrap">
-                {/* Export Actions Group */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Export:</span>
-                  <button
-                    onClick={handleDownloadByDateRange}
-                    disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
-                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
-                  >
-                    {isDownloadingByDateRange ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Downloading...
-                      </>
-                    ) : (
-                      <>
-                        <CalendarIcon className="w-4 h-4 mr-2" />
-                        Download by Date Range
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleDownloadAll}
-                    disabled={isDownloadingAll}
-                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Download all orders (ignores all filters)"
-                  >
-                    {isDownloadingAll ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Downloading All Orders...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4 mr-2" />
-                        Download All Orders
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleOpenCategoryDialog}
-                    disabled={isDownloadingByCategory}
-                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Download orders filtered by parent category"
-                  >
-                    {isDownloadingByCategory ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Downloading...
-                      </>
-                    ) : (
-                      <>
-                        <Filter className="w-4 h-4 mr-2" />
-                        Download by Category
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Visual Separator */}
-                <div className="h-8 w-px bg-border" />
-
-                {/* Review Actions Group */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Reviews:</span>
-                  <button
-                    onClick={() => {
-                      if (!dateRange?.from || !dateRange?.to) {
-                        alert('Please select a date range first');
-                        return;
-                      }
-                      setShowDateRangeDialog(true);
-                    }}
-                    disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
-                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Send review request emails to all delivered orders within the selected date range'}
-                  >
-                    {isSendingReviewEmails ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-4 h-4 mr-2" />
-                        Send Reviews (Date Range)
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowAllOrdersDialog(true)}
-                    disabled={isSendingReviewEmails}
-                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Send review request emails to all delivered orders"
-                  >
-                    {isSendingReviewEmails ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-4 h-4 mr-2" />
-                        Send Reviews (All Orders)
-                      </>
-                    )}
-                  </button>
                 </div>
               </div>
             </div>
