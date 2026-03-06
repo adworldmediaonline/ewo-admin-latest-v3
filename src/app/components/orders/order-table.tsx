@@ -59,6 +59,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
@@ -1236,257 +1245,295 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Bar, Refresh, and Export */}
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
-          <div className="flex flex-col gap-4">
-            {/* Top Row: Search and Date Range */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              <div className="relative flex-1 max-w-md">
-                <input
-                  className="w-full px-4 py-2 pr-10 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  type="text"
-                  placeholder="Search by order ID, customer name, email, or phone..."
-                  value={searchVal}
-                  onChange={e => {
-                    setSearchVal(e.target.value);
-                    // Reset to first page when searching
-                    setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                  }}
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <Search className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </div>
-
-
-              {/* Date Range Picker - Super Admin Only */}
-              {role === 'super-admin' && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-[300px] justify-start text-left font-normal',
-                          !dateRange && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, 'LLL dd, y')} -{' '}
-                              {format(dateRange.to, 'LLL dd, y')}
-                            </>
-                          ) : (
-                            format(dateRange.from, 'LLL dd, y')
-                          )
-                        ) : (
-                          <span>Pick a date range</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={2}
-                      />
-                    </PopoverContent>
-                  </Popover>
-
-                  {/* Quick Date Filters */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const today = new Date();
-                        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                        setDateRange({
-                          from: firstDayOfMonth,
-                          to: today,
-                        });
-                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                      }}
-                    >
-                      This Month
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const today = new Date();
-                        const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                        const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-                        setDateRange({
-                          from: firstDayOfLastMonth,
-                          to: lastDayOfLastMonth,
-                        });
-                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                      }}
-                    >
-                      Last Month
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setDateRange(undefined);
-                        setPagination(prev => ({ ...prev, pageIndex: 0 }));
-                      }}
-                    >
-                      Clear
-                    </Button>
+        {/* Orders Management Header */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Orders Management</CardTitle>
+            <CardDescription>
+              Manage orders, export data, and send review requests
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-6">
+              {/* Search and Date Range Row */}
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="relative flex-1 w-full sm:max-w-md">
+                  <input
+                    className="w-full px-4 py-2 pr-10 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    type="text"
+                    placeholder="Search by order ID, customer name, email, or phone..."
+                    value={searchVal}
+                    onChange={e => {
+                      setSearchVal(e.target.value);
+                      setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                    }}
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <Search className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Bottom Row: Action Buttons - Grouped by Function */}
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Primary Actions Group */}
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/dashboard/admin/orders/create"
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Order
-                </Link>
-                <button
-                  onClick={() => refetch()}
-                  disabled={isFetching}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Refresh orders"
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
+                {/* Date Range Picker - Super Admin Only */}
+                {role === 'super-admin' && (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full sm:w-[300px] justify-start text-left font-normal',
+                            !dateRange && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateRange?.from ? (
+                            dateRange.to ? (
+                              <>
+                                {format(dateRange.from, 'LLL dd, y')} -{' '}
+                                {format(dateRange.to, 'LLL dd, y')}
+                              </>
+                            ) : (
+                              format(dateRange.from, 'LLL dd, y')
+                            )
+                          ) : (
+                            <span>Pick a date range</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          initialFocus
+                          mode="range"
+                          defaultMonth={dateRange?.from}
+                          selected={dateRange}
+                          onSelect={setDateRange}
+                          numberOfMonths={2}
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                    {/* Quick Date Filters */}
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const today = new Date();
+                          const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                          setDateRange({
+                            from: firstDayOfMonth,
+                            to: today,
+                          });
+                          setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                        }}
+                      >
+                        This Month
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const today = new Date();
+                          const firstDayOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                          const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                          setDateRange({
+                            from: firstDayOfLastMonth,
+                            to: lastDayOfLastMonth,
+                          });
+                          setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                        }}
+                      >
+                        Last Month
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDateRange(undefined);
+                          setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Visual Separator */}
-              <div className="h-6 w-px bg-border" />
+              {/* Actions Row */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+                {/* Primary Actions */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    href="/dashboard/admin/orders/create"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Order
+                  </Link>
+                  <Button
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                    variant="secondary"
+                    className="inline-flex items-center"
+                    title="Refresh orders"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
 
-              {/* Export Actions Group */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Export:</span>
-                <button
-                  onClick={handleExport}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export CSV
-                </button>
-                {role === 'super-admin' && (
-                  <>
-                    <button
-                      onClick={handleDownloadByDateRange}
-                      disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
+                {/* Export Actions Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={isDownloadingAll || isDownloadingByDateRange || isDownloadingByCategory}
+                      className="inline-flex items-center"
                     >
-                      {isDownloadingByDateRange ? (
+                      {isDownloadingAll || isDownloadingByDateRange || isDownloadingByCategory ? (
                         <>
                           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <CalendarIcon className="w-4 h-4 mr-2" />
-                          Download by Date Range
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleDownloadAll}
-                      disabled={isDownloadingAll}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Download all orders (ignores all filters)"
-                    >
-                      {isDownloadingAll ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Downloading...
+                          Exporting...
                         </>
                       ) : (
                         <>
                           <Download className="w-4 h-4 mr-2" />
-                          Download All
+                          Export
                         </>
                       )}
-                    </button>
-                    <button
-                      onClick={handleOpenCategoryDialog}
-                      disabled={isDownloadingByCategory}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Download orders filtered by parent category"
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleExport}
+                      className="cursor-pointer"
                     >
-                      {isDownloadingByCategory ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <Filter className="w-4 h-4 mr-2" />
-                          Download by Category
-                        </>
-                      )}
-                    </button>
-                  </>
+                      <Download className="w-4 h-4 mr-2" />
+                      Export CSV (Current View)
+                    </DropdownMenuItem>
+                    {role === 'super-admin' && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={handleDownloadByDateRange}
+                          disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
+                          className="cursor-pointer"
+                        >
+                          {isDownloadingByDateRange ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <CalendarIcon className="w-4 h-4 mr-2" />
+                              Download by Date Range
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleDownloadAll}
+                          disabled={isDownloadingAll}
+                          className="cursor-pointer"
+                        >
+                          {isDownloadingAll ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-4 h-4 mr-2" />
+                              Download All Orders
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleOpenCategoryDialog}
+                          disabled={isDownloadingByCategory}
+                          className="cursor-pointer"
+                        >
+                          {isDownloadingByCategory ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <Filter className="w-4 h-4 mr-2" />
+                              Download by Category
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Review Actions Dropdown - Super Admin Only */}
+                {role === 'super-admin' && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        disabled={isSendingReviewEmails}
+                        className="inline-flex items-center"
+                      >
+                        {isSendingReviewEmails ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-4 h-4 mr-2" />
+                            Send Reviews
+                          </>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64">
+                      <DropdownMenuLabel>Review Requests</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (!dateRange?.from || !dateRange?.to) {
+                            alert('Please select a date range first');
+                            return;
+                          }
+                          setShowDateRangeDialog(true);
+                        }}
+                        disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
+                        className="cursor-pointer"
+                      >
+                        <CalendarIcon className="w-4 h-4 mr-2" />
+                        Send Reviews (Date Range)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setShowAllOrdersDialog(true)}
+                        disabled={isSendingReviewEmails}
+                        className="cursor-pointer"
+                      >
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Reviews (All Orders)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
 
-              {/* Review Actions Group (Super Admin Only) */}
-              {role === 'super-admin' && (
-                <>
-                  {/* Visual Separator */}
-                  <div className="h-6 w-px bg-border" />
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Reviews:</span>
-                    <button
-                      onClick={() => {
-                        if (!dateRange?.from || !dateRange?.to) {
-                          alert('Please select a date range first');
-                          return;
-                        }
-                        setShowDateRangeDialog(true);
-                      }}
-                      disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Send review request emails to all delivered orders within the selected date range'}
-                    >
-                      <Mail className="w-4 h-4 mr-2" />
-                      Send Reviews (Date Range)
-                    </button>
-                    <button
-                      onClick={() => setShowAllOrdersDialog(true)}
-                      disabled={isSendingReviewEmails}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Send review request emails to all delivered orders"
-                    >
-                      <Mail className="w-4 h-4 mr-2" />
-                      Send Reviews (All Orders)
-                    </button>
-                  </div>
-                </>
+              {/* Auto-refresh indicator */}
+              {isFetching && !isLoading && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <span>Updating orders...</span>
+                </div>
               )}
             </div>
-          </div>
-
-          {/* Auto-refresh indicator */}
-          {isFetching && !isLoading && (
-            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-              <RefreshCw className="w-3 h-3 animate-spin" />
-              <span>Updating orders...</span>
-            </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Table Container */}
         <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
@@ -1620,122 +1667,6 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                       table.setPageIndex(page);
                     }}
                   />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Download and Review Request Buttons at Bottom - Super Admin Only */}
-          {role === 'super-admin' && (
-            <div className="px-6 py-4 border-t border-border bg-muted/20">
-              <div className="flex justify-center items-center gap-4 flex-wrap">
-                {/* Export Actions Group */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Export:</span>
-                  <button
-                    onClick={handleDownloadByDateRange}
-                    disabled={isDownloadingByDateRange || !dateRange?.from || !dateRange?.to}
-                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Download all orders within the selected date range'}
-                  >
-                    {isDownloadingByDateRange ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Downloading...
-                      </>
-                    ) : (
-                      <>
-                        <CalendarIcon className="w-4 h-4 mr-2" />
-                        Download by Date Range
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleDownloadAll}
-                    disabled={isDownloadingAll}
-                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Download all orders (ignores all filters)"
-                  >
-                    {isDownloadingAll ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Downloading All Orders...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4 mr-2" />
-                        Download All Orders
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleOpenCategoryDialog}
-                    disabled={isDownloadingByCategory}
-                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Download orders filtered by parent category"
-                  >
-                    {isDownloadingByCategory ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Downloading...
-                      </>
-                    ) : (
-                      <>
-                        <Filter className="w-4 h-4 mr-2" />
-                        Download by Category
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Visual Separator */}
-                <div className="h-8 w-px bg-border" />
-
-                {/* Review Actions Group */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">Reviews:</span>
-                  <button
-                    onClick={() => {
-                      if (!dateRange?.from || !dateRange?.to) {
-                        alert('Please select a date range first');
-                        return;
-                      }
-                      setShowDateRangeDialog(true);
-                    }}
-                    disabled={isSendingReviewEmails || !dateRange?.from || !dateRange?.to}
-                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={!dateRange?.from || !dateRange?.to ? 'Please select a date range first' : 'Send review request emails to all delivered orders within the selected date range'}
-                  >
-                    {isSendingReviewEmails ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-4 h-4 mr-2" />
-                        Send Reviews (Date Range)
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowAllOrdersDialog(true)}
-                    disabled={isSendingReviewEmails}
-                    className="inline-flex items-center px-6 py-3 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Send review request emails to all delivered orders"
-                  >
-                    {isSendingReviewEmails ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-4 h-4 mr-2" />
-                        Send Reviews (All Orders)
-                      </>
-                    )}
-                  </button>
                 </div>
               </div>
             </div>
