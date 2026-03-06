@@ -95,7 +95,26 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
     'totalAmount',
     'carrierTracking',
   ].join(',');
+
+  let subTotalSum = 0;
+  let shippingCostSum = 0;
+  let taxAmountSum = 0;
+  let discountSum = 0;
+  let totalAmountSum = 0;
+
   const rows = orders.map(order => {
+    const subTotal = Number(order.subTotal ?? 0);
+    const shippingCost = Number(order.shippingCost ?? 0);
+    const taxAmount = Number(order.tax ?? 0);
+    const discount = Number(order.discount ?? 0);
+    const totalAmount = Number(order.totalAmount ?? 0);
+
+    subTotalSum += subTotal;
+    shippingCostSum += shippingCost;
+    taxAmountSum += taxAmount;
+    discountSum += discount;
+    totalAmountSum += totalAmount;
+
     const carriers =
       order.shippingDetails?.carriers?.length
         ? order.shippingDetails.carriers
@@ -123,15 +142,32 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
       escapeCsvValue(order.email || ''),
       escapeCsvValue(productSkus),
       escapeCsvValue(productTitles),
-      escapeCsvValue(order.subTotal ?? 0),
-      escapeCsvValue(order.shippingCost ?? 0),
-      escapeCsvValue(order.tax ?? 0),
-      escapeCsvValue(order.discount ?? 0),
-      escapeCsvValue(order.totalAmount ?? 0),
+      escapeCsvValue(subTotal),
+      escapeCsvValue(shippingCost),
+      escapeCsvValue(taxAmount),
+      escapeCsvValue(discount),
+      escapeCsvValue(totalAmount),
       escapeCsvValue(carrierTracking),
     ].join(',');
   });
-  return [header, ...rows];
+
+  // Add totals row at the end
+  const totalsRow = [
+    escapeCsvValue('TOTALS'),
+    '',
+    '',
+    '',
+    '',
+    '',
+    escapeCsvValue(subTotalSum.toFixed(2)),
+    escapeCsvValue(shippingCostSum.toFixed(2)),
+    escapeCsvValue(taxAmountSum.toFixed(2)),
+    escapeCsvValue(discountSum.toFixed(2)),
+    escapeCsvValue(totalAmountSum.toFixed(2)),
+    '',
+  ].join(',');
+
+  return [header, ...rows, totalsRow];
 };
 
 const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
