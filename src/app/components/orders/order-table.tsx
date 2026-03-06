@@ -105,7 +105,7 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
   const rows = orders.map(order => {
     const subTotal = Number(order.subTotal ?? 0);
     const shippingCost = Number(order.shippingCost ?? 0);
-    const taxAmount = Number(order.tax ?? 0);
+    const taxAmount = Number(order.taxAmount ?? order.tax ?? 0);
     const discount = Number(order.discount ?? 0);
     const totalAmount = Number(order.totalAmount ?? 0);
 
