@@ -120,11 +120,11 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
         ? order.shippingDetails.carriers
         : order.shippingDetails?.carrier
           ? [
-              {
-                carrier: order.shippingDetails.carrier,
-                trackingNumber: order.shippingDetails.trackingNumber,
-              },
-            ]
+            {
+              carrier: order.shippingDetails.carrier,
+              trackingNumber: order.shippingDetails.trackingNumber,
+            },
+          ]
           : [];
     const carrierTracking = carriers
       .map((c: any) => `${c.carrier || ''}: ${c.trackingNumber || 'N/A'}`)
@@ -479,11 +479,12 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
             <div className="text-sm font-semibold text-foreground">
               ${info.row.original.totalAmount.toFixed(2)}
             </div>
-            {info.row.original.discount > 0 && (
+            {/* TODO: uncomment Add discount back in lATER*/}
+            {/* {info.row.original.discount > 0 && (
               <div className="text-xs text-red-600 dark:text-red-400 font-medium">
                 -${info.row.original.discount.toFixed(2)}
               </div>
-            )}
+            )} */}
           </div>
         ),
       },
