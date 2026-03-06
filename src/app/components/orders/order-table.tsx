@@ -70,6 +70,70 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
+// Shared CSV helpers for order exports
+const escapeCsvValue = (value: unknown): string => {
+  if (value === null || value === undefined) return '';
+  const stringValue = String(value);
+  if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+};
+
+const buildOrderCsvRows = (orders: any[]): string[] => {
+  const header = [
+    '_id',
+    'orderId',
+    'name',
+    'email',
+    'productSkus',
+    'productTitles',
+    'subTotal',
+    'shippingCost',
+    'taxAmount',
+    'discount',
+    'totalAmount',
+    'carrierTracking',
+  ].join(',');
+  const rows = orders.map(order => {
+    const carriers =
+      order.shippingDetails?.carriers?.length
+        ? order.shippingDetails.carriers
+        : order.shippingDetails?.carrier
+          ? [
+              {
+                carrier: order.shippingDetails.carrier,
+                trackingNumber: order.shippingDetails.trackingNumber,
+              },
+            ]
+          : [];
+    const carrierTracking = carriers
+      .map((c: any) => `${c.carrier || ''}: ${c.trackingNumber || 'N/A'}`)
+      .join(', ');
+    const productSkus = (order.cart || [])
+      .map((i: any) => i.sku || i.SKU || '')
+      .join(', ');
+    const productTitles = (order.cart || [])
+      .map((i: any) => i.title || i.name || '')
+      .join(', ');
+    return [
+      escapeCsvValue(order._id),
+      escapeCsvValue(order.orderId || ''),
+      escapeCsvValue(order.name || ''),
+      escapeCsvValue(order.email || ''),
+      escapeCsvValue(productSkus),
+      escapeCsvValue(productTitles),
+      escapeCsvValue(order.subTotal ?? 0),
+      escapeCsvValue(order.shippingCost ?? 0),
+      escapeCsvValue(order.tax ?? 0),
+      escapeCsvValue(order.discount ?? 0),
+      escapeCsvValue(order.totalAmount ?? 0),
+      escapeCsvValue(carrierTracking),
+    ].join(',');
+  });
+  return [header, ...rows];
+};
+
 const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
   const [searchVal, setSearchVal] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
@@ -497,128 +561,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
 
   // Export functionality
   const handleExport = () => {
-    // Helper function to escape CSV values
-    const escapeCsvValue = (value: any): string => {
-      if (value === null || value === undefined) return '';
-      const stringValue = String(value);
-      // If value contains comma, quote, or newline, wrap in quotes and escape quotes
-      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    };
-
-    const csvRows: string[] = [];
-
-    // CSV Header
-    csvRows.push([
-      'Order Object ID',
-      'Order ID',
-      'Invoice',
-      'Customer',
-      'Email',
-      'Product SKU',
-      'Product Title',
-      'Quantity',
-      'Product Price',
-      'Subtotal',
-      'Shipping Cost',
-      'Discount',
-      'Total',
-      'Status',
-      'Payment Method',
-      'Date',
-      'Shipping Status',
-      'Carriers & Tracking Numbers',
-    ].join(','));
-
-    // Process each order and create rows for each cart item
-    filteredOrders.forEach(order => {
-      // Support both new (multiple carriers) and legacy (single carrier) formats
-      const shippingCarriers = order.shippingDetails?.carriers && Array.isArray(order.shippingDetails.carriers) && order.shippingDetails.carriers.length > 0
-        ? order.shippingDetails.carriers
-        : order.shippingDetails?.carrier
-          ? [{
-            carrier: order.shippingDetails.carrier,
-            trackingNumber: order.shippingDetails.trackingNumber,
-            trackingUrl: order.shippingDetails.trackingUrl,
-          }]
-          : [];
-
-      const carriersInfo = shippingCarriers.length > 0
-        ? shippingCarriers.map((c: any) => `${c.carrier || ''}: ${c.trackingNumber || 'N/A'}`).join('; ')
-        : '';
-
-      // Common order fields
-      const orderId = escapeCsvValue(order._id);
-      const orderNumber = escapeCsvValue(order.orderId || '');
-      const invoice = escapeCsvValue(order.invoice);
-      const customer = escapeCsvValue(order.name);
-      const email = escapeCsvValue(order.email);
-      const total = escapeCsvValue(order.totalAmount);
-      const status = escapeCsvValue(order.status);
-      const paymentMethod = escapeCsvValue(order.paymentMethod);
-      const date = escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm'));
-      const shippingStatus = escapeCsvValue(order.status === 'shipped' ? 'Shipped' : 'Not Shipped');
-      const carriers = escapeCsvValue(carriersInfo);
-      const subtotal = escapeCsvValue(order.subTotal || 0);
-      const shippingCost = escapeCsvValue(order.shippingCost || 0);
-      const discount = escapeCsvValue(order.discount || 0);
-
-      // If order has cart items, create a row for each product
-      if (order.cart && Array.isArray(order.cart) && order.cart.length > 0) {
-        order.cart.forEach((cartItem: any) => {
-          const sku = escapeCsvValue(cartItem.sku || cartItem.SKU || '');
-          const productTitle = escapeCsvValue(cartItem.title || cartItem.name || '');
-          const quantity = escapeCsvValue(cartItem.orderQuantity || cartItem.quantity || 1);
-          const productPrice = escapeCsvValue(cartItem.price || cartItem.finalPriceDiscount || 0);
-
-          csvRows.push([
-            orderId,
-            orderNumber,
-            invoice,
-            customer,
-            email,
-            sku,
-            productTitle,
-            quantity,
-            productPrice,
-            subtotal,
-            shippingCost,
-            discount,
-            total,
-            status,
-            paymentMethod,
-            date,
-            shippingStatus,
-            carriers,
-          ].join(','));
-        });
-      } else {
-        // If no cart items, still create one row with order info
-        csvRows.push([
-          orderId,
-          orderNumber,
-          invoice,
-          customer,
-          email,
-          '', // SKU
-          '', // Product Title
-          '', // Quantity
-          '', // Product Price
-          subtotal,
-          shippingCost,
-          discount,
-          total,
-          status,
-          paymentMethod,
-          date,
-          shippingStatus,
-          carriers,
-        ].join(','));
-      }
-    });
-
+    const csvRows = buildOrderCsvRows(filteredOrders);
     const csvContent = csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -672,86 +615,8 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         }
       }
 
-      // Generate CSV from all orders
-      const escapeCsvValue = (value: any): string => {
-        if (value === null || value === undefined) return '';
-        const stringValue = String(value);
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-      };
-
-      const csvRows: string[] = [];
-
-      // CSV Header
-      csvRows.push([
-        'Order Object ID',
-        'Order ID',
-        'Invoice',
-        'Customer',
-        'Email',
-        'Product SKU',
-        'Product Title',
-        'Quantity',
-        'Product Price',
-        'Subtotal',
-        'Shipping Cost',
-        'Tax',
-        'Discount',
-        'Total Amount',
-        'Status',
-        'Payment Method',
-        'Created At',
-      ].join(','));
-
-      // CSV Rows - Expand cart items
-      allOrders.forEach(order => {
-        if (order.cart && Array.isArray(order.cart) && order.cart.length > 0) {
-          order.cart.forEach((item: any) => {
-            csvRows.push([
-              escapeCsvValue(order._id),
-              escapeCsvValue(order.orderId),
-              escapeCsvValue(order.invoice),
-              escapeCsvValue(order.name),
-              escapeCsvValue(order.email),
-              escapeCsvValue(item.sku || ''),
-              escapeCsvValue(item.title || ''),
-              escapeCsvValue(item.orderQuantity || 1),
-              escapeCsvValue(item.finalPriceDiscount || item.price || 0),
-              escapeCsvValue(order.subTotal || 0),
-              escapeCsvValue(order.shippingCost || 0),
-              escapeCsvValue(order.discount || 0),
-              escapeCsvValue(order.totalAmount || 0),
-              escapeCsvValue(order.status),
-              escapeCsvValue(order.paymentMethod),
-              escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss')),
-            ].join(','));
-          });
-        } else {
-          // If no cart items, still add a row with order info
-          csvRows.push([
-            escapeCsvValue(order._id),
-            escapeCsvValue(order.orderId),
-            escapeCsvValue(order.invoice),
-            escapeCsvValue(order.name),
-            escapeCsvValue(order.email),
-            '',
-            '',
-            '',
-            '',
-            escapeCsvValue(order.subTotal || 0),
-            escapeCsvValue(order.shippingCost || 0),
-            escapeCsvValue(order.tax || 0),
-            escapeCsvValue(order.discount || 0),
-            escapeCsvValue(order.totalAmount || 0),
-            escapeCsvValue(order.status),
-            escapeCsvValue(order.paymentMethod),
-            escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm:ss')),
-          ].join(','));
-        }
-      });
-
+      // Generate CSV from all orders (one row per order, standardized format)
+      const csvRows = buildOrderCsvRows(allOrders);
       const csvContent = csvRows.join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
@@ -1053,126 +918,8 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         }
       }
 
-      // Generate CSV from all orders
-      const escapeCsvValue = (value: any): string => {
-        if (value === null || value === undefined) return '';
-        const stringValue = String(value);
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-      };
-
-      const csvRows: string[] = [];
-
-      // CSV Header
-      csvRows.push([
-        'Order Object ID',
-        'Order ID',
-        'Invoice',
-        'Customer',
-        'Email',
-        'Product SKU',
-        'Product Title',
-        'Quantity',
-        'Product Price',
-        'Subtotal',
-        'Shipping Cost',
-        'Tax',
-        'Discount',
-        'Total',
-        'Status',
-        'Payment Method',
-        'Date',
-        'Shipping Status',
-        'Carriers & Tracking Numbers',
-      ].join(','));
-
-      // Process each order and create rows for each cart item
-      allOrders.forEach(order => {
-        const shippingCarriers = order.shippingDetails?.carriers && Array.isArray(order.shippingDetails.carriers) && order.shippingDetails.carriers.length > 0
-          ? order.shippingDetails.carriers
-          : order.shippingDetails?.carrier
-            ? [{
-              carrier: order.shippingDetails.carrier,
-              trackingNumber: order.shippingDetails.trackingNumber,
-              trackingUrl: order.shippingDetails.trackingUrl,
-            }]
-            : [];
-
-        const carriersInfo = shippingCarriers.length > 0
-          ? shippingCarriers.map((c: any) => `${c.carrier || ''}: ${c.trackingNumber || 'N/A'}`).join('; ')
-          : '';
-
-        const orderId = escapeCsvValue(order._id);
-        const orderNumber = escapeCsvValue(order.orderId || '');
-        const invoice = escapeCsvValue(order.invoice);
-        const customer = escapeCsvValue(order.name);
-        const email = escapeCsvValue(order.email);
-        const total = escapeCsvValue(order.totalAmount);
-        const status = escapeCsvValue(order.status);
-        const paymentMethod = escapeCsvValue(order.paymentMethod);
-        const date = escapeCsvValue(dayjs(order.createdAt).format('YYYY-MM-DD HH:mm'));
-        const shippingStatus = escapeCsvValue(order.status === 'shipped' ? 'Shipped' : 'Not Shipped');
-        const carriers = escapeCsvValue(carriersInfo);
-        const subtotal = escapeCsvValue(order.subTotal || 0);
-        const shippingCost = escapeCsvValue(order.shippingCost || 0);
-        const tax = escapeCsvValue(order.tax || 0);
-        const discount = escapeCsvValue(order.discount || 0);
-
-        if (order.cart && Array.isArray(order.cart) && order.cart.length > 0) {
-          order.cart.forEach((cartItem: any) => {
-            const sku = escapeCsvValue(cartItem.sku || cartItem.SKU || '');
-            const productTitle = escapeCsvValue(cartItem.title || cartItem.name || '');
-            const quantity = escapeCsvValue(cartItem.orderQuantity || cartItem.quantity || 1);
-            const productPrice = escapeCsvValue(cartItem.price || cartItem.finalPriceDiscount || 0);
-
-            csvRows.push([
-              orderId,
-              orderNumber,
-              invoice,
-              customer,
-              email,
-              sku,
-              productTitle,
-              quantity,
-              productPrice,
-              subtotal,
-              shippingCost,
-              tax,
-              discount,
-              total,
-              status,
-              paymentMethod,
-              date,
-              shippingStatus,
-              carriers,
-            ].join(','));
-          });
-        } else {
-          csvRows.push([
-            orderId,
-            orderNumber,
-            invoice,
-            customer,
-            email,
-            '',
-            '',
-            '',
-            '',
-            subtotal,
-            shippingCost,
-            discount,
-            total,
-            status,
-            paymentMethod,
-            date,
-            shippingStatus,
-            carriers,
-          ].join(','));
-        }
-      });
-
+      // Generate CSV from all orders (one row per order, standardized format)
+      const csvRows = buildOrderCsvRows(allOrders);
       const csvContent = csvRows.join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
