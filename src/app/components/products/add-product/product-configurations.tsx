@@ -74,7 +74,7 @@ interface ConfigurationData {
 
 type IPropType = {
   setConfigurations: React.Dispatch<
-    SetStateAction<
+    React.SetStateAction<
       {
         title: string;
         options: {
