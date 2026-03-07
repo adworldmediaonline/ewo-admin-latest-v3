@@ -612,9 +612,8 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         cell: info => {
           const order = info.row.original;
           const isSending = sendingReviewForOrderId === order._id;
-          // Button is enabled if order is delivered, has email, and customer hasn't submitted a review yet
-          // Note: feedbackEmailSent doesn't matter - manual button is independent of automated emails
-          const canSendReview = order.status === 'delivered' && order.email && !order.hasReview;
+          // Button enabled for any order; confirmation dialog provides extra layer
+          const canSendReview = !!order.email;
 
           return (
             <div className="flex items-center space-x-2">
@@ -632,13 +631,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                   className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   title={
                     !canSendReview
-                      ? order.status !== 'delivered'
-                        ? 'Order must be delivered'
-                        : !order.email
-                          ? 'Order has no email address'
-                          : order.hasReview
-                            ? 'Customer has already submitted a review'
-                            : 'Cannot send review email'
+                      ? 'Order has no email address'
                       : 'Send review request email'
                   }
                 >
