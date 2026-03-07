@@ -337,6 +337,20 @@ export const authApi = apiSlice.injectEndpoints({
         return `/api/order/emails?${queryParams.toString()}`;
       },
     }),
+    // Update order source (Super Admin only)
+    updateOrderSource: builder.mutation<
+      { success: boolean; message: string; data: { orderId: string; source: string } },
+      { id: string; source: string }
+    >({
+      query({ id, source }) {
+        return {
+          url: `/api/order/update-source/${id}`,
+          method: 'PATCH',
+          body: { source },
+        };
+      },
+      invalidatesTags: ['AllOrders'],
+    }),
     // Send promotional email
     sendPromotionalEmail: builder.mutation<
       {
@@ -385,6 +399,7 @@ export const {
   useCreatePaymentIntentMutation,
   useSendBulkReviewRequestEmailsMutation,
   useTriggerFeedbackEmailMutation,
+  useUpdateOrderSourceMutation,
   useGetOrderEmailsQuery,
   useSendPromotionalEmailMutation,
   useGetOrdersByCategoryQuery,
