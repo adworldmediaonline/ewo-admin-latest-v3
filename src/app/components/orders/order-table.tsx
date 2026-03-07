@@ -96,6 +96,7 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
   const header = [
     '_id',
     'orderId',
+    'createdAt',
     'name',
     'email',
     'productSkus',
@@ -148,9 +149,13 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
     const productTitles = (order.cart || [])
       .map((i: any) => i.title || i.name || '')
       .join(', ');
+    const createdAtFormatted = order.createdAt
+      ? dayjs(order.createdAt).format('YYYY-MM-DD HH:mm')
+      : '';
     return [
       escapeCsvValue(order._id),
       escapeCsvValue(order.orderId || ''),
+      escapeCsvValue(createdAtFormatted),
       escapeCsvValue(order.name || ''),
       escapeCsvValue(order.email || ''),
       escapeCsvValue(productSkus),
@@ -168,6 +173,7 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
   // Add totals row at the end
   const totalsRow = [
     escapeCsvValue('TOTALS'),
+    '',
     '',
     '',
     '',
