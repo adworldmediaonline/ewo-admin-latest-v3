@@ -8,7 +8,7 @@ import React, { useMemo, useState } from 'react';
 import ErrorMsg from '../common/error-msg';
 import ShippingActions from './shipping-actions';
 // import OrderStatusChange from './status-change';
-import { useGetAllOrdersQuery, authApi, useSendBulkReviewRequestEmailsMutation, useTriggerFeedbackEmailMutation } from '@/redux/order/orderApi';
+import { useGetAllOrdersQuery, authApi, useSendBulkReviewRequestEmailsMutation, useTriggerFeedbackEmailMutation, useUpdateOrderSourceMutation } from '@/redux/order/orderApi';
 import { authApi as categoryAuthApi } from '@/redux/category/categoryApi';
 import { store } from '@/redux/store';
 import {
@@ -36,6 +36,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Tag,
   Truck,
   User,
   XCircle,
@@ -68,6 +69,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { badgeVariants } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 // Shared CSV helpers for order exports
@@ -84,6 +96,7 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
   const header = [
     '_id',
     'orderId',
+    'createdAt',
     'name',
     'email',
     'productSkus',
@@ -94,6 +107,7 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
     'discount',
     'totalAmount',
     'carrierTracking',
+    'source',
   ].join(',');
 
   let subTotalSum = 0;
@@ -135,9 +149,13 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
     const productTitles = (order.cart || [])
       .map((i: any) => i.title || i.name || '')
       .join(', ');
+    const createdAtFormatted = order.createdAt
+      ? dayjs(order.createdAt).format('YYYY-MM-DD HH:mm')
+      : '';
     return [
       escapeCsvValue(order._id),
       escapeCsvValue(order.orderId || ''),
+      escapeCsvValue(createdAtFormatted),
       escapeCsvValue(order.name || ''),
       escapeCsvValue(order.email || ''),
       escapeCsvValue(productSkus),
@@ -148,6 +166,7 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
       escapeCsvValue(discount),
       escapeCsvValue(totalAmount),
       escapeCsvValue(carrierTracking),
+      escapeCsvValue(order.source || ''),
     ].join(',');
   });
 
@@ -159,11 +178,13 @@ const buildOrderCsvRows = (orders: any[]): string[] => {
     '',
     '',
     '',
+    '',
     escapeCsvValue(subTotalSum.toFixed(2)),
     escapeCsvValue(shippingCostSum.toFixed(2)),
     escapeCsvValue(taxAmountSum.toFixed(2)),
     escapeCsvValue(discountSum.toFixed(2)),
     escapeCsvValue(totalAmountSum.toFixed(2)),
+    '',
     '',
   ].join(',');
 
@@ -197,7 +218,15 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
 
   const [sendBulkReviewRequestEmails] = useSendBulkReviewRequestEmailsMutation();
   const [triggerFeedbackEmail] = useTriggerFeedbackEmailMutation();
+  const [updateOrderSource] = useUpdateOrderSourceMutation();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  // Source dialog state (Super Admin only)
+  const [showSourceDialog, setShowSourceDialog] = useState<boolean>(false);
+  const [sourceOrderId, setSourceOrderId] = useState<string | null>(null);
+  const [sourceOrderNumber, setSourceOrderNumber] = useState<string | null>(null);
+  const [sourceValue, setSourceValue] = useState<string>('');
+  const [isUpdatingSource, setIsUpdatingSource] = useState<boolean>(false);
 
   // Debounce search to avoid too many API calls
   React.useEffect(() => {
@@ -375,6 +404,34 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
     setShowSingleOrderDialog(true);
   };
 
+  // Open source dialog for an order
+  const handleOpenSourceDialog = (order: { _id: string; orderId?: string; source?: string }) => {
+    setSourceOrderId(order._id);
+    setSourceOrderNumber(order.orderId || order._id);
+    setSourceValue(order.source || '');
+    setShowSourceDialog(true);
+  };
+
+  // Submit source update
+  const handleSubmitSource = async () => {
+    if (!sourceOrderId) return;
+
+    setIsUpdatingSource(true);
+    try {
+      await updateOrderSource({ id: sourceOrderId, source: sourceValue }).unwrap();
+      setShowSourceDialog(false);
+      setSourceOrderId(null);
+      setSourceOrderNumber(null);
+      setSourceValue('');
+      refetch();
+    } catch (error: unknown) {
+      const err = error as { data?: { message?: string }; message?: string };
+      alert(err?.data?.message || err?.message || 'Failed to update source');
+    } finally {
+      setIsUpdatingSource(false);
+    }
+  };
+
   // Send review request email for a single order (called from dialog)
   const handleSendReviewEmail = React.useCallback(async () => {
     if (!pendingOrderId || !pendingOrderNumber) return;
@@ -515,6 +572,37 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           </div>
         ),
       },
+      ...(role === 'super-admin'
+        ? [
+            {
+              id: 'source',
+              header: 'Source',
+              cell: (info: { row: { original: { _id: string; orderId?: string; source?: string } } }) => {
+                const order = info.row.original;
+                const sourceVal = order.source?.trim();
+                return (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-foreground">
+                      {sourceVal || '—'}
+                    </span>
+                    <button
+                      onClick={() => handleOpenSourceDialog(order)}
+                      className={cn(
+                        badgeVariants({ variant: 'default' }),
+                        'cursor-pointer hover:opacity-90 transition-opacity'
+                      )}
+                      title="Edit order source"
+                      aria-label="Edit order source"
+                    >
+                      <Tag className="w-3.5 h-3.5 mr-1" />
+                      Source
+                    </button>
+                  </div>
+                );
+              },
+            },
+          ]
+        : []),
       {
         id: 'shipping',
         header: 'Shipping',
@@ -530,9 +618,8 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         cell: info => {
           const order = info.row.original;
           const isSending = sendingReviewForOrderId === order._id;
-          // Button is enabled if order is delivered, has email, and customer hasn't submitted a review yet
-          // Note: feedbackEmailSent doesn't matter - manual button is independent of automated emails
-          const canSendReview = order.status === 'delivered' && order.email && !order.hasReview;
+          // Button enabled for any order; confirmation dialog provides extra layer
+          const canSendReview = !!order.email;
 
           return (
             <div className="flex items-center space-x-2">
@@ -550,13 +637,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
                   className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   title={
                     !canSendReview
-                      ? order.status !== 'delivered'
-                        ? 'Order must be delivered'
-                        : !order.email
-                          ? 'Order has no email address'
-                          : order.hasReview
-                            ? 'Customer has already submitted a review'
-                            : 'Cannot send review email'
+                      ? 'Order has no email address'
                       : 'Send review request email'
                   }
                 >
@@ -578,7 +659,7 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
         },
       },
     ],
-    [selectedRows, role, sendingReviewForOrderId, handleSendReviewEmail]
+    [selectedRows, role, sendingReviewForOrderId, handleSendReviewEmail, handleOpenSourceDialog]
   );
 
   // TanStack Table instance with server-side pagination
@@ -1601,6 +1682,56 @@ const OrderTable = ({ role }: { role: 'admin' | 'super-admin' }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Source Dialog - Super Admin Only */}
+      <Dialog open={showSourceDialog} onOpenChange={setShowSourceDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Order Source</DialogTitle>
+            <DialogDescription>
+              {sourceOrderNumber
+                ? `Enter the source value for order ${sourceOrderNumber}.`
+                : 'Enter the source value for this order.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="source-input">Source</Label>
+              <Input
+                id="source-input"
+                value={sourceValue}
+                onChange={e => setSourceValue(e.target.value)}
+                placeholder="e.g. Website, Referral, Campaign"
+                aria-label="Order source"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSourceDialog(false)}
+              disabled={isUpdatingSource}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSubmitSource}
+              disabled={isUpdatingSource}
+            >
+              {isUpdatingSource ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Submit'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
