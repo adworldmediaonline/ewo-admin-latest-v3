@@ -50,6 +50,8 @@ const useProductSubmit = () => {
         isSelected: boolean;
         image?: string;
         imageWithMeta?: ImageWithMeta;
+        /** Per-option stock; null = use main product quantity */
+        quantity?: number | null;
       }[];
     }[]
   >([]);

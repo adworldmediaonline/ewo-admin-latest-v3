@@ -81,6 +81,7 @@ export interface IProduct {
       isPercentageIncrease?: boolean;
       isSelected: boolean;
       image?: string;
+      quantity?: number | null;
     }>;
     enableCustomNote?: boolean;
     customNotePlaceholder?: string;

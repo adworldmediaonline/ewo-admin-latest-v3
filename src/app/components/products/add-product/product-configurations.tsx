@@ -37,6 +37,7 @@ interface ConfigurationOption {
   /** @deprecated Use imageWithMeta.url for backward compat */
   image?: string;
   imageWithMeta?: ImageWithMeta | null;
+  quantity?: number | null;
 }
 
 interface ConfigurationData {
@@ -100,6 +101,7 @@ export default function ProductConfigurations({
             isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
             image: opt.image ?? imgMeta?.url ?? '',
             imageWithMeta: imgMeta,
+            quantity: opt.quantity ?? null,
           };
         }),
       }))
@@ -149,7 +151,7 @@ export default function ProductConfigurations({
     return isNaN(parsed) ? 0 : parsed;
   };
 
-  // Set default values
+  // Set default values when default_value loads (e.g. edit product) - sync both formData and parent state
   useEffect(() => {
     if (default_value && !hasDefaultValues && default_value.length > 0) {
       const processedValues = default_value.map(item => ({
@@ -160,6 +162,31 @@ export default function ProductConfigurations({
         })),
       }));
 
+      const formDataFromDefaults = default_value.map(item => ({
+        ...item,
+        isValid: true,
+        hasError: false,
+        titleError: '',
+        enableCustomNote: item.enableCustomNote || false,
+        customNotePlaceholder:
+          item.customNotePlaceholder ||
+          'Specify Rod Ends preference (All left, All right, mixed, or custom).',
+        options: item.options.map(opt => {
+          const imgMeta = opt.imageWithMeta ?? (opt.image ? { url: opt.image, fileName: '', title: '', altText: '' } : null);
+          return {
+            ...opt,
+            price: typeof opt.price === 'number' ? opt.price : parseFloat(String(opt.price)) || 0,
+            priceType: opt.priceType || 'fixed',
+            percentage: opt.percentage || 0,
+            isPercentageIncrease: opt.isPercentageIncrease !== undefined ? opt.isPercentageIncrease : true,
+            image: opt.image ?? imgMeta?.url ?? '',
+            imageWithMeta: imgMeta,
+            quantity: opt.quantity ?? null,
+          };
+        }),
+      }));
+
+      setFormData(formDataFromDefaults);
       setConfigurations(processedValues);
       setHasDefaultValues(true);
     }
@@ -201,6 +228,34 @@ export default function ProductConfigurations({
       ...updatedFormData[configIndex].options[optionIndex],
       name: value,
     };
+
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
+  // Handle option quantity change
+  const handleOptionQuantityChange = (
+    configIndex: number,
+    optionIndex: number,
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const { value } = e.target;
+    const updatedFormData = [...formData];
+
+    if (value === '') {
+      updatedFormData[configIndex].options[optionIndex] = {
+        ...updatedFormData[configIndex].options[optionIndex],
+        quantity: null,
+      };
+    } else {
+      const num = parseInt(value, 10);
+      if (!Number.isNaN(num) && num >= 0) {
+        updatedFormData[configIndex].options[optionIndex] = {
+          ...updatedFormData[configIndex].options[optionIndex],
+          quantity: num,
+        };
+      }
+    }
 
     setFormData(updatedFormData);
     updateParentState(updatedFormData);
@@ -405,6 +460,7 @@ export default function ProductConfigurations({
           isSelected: false, // Don't preselect empty options
           image: '',
           imageWithMeta: undefined,
+          quantity: null,
         },
       ],
       isValid: true,
@@ -443,6 +499,7 @@ export default function ProductConfigurations({
         isSelected: false,
         image: '',
         imageWithMeta: undefined,
+        quantity: null,
       };
 
       config.options.push(newOption);
@@ -485,7 +542,7 @@ export default function ProductConfigurations({
       .filter(config => config.title.trim() !== '')
       .map(config => {
         // If custom note is enabled, options are not required
-        let processedOptions: Array<{ name: string; price: number; isSelected: boolean; image?: string; imageWithMeta?: ImageWithMeta }> = [];
+        let processedOptions: Array<{ name: string; price: number; isSelected: boolean; image?: string; imageWithMeta?: ImageWithMeta; quantity?: number | null }> = [];
         if (config.enableCustomNote) {
           // When custom note is enabled, we don't need options
           processedOptions = [];
@@ -508,6 +565,7 @@ export default function ProductConfigurations({
                 isSelected: false,
                 image: opt.image || opt.imageWithMeta?.url || '',
                 imageWithMeta: opt.imageWithMeta ?? undefined,
+                quantity: opt.quantity ?? null,
               };
             }
             if (opt.isSelected && !hasSelected) {
@@ -521,6 +579,7 @@ export default function ProductConfigurations({
                 isSelected: true,
                 image: opt.image || opt.imageWithMeta?.url || '',
                 imageWithMeta: opt.imageWithMeta ?? undefined,
+                quantity: opt.quantity ?? null,
               };
             }
             return {
@@ -532,6 +591,7 @@ export default function ProductConfigurations({
               isSelected: false,
               image: opt.image || opt.imageWithMeta?.url || '',
               imageWithMeta: opt.imageWithMeta ?? undefined,
+              quantity: opt.quantity ?? null,
             };
           });
         }
@@ -770,6 +830,34 @@ export default function ProductConfigurations({
                                   }
                                   className="text-sm"
                                 />
+                              </div>
+
+                              {/* Quantity (Optional) */}
+                              <div className="space-y-2">
+                                <Label
+                                  htmlFor={`option-quantity-${configIndex}-${optionIndex}`}
+                                  className="text-xs font-medium"
+                                >
+                                  Quantity (Optional)
+                                </Label>
+                                <Input
+                                  id={`option-quantity-${configIndex}-${optionIndex}`}
+                                  type="number"
+                                  min={0}
+                                  placeholder="Uses product quantity if empty"
+                                  value={option.quantity ?? ''}
+                                  onChange={e =>
+                                    handleOptionQuantityChange(
+                                      configIndex,
+                                      optionIndex,
+                                      e
+                                    )
+                                  }
+                                  className="text-sm"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  Per-option stock. Leave empty to use main product quantity.
+                                </p>
                               </div>
 
                               {/* Price Type Selection */}

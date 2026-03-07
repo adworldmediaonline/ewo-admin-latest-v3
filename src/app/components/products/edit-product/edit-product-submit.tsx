@@ -260,13 +260,22 @@ const EditProductSubmit = ({ id }: { id: string }) => {
               name?: string;
               price?: number | string;
               isSelected?: boolean;
+              quantity?: number | null;
+              [key: string]: unknown;
             }>;
+            enableCustomNote?: boolean;
+            customNotePlaceholder?: string;
+            [key: string]: unknown;
           }) => ({
             title: config.title ?? '',
+            enableCustomNote: config.enableCustomNote ?? false,
+            customNotePlaceholder: config.customNotePlaceholder,
             options: (config.options ?? []).map((opt) => ({
+              ...opt,
               name: opt.name ?? '',
               price: opt.price ?? 0,
               isSelected: opt.isSelected ?? false,
+              quantity: opt.quantity ?? null,
             })),
           })
         )
