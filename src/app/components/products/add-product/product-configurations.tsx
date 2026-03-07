@@ -18,14 +18,39 @@ import type { ImageWithMeta } from '@/types/image-with-meta';
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   DollarSign,
+  GripVertical,
   Plus,
   Settings,
   Trash2,
   X,
   Image as ImageIcon,
 } from 'lucide-react';
-import { ChangeEvent, SetStateAction, useEffect, useState } from 'react';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { ChangeEvent, useEffect, useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ConfigurationOption {
   name: string;
@@ -71,6 +96,56 @@ interface EnhancedConfigurationData extends ConfigurationData {
   titleError: string;
 }
 
+const OPTION_ID_PREFIX = 'config-opt-';
+
+function SortableOptionCard({
+  id,
+  isSelected,
+  children,
+}: {
+  id: string;
+  isSelected: boolean;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'p-4 rounded-lg border transition-all duration-200 flex items-start gap-3',
+        isDragging && 'opacity-50 shadow-lg ring-2 ring-primary/20 z-10',
+        isSelected
+          ? 'border-primary bg-primary/5'
+          : 'border-muted bg-background hover:border-primary/30'
+      )}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="mt-1 flex shrink-0 cursor-grab touch-none rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+        aria-label="Drag to reorder option"
+      >
+        <GripVertical className="h-5 w-5" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function ProductConfigurations({
   setConfigurations,
   default_value,
@@ -108,6 +183,27 @@ export default function ProductConfigurations({
       : []
   );
   const [hasDefaultValues, setHasDefaultValues] = useState<boolean>(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleOptionDragEnd = (configIndex: number, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const config = formData[configIndex];
+    if (!config?.options?.length) return;
+    const items = config.options.map((_, i) => `${OPTION_ID_PREFIX}${configIndex}-${i}`);
+    const oldIndex = items.indexOf(String(active.id));
+    const newIndex = items.indexOf(String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    handleOptionReorder(configIndex, oldIndex, newIndex);
+  };
 
   // Validation functions
   const validateTitle = (title: string): string => {
@@ -536,6 +632,21 @@ export default function ProductConfigurations({
     }
   };
 
+  // Reorder options within a configuration (drag and drop)
+  const handleOptionReorder = (configIndex: number, oldIndex: number, newIndex: number) => {
+    if (oldIndex === newIndex) return;
+    const updatedFormData = [...formData];
+    const config = updatedFormData[configIndex];
+    if (!config?.options?.length) return;
+    const reordered = arrayMove(config.options, oldIndex, newIndex);
+    updatedFormData[configIndex] = {
+      ...config,
+      options: reordered,
+    };
+    setFormData(updatedFormData);
+    updateParentState(updatedFormData);
+  };
+
   // Update parent state with valid data
   const updateParentState = (data: EnhancedConfigurationData[]) => {
     const validDataForParent = data
@@ -764,49 +875,86 @@ export default function ProductConfigurations({
                     </Button>
                   </div>
 
-                  <div className="space-y-3">
-                    {config.options.map((option, optionIndex) => {
-                      const canRemoveOption = config.options.length > 1;
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={(e) => handleOptionDragEnd(configIndex, e)}
+                  >
+                    <SortableContext
+                      items={config.options.map((_, i) => `${OPTION_ID_PREFIX}${configIndex}-${i}`)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-3">
+                        {config.options.map((option, optionIndex) => {
+                          const canRemoveOption = config.options.length > 1;
 
-                      return (
-                        <div
-                          key={optionIndex}
-                          className={cn(
-                            'p-4 rounded-lg border transition-all duration-200',
-                            option.isSelected
-                              ? 'border-primary bg-primary/5'
-                              : 'border-muted bg-background hover:border-primary/30'
-                          )}
-                        >
-                          <div className="flex items-start gap-3">
-                            {/* Selection Button */}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleOptionSelect(configIndex, optionIndex)
-                              }
-                              disabled={!option.name.trim()}
-                              className={cn(
-                                'mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0',
-                                option.isSelected
-                                  ? 'border-primary bg-primary'
-                                  : option.name.trim()
-                                    ? 'border-muted-foreground/30 hover:border-primary/50 cursor-pointer'
-                                    : 'border-muted-foreground/20 opacity-50 cursor-not-allowed'
-                              )}
-                              aria-label={
-                                option.name.trim()
-                                  ? `Select ${option.name}`
-                                  : 'Option name required to select'
-                              }
+                          return (
+                            <SortableOptionCard
+                              key={optionIndex}
+                              id={`${OPTION_ID_PREFIX}${configIndex}-${optionIndex}`}
+                              isSelected={option.isSelected ?? false}
                             >
-                              {option.isSelected && (
-                                <div className="h-2 w-2 rounded-full bg-white" />
-                              )}
-                            </button>
+                              <Collapsible defaultOpen className="flex-1 min-w-0 group">
+                                <div className="flex items-start gap-3">
+                                  <CollapsibleTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="flex flex-1 min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground -ml-1"
+                                      aria-label="Toggle option details"
+                                    >
+                                      <ChevronRight className="h-4 w-4 shrink-0 group-data-[state=open]:hidden" />
+                                      <ChevronDown className="h-4 w-4 shrink-0 hidden group-data-[state=open]:block" />
+                                      <span className="truncate">
+                                        {option.name.trim() || `Option ${optionIndex + 1}`}
+                                      </span>
+                                    </button>
+                                  </CollapsibleTrigger>
+                                  {/* Selection Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleOptionSelect(configIndex, optionIndex)
+                                    }
+                                    disabled={!option.name.trim()}
+                                    className={cn(
+                                      'mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 shrink-0',
+                                      option.isSelected
+                                        ? 'border-primary bg-primary'
+                                        : option.name.trim()
+                                          ? 'border-muted-foreground/30 hover:border-primary/50 cursor-pointer'
+                                          : 'border-muted-foreground/20 opacity-50 cursor-not-allowed'
+                                    )}
+                                    aria-label={
+                                      option.name.trim()
+                                        ? `Select ${option.name}`
+                                        : 'Option name required to select'
+                                    }
+                                  >
+                                    {option.isSelected && (
+                                      <div className="h-2 w-2 rounded-full bg-white" />
+                                    )}
+                                  </button>
 
-                            {/* Option Fields */}
-                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {/* Remove Option Button - visible in header */}
+                                  {canRemoveOption && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveOption(configIndex, optionIndex);
+                                      }}
+                                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+
+                                <CollapsibleContent>
+                                  <div className="mt-4 pt-4 border-t border-muted/50">
+                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                               {/* Option Name */}
                               <div className="space-y-2">
                                 <Label
@@ -1024,39 +1172,28 @@ export default function ProductConfigurations({
                                 </p>
                               </div>
                             </div>
+                                  </div>
 
-                            {/* Remove Option Button */}
-                            {canRemoveOption && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                onClick={() =>
-                                  handleRemoveOption(configIndex, optionIndex)
-                                }
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-
-                          {/* Selected Badge */}
-                          {option.isSelected && (
-                            <div className="mt-3 pt-3 border-t border-primary/20">
-                              <Badge
-                                variant="default"
-                                className="gap-1 bg-primary/10 text-primary hover:bg-primary/20"
-                              >
-                                <CheckCircle2 className="h-3 w-3" />
-                                Preselected Option
-                              </Badge>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                                  {/* Selected Badge */}
+                                  {option.isSelected && (
+                                    <div className="mt-3 pt-3 border-t border-primary/20">
+                                      <Badge
+                                        variant="default"
+                                        className="gap-1 bg-primary/10 text-primary hover:bg-primary/20"
+                                      >
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        Preselected Option
+                                      </Badge>
+                                    </div>
+                                  )}
+                                </CollapsibleContent>
+                              </Collapsible>
+                            </SortableOptionCard>
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 </div>
               )}
 
