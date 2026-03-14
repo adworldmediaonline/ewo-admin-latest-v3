@@ -48,7 +48,7 @@ import {
   useGetAllReviewsQuery,
   useDeleteReviewMutation,
 } from '@/redux/review/reviewApi';
-import { useGetAllProductsQuery } from '@/redux/product/productApi';
+import { IProduct } from '@/types/product';
 import { IReviewItem } from '@/types/review';
 import {
   ColumnDef,
@@ -78,8 +78,11 @@ import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { notifyError, notifySuccess } from '@/utils/toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AddReviewDialog } from './add-review-dialog';
 import { EditReviewDialog } from './edit-review-dialog';
+import { ProductReviewsSheet } from './product-reviews-sheet';
+import { ProductsWithReviewsTable } from './products-with-reviews-table';
 
 const StarRating = ({ rating, size = 16 }: { rating: number; size?: number }) => {
   const fullStars = Math.floor(rating);
@@ -127,7 +130,12 @@ const getReviewerDisplay = (review: IReviewItem): string => {
   return 'Guest';
 };
 
+type ViewMode = 'by-product' | 'all-reviews';
+
 export default function ReviewListArea() {
+  const [viewMode, setViewMode] = useState<ViewMode>('by-product');
+  const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [deleteReview, { isLoading: isDeleting }] = useDeleteReviewMutation();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -145,6 +153,11 @@ export default function ReviewListArea() {
   const [editReview, setEditReview] = useState<IReviewItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; comment: string } | null>(null);
 
+  const handleViewReviews = (product: IProduct) => {
+    setSelectedProduct(product);
+    setSheetOpen(true);
+  };
+
   React.useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(globalFilter.trim()), 300);
     return () => clearTimeout(timer);
@@ -154,13 +167,16 @@ export default function ReviewListArea() {
     setPagination(prev => ({ ...prev, pageIndex: 0 }));
   }, [debouncedSearch, ratingFilter, productFilter]);
 
-  const { data: reviewsData, isError, isLoading } = useGetAllReviewsQuery({
-    page: pagination.pageIndex + 1,
-    limit: pagination.pageSize,
-    search: debouncedSearch,
-    rating: ratingFilter === 'all' ? '' : ratingFilter,
-    productId: productFilter || '',
-  });
+  const { data: reviewsData, isError, isLoading } = useGetAllReviewsQuery(
+    {
+      page: pagination.pageIndex + 1,
+      limit: pagination.pageSize,
+      search: debouncedSearch,
+      rating: ratingFilter === 'all' ? '' : ratingFilter,
+      productId: productFilter || '',
+    },
+    { skip: viewMode === 'by-product' }
+  );
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -358,7 +374,10 @@ export default function ReviewListArea() {
     },
   });
 
-  if (isLoading) {
+  const showAllReviewsLoading = viewMode === 'all-reviews' && isLoading;
+  const showAllReviewsError = viewMode === 'all-reviews' && isError;
+
+  if (showAllReviewsLoading) {
     return (
       <Card>
         <CardHeader>
@@ -383,7 +402,7 @@ export default function ReviewListArea() {
     );
   }
 
-  if (isError) {
+  if (showAllReviewsError) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
@@ -400,24 +419,40 @@ export default function ReviewListArea() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Reviews
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Manage product reviews
-              </p>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Reviews
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Manage product reviews
+                </p>
+              </div>
+              <Button onClick={() => setAddDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Review
+              </Button>
             </div>
-            <Button onClick={() => setAddDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Review
-            </Button>
+            <Tabs
+              value={viewMode}
+              onValueChange={(v) => setViewMode(v as ViewMode)}
+              className="w-full"
+            >
+              <TabsList className="w-fit">
+                <TabsTrigger value="by-product">By Product</TabsTrigger>
+                <TabsTrigger value="all-reviews">All Reviews</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </CardHeader>
 
         <CardContent>
+          {viewMode === 'by-product' ? (
+            <ProductsWithReviewsTable onViewReviews={handleViewReviews} />
+          ) : (
+            <>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -600,9 +635,16 @@ export default function ReviewListArea() {
               </div>
             </div>
           </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
+      <ProductReviewsSheet
+        product={selectedProduct}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
       <AddReviewDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
       <EditReviewDialog
         review={editReview}
