@@ -13,7 +13,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -23,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { useUpdateReviewMutation } from '@/redux/review/reviewApi';
 import { notifyError, notifySuccess } from '@/utils/toast';
 import { IReviewItem } from '@/types/review';
@@ -39,13 +39,28 @@ interface EditReviewDialogProps {
   onClose: () => void;
 }
 
-const getProductTitle = (review: IReviewItem): string => {
+const getProductDisplay = (review: IReviewItem): { title: string; sku?: string } => {
   const product = review.productId;
-  if (!product) return '—';
-  if (typeof product === 'object' && 'title' in product) {
-    return (product as { title: string }).title;
+  if (!product) return { title: '—' };
+  if (typeof product === 'object') {
+    const p = product as { title?: string; sku?: string };
+    return { title: p.title ?? 'Product', sku: p.sku };
   }
-  return 'Product';
+  return { title: 'Product' };
+};
+
+const ProductDisplay = ({ review }: { review: IReviewItem }) => {
+  const { title, sku } = getProductDisplay(review);
+  return (
+    <div className="flex flex-col gap-2 rounded-md border bg-muted/50 px-3 py-2">
+      <span className="text-sm font-medium">{title}</span>
+      {sku && (
+        <Badge variant="secondary" className="font-mono text-xs w-fit">
+          SKU: {sku}
+        </Badge>
+      )}
+    </div>
+  );
 };
 
 export function EditReviewDialog({ review, onClose }: EditReviewDialogProps) {
@@ -104,11 +119,7 @@ export function EditReviewDialog({ review, onClose }: EditReviewDialogProps) {
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label>Product</Label>
-              <Input
-                value={getProductTitle(review)}
-                disabled
-                className="bg-muted"
-              />
+              <ProductDisplay review={review} />
             </div>
 
             <div className="space-y-2">

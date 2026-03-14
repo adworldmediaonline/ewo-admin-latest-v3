@@ -3,6 +3,7 @@ export interface IReviewProductPopulated {
   title: string;
   slug: string;
   img?: string;
+  sku?: string;
 }
 
 export interface IReviewUserPopulated {

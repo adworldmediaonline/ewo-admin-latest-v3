@@ -195,6 +195,7 @@ export default function ReviewListArea() {
           const title = p?.title ?? 'Product';
           const img = p?.img ?? '';
           const slug = p?.slug ?? '';
+          const sku = p && typeof p === 'object' && 'sku' in p ? (p as { sku?: string }).sku : undefined;
           return (
             <div className="flex items-center space-x-3">
               {img && (
@@ -215,9 +216,16 @@ export default function ReviewListArea() {
                 >
                   {title}
                 </Link>
-                {slug && (
-                  <p className="text-xs text-muted-foreground truncate">{slug}</p>
-                )}
+                <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                  {sku && (
+                    <Badge variant="secondary" className="font-mono text-xs">
+                      {sku}
+                    </Badge>
+                  )}
+                  {slug && (
+                    <p className="text-xs text-muted-foreground truncate">{slug}</p>
+                  )}
+                </div>
               </div>
             </div>
           );

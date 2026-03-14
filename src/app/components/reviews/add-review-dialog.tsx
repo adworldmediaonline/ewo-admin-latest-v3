@@ -35,6 +35,13 @@ import { notifyError, notifySuccess } from '@/utils/toast';
 import { IAddReviewPayload } from '@/types/review';
 import { Search } from 'lucide-react';
 import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const addReviewSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -59,6 +66,7 @@ export function AddReviewDialog({ open, onOpenChange }: AddReviewDialogProps) {
     _id: string;
     title: string;
     img?: string;
+    sku?: string;
   } | null>(null);
 
   const { data: productsData } = useGetAllProductsQuery(
@@ -128,29 +136,49 @@ export function AddReviewDialog({ open, onOpenChange }: AddReviewDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-h-[90vh] max-w-[calc(100vw-2rem)] overflow-y-auto sm:max-w-[500px] min-w-0 overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Add Review</DialogTitle>
           <DialogDescription>
             Add a new review for a product. You can link to a user or use guest fields.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-          <div className="space-y-2">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="min-w-0 overflow-hidden space-y-4">
+          <div className="min-w-0 w-full overflow-hidden space-y-2">
             <Label htmlFor="product">Product</Label>
             <Popover open={productPickerOpen} onOpenChange={setProductPickerOpen}>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-between font-normal"
+                <button
                   type="button"
+                  className="flex w-full min-w-0 overflow-hidden items-start gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-sm shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {selectedProduct ? (
-                    <span className="truncate">{selectedProduct.title}</span>
+                    <div className="flex min-w-0 flex-1 flex-col items-stretch gap-1.5 overflow-hidden">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="min-w-0 truncate text-left">
+                              {selectedProduct.title}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-sm">
+                            <p className="break-words">{selectedProduct.title}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      {selectedProduct.sku && (
+                        <Badge
+                          variant="secondary"
+                          className="font-mono text-xs shrink-0"
+                        >
+                          SKU: {selectedProduct.sku}
+                        </Badge>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-muted-foreground">Select product...</span>
                   )}
-                </Button>
+                </button>
               </PopoverTrigger>
               <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
                 <div className="p-2 border-b">
@@ -181,6 +209,7 @@ export function AddReviewDialog({ open, onOpenChange }: AddReviewDialogProps) {
                               _id: p._id,
                               title: p.title,
                               img: p.img,
+                              sku: p.sku,
                             });
                             setProductPickerOpen(false);
                           }}
@@ -196,7 +225,17 @@ export function AddReviewDialog({ open, onOpenChange }: AddReviewDialogProps) {
                               />
                             </div>
                           )}
-                          <span className="truncate text-sm">{p.title}</span>
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="truncate text-sm">{p.title}</span>
+                            {p.sku && (
+                              <Badge
+                                variant="secondary"
+                                className="font-mono text-xs w-fit mt-0.5"
+                              >
+                                {p.sku}
+                              </Badge>
+                            )}
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -211,7 +250,7 @@ export function AddReviewDialog({ open, onOpenChange }: AddReviewDialogProps) {
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label htmlFor="rating">Rating</Label>
             <Select
               value={String(form.watch('rating'))}
@@ -230,7 +269,7 @@ export function AddReviewDialog({ open, onOpenChange }: AddReviewDialogProps) {
             </Select>
           </div>
 
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label htmlFor="comment">Comment (optional)</Label>
             <Textarea
               id="comment"
@@ -240,7 +279,7 @@ export function AddReviewDialog({ open, onOpenChange }: AddReviewDialogProps) {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label htmlFor="guestName">Guest Name (optional)</Label>
             <Input
               id="guestName"
@@ -249,7 +288,7 @@ export function AddReviewDialog({ open, onOpenChange }: AddReviewDialogProps) {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label htmlFor="guestEmail">Guest Email (optional)</Label>
             <Input
               id="guestEmail"
