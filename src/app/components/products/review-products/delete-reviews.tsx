@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import Swal from "sweetalert2";
 import { Delete } from "@/svg";
 import DeleteTooltip from "../../tooltip/delete-tooltip";
-import { useDeleteReviewsMutation } from "@/redux/review/reviewApi";
+import { useDeleteReviewsByProductMutation } from "@/redux/review/reviewApi";
 
 const DeleteReviews = ({ id }: { id: string }) => {
   const [showDelete, setShowDelete] = useState<boolean>(false);
   const [deleteReviews, { data, isError, isLoading }] =
-    useDeleteReviewsMutation();
+    useDeleteReviewsByProductMutation();
 
   // handleDelete
   const handleDelete = (productId: string) => {

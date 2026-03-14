@@ -53,7 +53,7 @@ import {
 import Image from 'next/image';
 import React, { useMemo, useState, useCallback } from 'react';
 import dayjs from 'dayjs';
-import { useDeleteReviewsMutation } from '@/redux/review/reviewApi';
+import { useDeleteReviewsByProductMutation } from '@/redux/review/reviewApi';
 import Swal from 'sweetalert2';
 import { notifyError } from '@/utils/toast';
 
@@ -106,7 +106,7 @@ const StarRating = ({
 };
 
 export default function ReviewListArea() {
-  const [deleteReviews] = useDeleteReviewsMutation();
+  const [deleteReviews] = useDeleteReviewsByProductMutation();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
