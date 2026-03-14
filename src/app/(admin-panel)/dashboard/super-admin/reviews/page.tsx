@@ -1,7 +1,7 @@
-import ReviewListArea from '@/app/components/products/review-products/review-list-area';
+import ReviewListArea from '@/app/components/reviews/review-list-area';
 import Wrapper from '@/layout/wrapper';
 
-const ReviewsPage = () => {
+export default function ReviewsPage() {
   return (
     <Wrapper>
       <div className="body-content px-8 py-8">
@@ -9,6 +9,4 @@ const ReviewsPage = () => {
       </div>
     </Wrapper>
   );
-};
-
-export default ReviewsPage;
+}

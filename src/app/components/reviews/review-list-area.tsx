@@ -1,4 +1,14 @@
 'use client';
+
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +31,12 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Table,
   TableBody,
   TableCell,
@@ -28,8 +44,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useGetReviewProductsQuery } from '@/redux/product/productApi';
-import { IProduct } from '@/types/product';
+import {
+  useGetAllReviewsQuery,
+  useDeleteReviewMutation,
+} from '@/redux/review/reviewApi';
+import { useGetAllProductsQuery } from '@/redux/product/productApi';
+import { IReviewItem } from '@/types/review';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -45,33 +65,29 @@ import {
 import {
   ArrowUpDown,
   ChevronDown,
+  Edit,
+  MessageSquare,
   MoreHorizontal,
+  Plus,
   Search,
   Star,
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
-import React, { useMemo, useState, useCallback } from 'react';
-import dayjs from 'dayjs';
-import { useDeleteReviewsByProductMutation } from '@/redux/review/reviewApi';
-import Swal from 'sweetalert2';
-import { notifyError } from '@/utils/toast';
+import Link from 'next/link';
+import React, { useMemo, useState } from 'react';
+import { format } from 'date-fns';
+import { notifyError, notifySuccess } from '@/utils/toast';
+import { AddReviewDialog } from './add-review-dialog';
+import { EditReviewDialog } from './edit-review-dialog';
 
-// Custom Star Rating Component
-const StarRating = ({
-  rating,
-  size = 16,
-}: {
-  rating: number;
-  size?: number;
-}) => {
+const StarRating = ({ rating, size = 16 }: { rating: number; size?: number }) => {
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 >= 0.5;
   const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
 
   return (
     <div className="flex items-center gap-0.5">
-      {/* Full stars */}
       {Array.from({ length: fullStars }, (_, i) => (
         <Star
           key={`full-${i}`}
@@ -79,8 +95,6 @@ const StarRating = ({
           className="fill-amber-400 text-amber-400 shrink-0 transition-colors"
         />
       ))}
-
-      {/* Half star */}
       {hasHalfStar && (
         <div className="relative">
           <Star size={size} className="text-gray-300 shrink-0" />
@@ -92,8 +106,6 @@ const StarRating = ({
           </div>
         </div>
       )}
-
-      {/* Empty stars */}
       {Array.from({ length: emptyStars }, (_, i) => (
         <Star
           key={`empty-${i}`}
@@ -105,117 +117,107 @@ const StarRating = ({
   );
 };
 
+const getReviewerDisplay = (review: IReviewItem): string => {
+  const user = review.userId;
+  if (user && typeof user === 'object' && 'name' in user) {
+    return (user as { name: string; email?: string }).name || (user as { email?: string }).email || 'User';
+  }
+  if (review.guestName) return review.guestName;
+  if (review.guestEmail) return review.guestEmail;
+  return 'Guest';
+};
+
 export default function ReviewListArea() {
-  const [deleteReviews] = useDeleteReviewsByProductMutation();
+  const [deleteReview, { isLoading: isDeleting }] = useDeleteReviewMutation();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [ratingFilter, setRatingFilter] = useState<string>('all');
+  const [productFilter, setProductFilter] = useState('');
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
   });
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editReview, setEditReview] = useState<IReviewItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; comment: string } | null>(null);
 
-  // Debounce search to avoid too many API calls
   React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(globalFilter.trim());
-    }, 300);
+    const timer = setTimeout(() => setDebouncedSearch(globalFilter.trim()), 300);
     return () => clearTimeout(timer);
   }, [globalFilter]);
 
-  // Reset pagination when search or filter changes
   React.useEffect(() => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }));
-  }, [debouncedSearch, columnFilters]);
+  }, [debouncedSearch, ratingFilter, productFilter]);
 
-  // Get rating filter value
-  const ratingFilter = useMemo(() => {
-    const ratingColumn = columnFilters.find(filter => filter.id === 'reviews');
-    return ratingColumn?.value as string || '';
-  }, [columnFilters]);
-
-  // Fetch review products with server-side pagination
-  const { data: reviewProducts, isError, isLoading } = useGetReviewProductsQuery({
+  const { data: reviewsData, isError, isLoading } = useGetAllReviewsQuery({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
     search: debouncedSearch,
     rating: ratingFilter === 'all' ? '' : ratingFilter,
+    productId: productFilter || '',
   });
 
-  const handleDelete = useCallback(async (id: string, title: string) => {
-    Swal.fire({
-      title: 'Are you sure?',
-      text: `Delete all reviews for "${title}"?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, delete it!',
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const res = await deleteReviews(id);
-          if ('data' in res) {
-            if (res.data && 'message' in res.data) {
-              Swal.fire('Deleted!', `${res.data.message}`, 'success');
-            }
-          } else {
-            Swal.fire('Error!', 'Failed to delete reviews', 'error');
-          }
-        } catch (error) {
-          notifyError('Failed to delete reviews');
-        }
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    try {
+      const res = await deleteReview(deleteTarget.id);
+      if ('error' in res) {
+        const err = res.error as { data?: { message?: string } };
+        notifyError(err?.data?.message || 'Failed to delete review');
+      } else {
+        notifySuccess('Review deleted successfully');
+        setDeleteTarget(null);
       }
-    });
-  }, [deleteReviews]);
-
-  // Calculate average rating helper
-  const getAverageRating = (product: IProduct): number => {
-    if (!product.reviews || product.reviews.length === 0) return 0;
-    return (
-      product.reviews.reduce((sum, review) => sum + review.rating, 0) /
-      product.reviews.length
-    );
+    } catch {
+      notifyError('Failed to delete review');
+    }
   };
 
-  const productData = reviewProducts?.data || [];
-  const totalProducts = reviewProducts?.pagination?.total || 0;
-  const totalPages = reviewProducts?.pagination?.pages || 0;
+  const reviewData = reviewsData?.data || [];
+  const totalReviews = reviewsData?.pagination?.total || 0;
+  const totalPages = reviewsData?.pagination?.pages || 0;
 
-  // Define columns with advanced features
-  const columns: ColumnDef<IProduct>[] = useMemo(
+  const columns: ColumnDef<IReviewItem>[] = useMemo(
     () => [
       {
-        accessorKey: 'title',
+        accessorKey: 'productId',
         header: 'Product',
         cell: ({ row }) => {
-          const product = row.original;
+          const product = row.original.productId;
+          if (!product) return <span className="text-muted-foreground">—</span>;
+          const p = typeof product === 'object' ? product : null;
+          const id = p?._id ?? (typeof product === 'string' ? product : '');
+          const title = p?.title ?? 'Product';
+          const img = p?.img ?? '';
+          const slug = p?.slug ?? '';
           return (
             <div className="flex items-center space-x-3">
-              <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted">
-                <Image
-                  src={
-                    product.img ||
-                    product.imageURLs?.[0] ||
-                    '/placeholder-product.png'
-                  }
-                  alt={product.title}
-                  fill
-                  className="object-cover"
-                  sizes="48px"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-foreground truncate">
-                  {product.title}
+              {img && (
+                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
+                  <Image
+                    src={img}
+                    alt={title}
+                    fill
+                    className="object-cover"
+                    sizes="40px"
+                  />
                 </div>
-                <p className="text-xs text-muted-foreground truncate">
-                  {product.reviews?.length || 0} review
-                  {product.reviews?.length !== 1 ? 's' : ''}
-                </p>
+              )}
+              <div className="min-w-0 flex-1">
+                <Link
+                  href={`/dashboard/super-admin/product/edit/${id}`}
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors truncate block"
+                >
+                  {title}
+                </Link>
+                {slug && (
+                  <p className="text-xs text-muted-foreground truncate">{slug}</p>
+                )}
               </div>
             </div>
           );
@@ -223,7 +225,7 @@ export default function ReviewListArea() {
         enableHiding: true,
       },
       {
-        accessorKey: 'reviews',
+        accessorKey: 'rating',
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -234,74 +236,63 @@ export default function ReviewListArea() {
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
+        cell: ({ row }) => <StarRating rating={row.original.rating} />,
+        enableHiding: true,
+      },
+      {
+        accessorKey: 'comment',
+        header: 'Comment',
         cell: ({ row }) => {
-          const product = row.original;
-          const averageRating = getAverageRating(product);
-
-          if (!product.reviews || product.reviews.length === 0) {
-            return (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center shrink-0">
-                  <StarRating rating={0} size={14} />
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  No reviews
-                </span>
-              </div>
-            );
-          }
-
+          const comment = row.original.comment || '';
+          const truncated = comment.length > 60 ? `${comment.slice(0, 60)}...` : comment;
+          if (!comment) return <span className="text-muted-foreground">—</span>;
           return (
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="flex items-center shrink-0">
-                <StarRating rating={averageRating} size={14} />
-              </div>
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-xs text-amber-600 font-medium">
-                  {averageRating.toFixed(1)}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  ({product.reviews.length})
-                </span>
-              </div>
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="block max-w-[200px] truncate text-sm">{truncated}</span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm">
+                  <p className="whitespace-pre-wrap">{comment}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
-        },
-        sortingFn: (rowA, rowB) => {
-          const ratingA = getAverageRating(rowA.original);
-          const ratingB = getAverageRating(rowB.original);
-          return ratingA - ratingB;
         },
         enableHiding: true,
       },
       {
-        accessorKey: 'updatedAt',
+        id: 'reviewer',
+        header: 'Reviewer',
+        cell: ({ row }) => (
+          <span className="text-sm">{getReviewerDisplay(row.original)}</span>
+        ),
+        enableHiding: true,
+      },
+      {
+        accessorKey: 'createdAt',
         header: ({ column }) => (
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             className="h-auto p-0 font-medium hover:bg-transparent"
           >
-            Last Updated
+            Date
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
-        cell: ({ row }) => {
-          const date = row.getValue('updatedAt') as string;
-          return (
-            <div className="text-sm text-muted-foreground">
-              {dayjs(date).format('MMM D, YYYY')}
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {format(new Date(row.original.createdAt), 'MMM d, yyyy')}
+          </span>
+        ),
         enableHiding: true,
       },
       {
         id: 'actions',
         enableHiding: false,
         cell: ({ row }) => {
-          const product = row.original;
-
+          const review = row.original;
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -312,12 +303,21 @@ export default function ReviewListArea() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => setEditReview(review)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive"
-                  onClick={() => handleDelete(product._id, product.title)}
+                  onClick={() =>
+                    setDeleteTarget({
+                      id: review._id,
+                      comment: review.comment?.slice(0, 50) || '',
+                    })
+                  }
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete All Reviews
+                  Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -325,21 +325,20 @@ export default function ReviewListArea() {
         },
       },
     ],
-    [handleDelete, getAverageRating]
+    []
   );
 
-  // Initialize table with server-side pagination
   const table = useReactTable({
-    data: productData,
+    data: reviewData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
-    // Enable server-side pagination
     manualPagination: true,
     pageCount: totalPages,
     state: {
@@ -351,7 +350,6 @@ export default function ReviewListArea() {
     },
   });
 
-  // Loading skeleton
   if (isLoading) {
     return (
       <Card>
@@ -377,7 +375,6 @@ export default function ReviewListArea() {
     );
   }
 
-  // Error state
   if (isError) {
     return (
       <Card>
@@ -393,54 +390,45 @@ export default function ReviewListArea() {
 
   return (
     <div className="space-y-4">
-      {/* Header with Search and Filters */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-amber-500" />
-                Product Reviews
+                <MessageSquare className="h-5 w-5" />
+                Reviews
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Manage and review customer feedback
+                Manage product reviews
               </p>
             </div>
+            <Button onClick={() => setAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Review
+            </Button>
           </div>
         </CardHeader>
 
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search products by name..."
-                value={globalFilter ?? ''}
-                onChange={event => {
-                  setGlobalFilter(event.target.value);
-                  // Reset to first page when searching
+                placeholder="Search by comment..."
+                value={globalFilter}
+                onChange={(e) => {
+                  setGlobalFilter(e.target.value);
                   setPagination(prev => ({ ...prev, pageIndex: 0 }));
                 }}
                 className="pl-10"
+                aria-label="Search reviews by comment"
               />
             </div>
-
-            {/* Rating Filter */}
             <Select
-              value={
-                (columnFilters.find(f => f.id === 'reviews')?.value as string) ||
-                'all'
-              }
-              onValueChange={value => {
-                if (value === 'all') {
-                  setColumnFilters(prev => prev.filter(f => f.id !== 'reviews'));
-                } else {
-                  setColumnFilters(prev => [
-                    ...prev.filter(f => f.id !== 'reviews'),
-                    { id: 'reviews', value },
-                  ]);
-                }
+              value={ratingFilter}
+              onValueChange={(v) => {
+                setRatingFilter(v);
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
               }}
             >
               <SelectTrigger className="w-[180px]">
@@ -448,15 +436,23 @@ export default function ReviewListArea() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Ratings</SelectItem>
-                <SelectItem value="5">5 Stars</SelectItem>
-                <SelectItem value="4">4 Stars</SelectItem>
-                <SelectItem value="3">3 Stars</SelectItem>
-                <SelectItem value="2">2 Stars</SelectItem>
                 <SelectItem value="1">1 Star</SelectItem>
+                <SelectItem value="2">2 Stars</SelectItem>
+                <SelectItem value="3">3 Stars</SelectItem>
+                <SelectItem value="4">4 Stars</SelectItem>
+                <SelectItem value="5">5 Stars</SelectItem>
               </SelectContent>
             </Select>
-
-            {/* Column Visibility */}
+            <Input
+              placeholder="Product ID (optional)"
+              value={productFilter}
+              onChange={(e) => {
+                setProductFilter(e.target.value);
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              }}
+              className="w-[180px]"
+              aria-label="Filter by product ID"
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="ml-auto">
@@ -466,54 +462,44 @@ export default function ReviewListArea() {
               <DropdownMenuContent align="end">
                 {table
                   .getAllColumns()
-                  .filter(column => column.getCanHide())
-                  .map(column => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={value =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    );
-                  })}
+                  .filter((col) => col.getCanHide())
+                  .map((col) => (
+                    <DropdownMenuCheckboxItem
+                      key={col.id}
+                      className="capitalize"
+                      checked={col.getIsVisible()}
+                      onCheckedChange={(v) => col.toggleVisibility(!!v)}
+                    >
+                      {col.id}
+                    </DropdownMenuCheckboxItem>
+                  ))}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
-          {/* Table */}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
-                {table.getHeaderGroups().map(headerGroup => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map(header => {
-                      return (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                        </TableHead>
-                      );
-                    })}
+                {table.getHeaderGroups().map((hg) => (
+                  <TableRow key={hg.id}>
+                    {hg.headers.map((h) => (
+                      <TableHead key={h.id}>
+                        {h.isPlaceholder
+                          ? null
+                          : flexRender(h.column.columnDef.header, h.getContext())}
+                      </TableHead>
+                    ))}
                   </TableRow>
                 ))}
               </TableHeader>
               <TableBody>
                 {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map(row => (
+                  table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() && 'selected'}
                     >
-                      {row.getVisibleCells().map(cell => (
+                      {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
                           {flexRender(
                             cell.column.columnDef.cell,
@@ -537,20 +523,16 @@ export default function ReviewListArea() {
             </Table>
           </div>
 
-          {/* Pagination */}
           <div className="flex items-center justify-between space-x-2 py-4">
             <div className="flex-1 text-sm text-muted-foreground">
-              {table.getFilteredSelectedRowModel().rows.length} of{' '}
-              {totalProducts} product{totalProducts !== 1 ? 's' : ''} selected.
+              {totalReviews} review{totalReviews !== 1 ? 's' : ''} total
             </div>
             <div className="flex items-center space-x-6 lg:space-x-8">
               <div className="flex items-center space-x-2">
                 <p className="text-sm font-medium">Rows per page</p>
                 <Select
                   value={`${table.getState().pagination.pageSize}`}
-                  onValueChange={value => {
-                    table.setPageSize(Number(value));
-                  }}
+                  onValueChange={(v) => table.setPageSize(Number(v))}
                 >
                   <SelectTrigger className="h-8 w-[70px]">
                     <SelectValue
@@ -558,9 +540,9 @@ export default function ReviewListArea() {
                     />
                   </SelectTrigger>
                   <SelectContent side="top">
-                    {[10, 20, 30, 40, 50].map(pageSize => (
-                      <SelectItem key={pageSize} value={`${pageSize}`}>
-                        {pageSize}
+                    {[10, 20, 30, 40, 50].map((ps) => (
+                      <SelectItem key={ps} value={`${ps}`}>
+                        {ps}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -568,7 +550,7 @@ export default function ReviewListArea() {
               </div>
               <div className="flex w-[100px] items-center justify-center text-sm font-medium">
                 Page {table.getState().pagination.pageIndex + 1} of{' '}
-                {totalPages || 1} ({totalProducts} total)
+                {totalPages || 1}
               </div>
               <div className="flex items-center space-x-2">
                 <Button
@@ -576,8 +558,8 @@ export default function ReviewListArea() {
                   className="h-8 w-8 p-0"
                   onClick={() => table.setPageIndex(0)}
                   disabled={!table.getCanPreviousPage()}
+                  aria-label="Go to first page"
                 >
-                  <span className="sr-only">Go to first page</span>
                   <span>&laquo;</span>
                 </Button>
                 <Button
@@ -585,8 +567,8 @@ export default function ReviewListArea() {
                   className="h-8 w-8 p-0"
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
+                  aria-label="Go to previous page"
                 >
-                  <span className="sr-only">Go to previous page</span>
                   <span>&lsaquo;</span>
                 </Button>
                 <Button
@@ -594,8 +576,8 @@ export default function ReviewListArea() {
                   className="h-8 w-8 p-0"
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
+                  aria-label="Go to next page"
                 >
-                  <span className="sr-only">Go to next page</span>
                   <span>&rsaquo;</span>
                 </Button>
                 <Button
@@ -603,8 +585,8 @@ export default function ReviewListArea() {
                   className="h-8 w-8 p-0"
                   onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                   disabled={!table.getCanNextPage()}
+                  aria-label="Go to last page"
                 >
-                  <span className="sr-only">Go to last page</span>
                   <span>&raquo;</span>
                 </Button>
               </div>
@@ -612,7 +594,33 @@ export default function ReviewListArea() {
           </div>
         </CardContent>
       </Card>
+
+      <AddReviewDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+      <EditReviewDialog
+        review={editReview}
+        onClose={() => setEditReview(null)}
+      />
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => !isDeleting && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete review?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the review
+              {deleteTarget?.comment ? `: "${deleteTarget.comment}..."` : ''}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-

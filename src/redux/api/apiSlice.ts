@@ -48,6 +48,7 @@ export const apiSlice = createApi({
     'getBanner',
     'getAnnouncement',
     'ReviewProducts',
+    'AllReviews',
     'AllCoupons',
     'Coupon',
     'AllStaff',
