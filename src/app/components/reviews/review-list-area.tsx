@@ -457,14 +457,14 @@ export default function ReviewListArea() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by comment..."
+                placeholder="Search by comment, product title, or SKU..."
                 value={globalFilter}
                 onChange={(e) => {
                   setGlobalFilter(e.target.value);
                   setPagination(prev => ({ ...prev, pageIndex: 0 }));
                 }}
                 className="pl-10"
-                aria-label="Search reviews by comment"
+                aria-label="Search reviews by comment, product title, or SKU"
               />
             </div>
             <Select
@@ -593,7 +593,7 @@ export default function ReviewListArea() {
               </div>
               <div className="flex w-[100px] items-center justify-center text-sm font-medium">
                 Page {table.getState().pagination.pageIndex + 1} of{' '}
-                {totalPages || 1}
+                {totalPages || 1} ({totalReviews} total)
               </div>
               <div className="flex items-center space-x-2">
                 <Button
@@ -603,6 +603,7 @@ export default function ReviewListArea() {
                   disabled={!table.getCanPreviousPage()}
                   aria-label="Go to first page"
                 >
+                  <span className="sr-only">Go to first page</span>
                   <span>&laquo;</span>
                 </Button>
                 <Button
@@ -612,6 +613,7 @@ export default function ReviewListArea() {
                   disabled={!table.getCanPreviousPage()}
                   aria-label="Go to previous page"
                 >
+                  <span className="sr-only">Go to previous page</span>
                   <span>&lsaquo;</span>
                 </Button>
                 <Button
@@ -621,6 +623,7 @@ export default function ReviewListArea() {
                   disabled={!table.getCanNextPage()}
                   aria-label="Go to next page"
                 >
+                  <span className="sr-only">Go to next page</span>
                   <span>&rsaquo;</span>
                 </Button>
                 <Button
@@ -630,6 +633,7 @@ export default function ReviewListArea() {
                   disabled={!table.getCanNextPage()}
                   aria-label="Go to last page"
                 >
+                  <span className="sr-only">Go to last page</span>
                   <span>&raquo;</span>
                 </Button>
               </div>

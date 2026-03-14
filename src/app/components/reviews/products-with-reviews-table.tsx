@@ -184,6 +184,7 @@ export function ProductsWithReviewsTable({ onViewReviews }: ProductsWithReviewsT
     data: products,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    onPaginationChange: setPagination,
     manualPagination: true,
     pageCount: totalPages,
     state: { pagination },
@@ -226,7 +227,7 @@ export function ProductsWithReviewsTable({ onViewReviews }: ProductsWithReviewsT
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search products..."
+            placeholder="Search by product title or SKU..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -282,46 +283,70 @@ export function ProductsWithReviewsTable({ onViewReviews }: ProductsWithReviewsT
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+      <div className="flex items-center justify-between space-x-2 py-4">
+        <div className="flex-1 text-sm text-muted-foreground">
           {totalProducts} product{totalProducts !== 1 ? 's' : ''} with reviews
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            First
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Prev
-          </Button>
-          <span className="text-sm">
+        </div>
+        <div className="flex items-center space-x-6 lg:space-x-8">
+          <div className="flex items-center space-x-2">
+            <p className="text-sm font-medium">Rows per page</p>
+            <Select
+              value={`${pagination.pageSize}`}
+              onValueChange={(v) => table.setPageSize(Number(v))}
+            >
+              <SelectTrigger className="h-8 w-[70px]">
+                <SelectValue placeholder={pagination.pageSize} />
+              </SelectTrigger>
+              <SelectContent side="top">
+                {[10, 20, 30, 40, 50].map((ps) => (
+                  <SelectItem key={ps} value={`${ps}`}>
+                    {ps}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex w-[100px] items-center justify-center text-sm font-medium">
             Page {pagination.pageIndex + 1} of {totalPages || 1}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            Last
-          </Button>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              className="h-8 w-8 p-0"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+              aria-label="Go to first page"
+            >
+              <span>&laquo;</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-8 w-8 p-0"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              aria-label="Go to previous page"
+            >
+              <span>&lsaquo;</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-8 w-8 p-0"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              aria-label="Go to next page"
+            >
+              <span>&rsaquo;</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-8 w-8 p-0"
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+              aria-label="Go to last page"
+            >
+              <span>&raquo;</span>
+            </Button>
+          </div>
         </div>
       </div>
     </div>
